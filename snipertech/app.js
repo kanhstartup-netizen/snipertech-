@@ -1832,7 +1832,9 @@ function SniperTechX() {
     useEffect(() => { const id = setTimeout(() => setShowSplash(false), 2600); return () => clearTimeout(id); }, []);
     const t = (k, vars) => tr(lang, k, vars);
     // ── Auth + membership (UI demo — connect to your backend for real verification) ──
-    const [user, setUser] = useState(null); // {name, email, plan, expiresAt}
+    const [user, setUser] = useState(() => {
+        try { const s = localStorage.getItem("sniper_user"); return s ? JSON.parse(s) : null; } catch(e) { return null; }
+    }); // {name, email, plan, expiresAt}
     const [showPay, setShowPay] = useState(false);
     const [nav, setNav] = useState("home"); // home | tools | learn | news | profile
     const [tab, setTab] = useState("chart"); // tools sub-tab: chart | news
@@ -1853,7 +1855,9 @@ function SniperTechX() {
     const [biasIdx, setBiasIdx] = useState(0);
     const [loading, setLoading] = useState(false);
     const [stage, setStage] = useState("");
-    const [result, setResult] = useState(null);
+    const [result, setResult] = useState(() => {
+        try { const s = localStorage.getItem("sniper_result"); return s ? JSON.parse(s) : null; } catch(e) { return null; }
+    });
     const [err, setErr] = useState(null);
     const fileRef = useRef(null);
     const addFiles = useCallback((files) => {
@@ -2091,7 +2095,7 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
                     throw firstErr;
                 }
             }
-            setResult(parsed);
+            setResult(parsed); try { localStorage.setItem("sniper_result", JSON.stringify(parsed)); } catch(e) {}
         }
         catch (e) {
             setErr(e.reason || "ການວິເຄາະລົ້ມເຫຼວ. ລອງໃໝ່ອີກເທື່ອ.");
@@ -2101,7 +2105,7 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
             setStage("");
         }
     };
-    const reset = () => { setCharts([]); setResult(null); setErr(null); if (fileRef.current)
+    const reset = () => { setCharts([]); setResult(null); setErr(null); try { localStorage.removeItem("sniper_result"); } catch(e) {} if (fileRef.current)
         fileRef.current.value = ""; };
     // Membership status
     const now = Date.now();
@@ -2120,7 +2124,7 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
         return React.createElement(SplashScreen, { onDone: () => setShowSplash(false) });
     // Show login screen until the customer is signed in
     if (!user)
-        return React.createElement(Login, { onLogin: (u) => { setUser(u); if (isAdminEmail(u.email))
+        return React.createElement(Login, { onLogin: (u) => { setUser(u); try { localStorage.setItem("sniper_user", JSON.stringify(u)); } catch(e) {} if (isAdminEmail(u.email))
                 setIsAdmin(true); if (u.plan === "Trial")
                 setShowOnboard(true); }, lang: lang, setLang: setLang, t: t });
     // First-time onboarding tutorial (after signup)
@@ -2128,7 +2132,7 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
         return React.createElement(Onboarding, { t: t, onDone: () => setShowOnboard(false) });
     // Locked or user opened the payment screen → show payment
     if (isLocked || showPay) {
-        return React.createElement(PaymentScreen, { t: t, lang: lang, setLang: setLang, locked: isLocked, onPaid: onPaid, onBack: () => setShowPay(false), onLogout: () => setUser(null) });
+        return React.createElement(PaymentScreen, { t: t, lang: lang, setLang: setLang, locked: isLocked, onPaid: onPaid, onBack: () => setShowPay(false), onLogout: () => { setUser(null); try { localStorage.removeItem("sniper_user"); } catch(e) {} } });
     }
     return (React.createElement("div", { style: { minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'LaoOverride','Noto Sans Lao','Inter',system-ui,sans-serif", position: "relative", overflow: "hidden" } },
         React.createElement("style", null, `
@@ -2251,7 +2255,7 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
             nav === "news" && (React.createElement("div", { className: "fx-rise" },
                 React.createElement(NewsRoom, { t: t, notify: notify, setNotify: setNotify, isAdmin: isAdmin }))),
             nav === "profile" && (React.createElement("div", { className: "fx-rise" },
-                React.createElement(ProfilePage, { t: t, user: user, lang: lang, setLang: setLang, daysLeft: daysLeft, notify: notify, setNotify: setNotify, onPay: () => setShowPay(true), onLogout: () => setUser(null), waLink: waLink, isAdmin: isAdmin, setIsAdmin: setIsAdmin, theme: theme, setTheme: setTheme }))),
+                React.createElement(ProfilePage, { t: t, user: user, lang: lang, setLang: setLang, daysLeft: daysLeft, notify: notify, setNotify: setNotify, onPay: () => setShowPay(true), onLogout: () => { setUser(null); try { localStorage.removeItem("sniper_user"); } catch(e) {} }, waLink: waLink, isAdmin: isAdmin, setIsAdmin: setIsAdmin, theme: theme, setTheme: setTheme }))),
             React.createElement("footer", { style: { marginTop: 36, paddingTop: 18, borderTop: `1px solid ${C.line}`, color: C.mut, fontSize: 11.5, lineHeight: 1.8, textAlign: "center" } }, t("footer"))),
         React.createElement("nav", { style: { position: "fixed", left: "50%", bottom: 0, transform: "translateX(-50%)", width: "100%", maxWidth: 720, zIndex: 50, padding: "0 12px 12px" } },
             React.createElement("div", { style: { display: "flex", justifyContent: "space-around", alignItems: "center", gap: 4, padding: "8px 6px", borderRadius: 20, border: `1px solid ${C.line}`, background: "rgba(16,20,30,.82)", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)", boxShadow: "0 -8px 30px -12px rgba(0,0,0,.7)" } }, [
@@ -2743,7 +2747,9 @@ function ChartBackdrop({ tint = "#C9A24B" }) {
 function NewsPanel({ t, lang, isVip = false, onUpgrade }) {
     const [loading, setLoading] = useState(false);
     const [stage, setStage] = useState("");
-    const [data, setData] = useState(null);
+    const [data, setData] = useState(() => {
+        try { const s = localStorage.getItem("sniper_news"); return s ? JSON.parse(s) : null; } catch(e) { return null; }
+    });
     const [err, setErr] = useState(null);
     const run = async () => {
         setLoading(true);
