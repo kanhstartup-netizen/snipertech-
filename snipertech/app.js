@@ -142,7 +142,7 @@ const ADMIN_EMAILS = ["admin@startupfx.app", "kanh.startup@gmail.com"];
 // Backend endpoint that proxies to Claude (keeps the API key server-side).
 // Relative path works automatically on the same Cloudflare Pages site.
 const CLAUDE_ENDPOINT = "https://sniper-proxy.kanh-startup-602.workers.dev";
-const OPENAI_API_KEY = "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"; // ໃສ່ OpenAI key ຂອງທ່ານບ່ອນນີ້
+const OPENAI_API_KEY = "YOUR_OPENAI_KEY_HERE"; // ໃສ່ OpenAI key ຂອງທ່ານບ່ອນນີ້
 
 // Fallback: call OpenAI if Claude fails
 async function callWithFallback(body, signal) {
@@ -2277,7 +2277,10 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
                     "\u23F3 ",
                     daysLeft <= 0 ? t("trialEndsToday") : t("trialLeft", { n: daysLeft })),
                 React.createElement("div", { style: { flex: 1 } }),
-                React.createElement("img", { src: LOGO, alt: "Startup FX", style: { height: 30, objectFit: "contain" } })),
+                React.createElement("img", { src: LOGO, alt: "Startup FX", style: { height: 30, objectFit: "contain" } }),
+                React.createElement("button", { onClick: () => { setNotify(n => !n); try { new Notification("SniperTech AI", { body: "\u0e41\u0e08\u0ec9\u0e87\u0ec0\u0e95\u0eb7\u0ead\u0e99\u0ec0\u0e9b\u0eb5\u0e94\u0ec3\u0e8a\u0ec9\u0e87\u0eb2\u0e99\u0ec1\u0ea5\u0ec9\u0ea7" }); } catch(e) {} }, className: "fx-btn", style: { position: "relative", width: 36, height: 36, borderRadius: "50%", border: `1px solid ${C.line}`, background: C.panel2, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, cursor: "pointer", flexShrink: 0 } },
+                    "\uD83D\uDD14",
+                    React.createElement("span", { style: { position: "absolute", top: 6, right: 7, width: 8, height: 8, borderRadius: "50%", background: C.red, border: `1.5px solid ${C.bg}`, animation: "fxGlowPulse 2s infinite" } }))),
             nav === "home" && (React.createElement("div", { className: "fx-rise" },
                 React.createElement("div", { style: { position: "relative", borderRadius: 22, overflow: "hidden", border: `1px solid ${C.line}`, background: `linear-gradient(120deg, ${C.bg2} 0%, ${C.panel} 55%, rgba(38,130,255,.20) 100%)`, padding: "28px 22px", minHeight: 168 } },
                     React.createElement("span", { "aria-hidden": true, style: { position: "absolute", top: -40, right: -30, width: 240, height: 240, borderRadius: "50%", background: `radial-gradient(closest-side, ${C.glow}, transparent 70%)`, filter: "blur(8px)", animation: "fxGlowPulse 5s ease-in-out infinite", pointerEvents: "none" } }),
@@ -2285,10 +2288,15 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
                     React.createElement("div", { style: { position: "relative" } },
                         React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12 } },
                             React.createElement("span", { style: { fontSize: 34, lineHeight: 1, filter: `drop-shadow(0 4px 14px ${C.glow})` } }, "\uD83C\uDFAF"),
-                            React.createElement("h1", { style: { fontFamily: "'LaoOverride','Sora','Noto Sans Lao',sans-serif", fontSize: "clamp(26px,6.5vw,38px)", fontWeight: 700, letterSpacing: "-0.02em", margin: 0, lineHeight: 1.05 } },
-                                "Sniper",
-                                React.createElement("span", { style: { background: `linear-gradient(95deg,${C.cyan},${C.blue})`, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" } }, "Tech"),
-                                React.createElement("span", { style: { color: C.mut, fontWeight: 500 } }, " AI"))),
+                            React.createElement("div", null,
+                                React.createElement("div", { style: { fontSize: 9, fontWeight: 700, letterSpacing: "2px", color: C.blue, textTransform: "uppercase", marginBottom: 4 } }, "\u26A1 Powered by Startup FX"),
+                                React.createElement("h1", { style: { fontFamily: "'LaoOverride','Sora','Noto Sans Lao',sans-serif", fontSize: "clamp(26px,6.5vw,38px)", fontWeight: 700, letterSpacing: "-0.02em", margin: 0, lineHeight: 1.05, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" } },
+                                    "Sniper",
+                                    React.createElement("span", { style: { background: `linear-gradient(95deg,${C.cyan},${C.blue})`, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" } }, "Tech"),
+                                    React.createElement("span", { style: { color: C.text, fontWeight: 900 } }, " AI"),
+                                    React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(38,130,255,0.15)", border: `1px solid rgba(38,130,255,0.4)`, borderRadius: 99, padding: "2px 8px", fontSize: 10, fontWeight: 700, color: C.blueLt, verticalAlign: "middle" } },
+                                        React.createElement("span", { style: { width: 5, height: 5, borderRadius: "50%", background: C.blue, animation: "fxGlowPulse 1.5s infinite", display: "inline-block" } }),
+                                        "LIVE")))),
                         React.createElement("p", { style: { color: C.mut, fontSize: 13.5, lineHeight: 1.55, margin: "12px 0 0", maxWidth: 380 } },
                             t("homeWelcome"),
                             ", ",
