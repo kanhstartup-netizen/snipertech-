@@ -142,7 +142,7 @@ const ADMIN_EMAILS = ["admin@startupfx.app", "kanh.startup@gmail.com"];
 // Backend endpoint that proxies to Claude (keeps the API key server-side).
 // Relative path works automatically on the same Cloudflare Pages site.
 const CLAUDE_ENDPOINT = "https://sniper-proxy.kanh-startup-602.workers.dev";
-const OPENAI_API_KEY = "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"; // ໃສ່ OpenAI key ຂອງທ່ານບ່ອນນີ້
+const OPENAI_API_KEY = "YOUR_OPENAI_KEY_HERE"; // ໃສ່ OpenAI key ຂອງທ່ານບ່ອນນີ້
 
 // Fallback: call OpenAI if Claude fails
 async function callWithFallback(body, signal) {
@@ -2307,23 +2307,22 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
                 React.createElement("div", { style: { marginTop: 24 } },
                     React.createElement(SectionTitle, { kicker: "SniperTech AI", title: t("homeQuickTools") }),
                     React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 14 } },
-                        React.createElement(HomeCard, { icon: "\uD83D\uDCCA", title: t("analyzeChart"), desc: "AI Intelligence", onClick: () => { setNav("tools"); setTab("chart"); } }),
-                        React.createElement(HomeCard, { icon: "\uD83D\uDCF0", title: t("analyzeNews"), desc: "DXY \u00B7 Fed \u00B7 Oil", onClick: () => { setNav("tools"); setTab("news"); } }),
-                        React.createElement(HomeCard, { icon: "\uD83C\uDF93", title: t("tabCourse"), desc: "Gold Sniper", onClick: () => setNav("learn") }),
-                        React.createElement(HomeCard, { icon: "\uD83D\uDCE2", title: t("tabNews2"), desc: t("homeAnnounce"), onClick: () => setNav("news") }))),
+                        React.createElement(HomeCard, { icon: "\uD83D\uDCCA", title: t("analyzeChart"), desc: "AI Intelligence", glowColor: "rgba(38,130,255,.2)", iconBg: "rgba(38,130,255,.15)", onClick: () => { setNav("tools"); setTab("chart"); } }),
+                        React.createElement(HomeCard, { icon: "\uD83D\uDCF0", title: t("analyzeNews"), desc: "DXY \u00B7 Fed \u00B7 Oil", glowColor: "rgba(63,217,138,.15)", iconBg: "rgba(63,217,138,.12)", onClick: () => { setNav("tools"); setTab("news"); } }),
+                        React.createElement(HomeCard, { icon: "\uD83C\uDF93", title: t("tabCourse"), desc: "Gold Sniper", glowColor: "rgba(255,194,75,.15)", iconBg: "rgba(255,194,75,.12)", onClick: () => setNav("learn") }),
+                        React.createElement(HomeCard, { icon: "\uD83D\uDCE2", title: t("tabNews2"), desc: t("homeAnnounce"), glowColor: "rgba(255,107,107,.15)", iconBg: "rgba(255,107,107,.12)", onClick: () => setNav("news") }))),
                 React.createElement("div", { style: { marginTop: 26 } },
-                    React.createElement(SectionTitle, { kicker: "Cashback", title: "15$ / 1 Lot" }),
-                    React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 12, marginTop: 14 } }, [
-                        { logo: KCM_LOGO, alt: "KCM Trade", title: t("rebateTitle"), cta: t("registerKcm"), url: KCM_REGISTER_URL },
-                        { logo: KVB_LOGO, alt: "KVB", title: t("rebateTitleKvb"), cta: t("registerKvb"), url: KVB_REGISTER_URL },
-                    ].map((b, i) => (React.createElement("section", { key: i, style: { borderRadius: 18, border: `1px solid ${C.line}`, background: `linear-gradient(180deg, ${C.panel}, ${C.bg2})`, padding: "16px 18px", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" } },
-                        React.createElement("img", { src: b.logo, alt: b.alt, style: { width: 48, height: 48, objectFit: "contain", borderRadius: 10, border: `1px solid ${C.line}` } }),
-                        React.createElement("div", { style: { flex: 1, minWidth: 170 } },
-                            React.createElement("div", { style: { fontFamily: "'LaoOverride','Sora','Noto Sans Lao',sans-serif", fontWeight: 700, fontSize: 15 } }, b.title),
-                            React.createElement("div", { style: { color: C.mut, fontSize: 12.5, lineHeight: 1.55, marginTop: 3 } }, t("rebateDesc"))),
-                        React.createElement("a", { className: "fx-link", href: b.url, target: "_blank", rel: "noopener noreferrer", style: { display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", background: `linear-gradient(95deg,${C.blue},${C.blueLt})`, color: "#04101F", fontWeight: 700, fontSize: 13.5, padding: "11px 16px", borderRadius: 11, whiteSpace: "nowrap" } },
-                            b.cta,
-                            " \u2192")))))))),
+                    React.createElement("div", { style: { borderRadius: 18, border: `1px solid ${C.line}`, background: `linear-gradient(135deg,${C.panel},${C.bg2})`, padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "relative", overflow: "hidden" } },
+                        React.createElement("span", { "aria-hidden": true, style: { position: "absolute", left: -10, top: -10, width: 80, height: 80, borderRadius: "50%", background: "radial-gradient(circle,rgba(63,217,138,.15),transparent 70%)", pointerEvents: "none" } }),
+                        React.createElement("div", null,
+                            React.createElement("div", { style: { fontSize: 9, fontWeight: 700, letterSpacing: "1.5px", color: C.green, textTransform: "uppercase", marginBottom: 2 } }, "\uD83D\uDCB0 Cashback"),
+                            React.createElement("div", { style: { fontSize: 22, fontWeight: 900, color: C.text } },
+                                "15$ ",
+                                React.createElement("span", { style: { fontSize: 12, color: C.mut, fontWeight: 400 } }, "/ 1 Lot"))),
+                        React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, [
+                            { cta: t("registerKcm"), url: KCM_REGISTER_URL },
+                            { cta: t("registerKvb"), url: KVB_REGISTER_URL },
+                        ].map((b, i) => React.createElement("a", { key: i, href: b.url, target: "_blank", rel: "noopener noreferrer", style: { display: "inline-flex", alignItems: "center", textDecoration: "none", background: "rgba(63,217,138,.12)", border: `1px solid rgba(63,217,138,.3)`, borderRadius: 10, padding: "6px 12px", fontSize: 11, fontWeight: 700, color: C.green, whiteSpace: "nowrap" } }, b.cta, " \u2192")))))),
             nav === "tools" && (React.createElement("div", { className: "fx-rise" },
                 React.createElement("div", { style: { display: "flex", gap: 6, background: C.bg2, border: `1px solid ${C.line}`, borderRadius: 14, padding: 5, maxWidth: 420, margin: "0 auto" } }, [["chart", "📊 " + t("analyzeChart")], ["news", "📰 " + t("analyzeNews")]].map(([id, label]) => (React.createElement("button", { key: id, className: "fx-btn", onClick: () => setTab(id), style: { flex: 1, padding: "10px 12px", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13.5, fontWeight: 600,
                         background: tab === id ? `linear-gradient(95deg,${C.blue},${C.blueLt})` : "transparent",
@@ -3519,12 +3518,13 @@ function NewsRoom({ t, notify: extNotify, setNotify: extSetNotify, isAdmin = fal
         React.createElement("p", { style: { fontSize: 11, color: C.mut, lineHeight: 1.7, marginTop: 14 } }, t("roomBackendNote"))));
 }
 // ── Home quick-action card ───────────────────────────────────
-function HomeCard({ icon, title, desc, onClick }) {
-    return (React.createElement("button", { onClick: onClick, className: "fx-card fx-btn", style: { textAlign: "left", cursor: "pointer", fontFamily: "inherit", color: "inherit", borderRadius: 16, border: `1px solid ${C.line}`, background: `linear-gradient(155deg, ${C.panel}, ${C.bg2})`, padding: "16px 16px", display: "flex", flexDirection: "column", gap: 8, minHeight: 104 } },
-        React.createElement("span", { style: { fontSize: 26, lineHeight: 1 } }, icon),
+function HomeCard({ icon, title, desc, onClick, glowColor = "rgba(38,130,255,.2)", iconBg = "rgba(38,130,255,.15)" }) {
+    return (React.createElement("button", { onClick: onClick, className: "fx-card fx-btn", style: { textAlign: "left", cursor: "pointer", fontFamily: "inherit", color: "inherit", borderRadius: 16, border: `1px solid ${C.line}`, background: C.panel, padding: "14px 14px 12px", display: "flex", flexDirection: "column", gap: 8, minHeight: 110, position: "relative", overflow: "hidden" } },
+        React.createElement("span", { "aria-hidden": true, style: { position: "absolute", top: -10, right: -10, width: 60, height: 60, borderRadius: "50%", background: glowColor, pointerEvents: "none" } }),
+        React.createElement("div", { style: { width: 36, height: 36, borderRadius: 10, background: iconBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, lineHeight: 1, flexShrink: 0 } }, icon),
         React.createElement("div", { style: { marginTop: "auto" } },
-            React.createElement("div", { style: { fontFamily: "'LaoOverride','Sora','Noto Sans Lao',sans-serif", fontWeight: 700, fontSize: 14.5, color: C.text, lineHeight: 1.25 } }, title),
-            React.createElement("div", { style: { color: C.mut, fontSize: 11.5, marginTop: 2 } }, desc))));
+            React.createElement("div", { style: { fontFamily: "'LaoOverride','Sora','Noto Sans Lao',sans-serif", fontWeight: 700, fontSize: 13.5, color: C.text, lineHeight: 1.25 } }, title),
+            React.createElement("div", { style: { color: C.mut, fontSize: 10.5, marginTop: 2 } }, desc))));
 }
 // ── Profile page (language, notifications, settings, help) ───
 
