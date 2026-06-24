@@ -97,9 +97,9 @@ const KCM_REGISTER_URL = "https://auth-login.kcmtrade.com/th/links/go/19137";
 const KVB_REGISTER_URL = "https://cnf5g62e6.plusiaa.com";
 const KVB_LOGO = "./img1.jpeg";
 // Embedded payment assets (QR images + KCM logo)
-const QR_USDT = "/img2.jpeg";
-const QR_LAK = "/img3.jpeg";
-const QR_THB = "/img4.jpeg";
+const QR_USDT = "./img2.jpeg";
+const QR_LAK = "./img3.jpeg";
+const QR_THB = "./img4.jpeg";
 const KCM_LOGO = "./img5.jpeg";
 // Subscription: 3-day free trial, then monthly
 const TRIAL_DAYS = 3;
@@ -1883,6 +1883,46 @@ function tryRepairJson(text) {
     }
     return null;
 }
+
+// ── Watermark Component ──────────────────────────────────────
+function Watermark() {
+    const text = "020 7777 7421  |  Startup FX Academy";
+    // Repeat text to fill screen
+    const items = Array.from({ length: 40 }, (_, i) => i);
+    return React.createElement("div", {
+        "aria-hidden": true,
+        style: {
+            position: "fixed", inset: 0, zIndex: 9998,
+            pointerEvents: "none", overflow: "hidden",
+            userSelect: "none", WebkitUserSelect: "none",
+        }
+    },
+        React.createElement("div", {
+            style: {
+                position: "absolute", inset: "-50%",
+                display: "grid",
+                gridTemplateColumns: "repeat(3, 1fr)",
+                gap: "40px 20px",
+                transform: "rotate(-30deg)",
+                opacity: 0.055,
+            }
+        },
+            items.map(i => React.createElement("div", {
+                key: i,
+                style: {
+                    color: "#A9E0FF",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    whiteSpace: "nowrap",
+                    fontFamily: "'Sora','Inter',sans-serif",
+                    letterSpacing: "0.05em",
+                    padding: "20px 10px",
+                }
+            }, text))
+        )
+    );
+}
+
 function SniperTechX() {
     // ── Language (auto-detect, switchable) ──
     const [lang, setLang] = useState(() => { try { return localStorage.getItem("sniper_lang") || "lo"; } catch(e) { return "lo"; } });
@@ -2178,7 +2218,8 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
         return React.createElement(SplashScreen, { onDone: () => setShowSplash(false) });
     // Show login screen until the customer is signed in
     if (!user)
-        return React.createElement(Login, { onLogin: (u) => { setUser(u); try { localStorage.setItem("sniper_user", JSON.stringify(u)); } catch(e) {} if (isAdminEmail(u.email))
+        return React.createElement(Login, { onLogin: (u) => { setUser(u); try { localStorage.setItem("sniper_user", JSON.stringify(u)); } catch(e) {} if (isAdminEmail(u.email)) { u.expiresAt = Date.now() + 36500 * 86400000; u.plan = "VIP"; try { localStorage.setItem("sniper_user", JSON.stringify(u)); } catch(e) {} }
+        if (isAdminEmail(u.email))
                 setIsAdmin(true); if (u.plan === "Trial")
                 setShowOnboard(true); }, lang: lang, setLang: setLang, t: t });
     // First-time onboarding tutorial (after signup)
@@ -2218,11 +2259,12 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
         @keyframes bgDrift{ from{ transform:translateX(0);} to{ transform:translateX(-50%);} }
       `),
         React.createElement(ChartBackdrop, { tint: "#C9A24B" }),
+        React.createElement(Watermark, null),
         React.createElement("div", { "aria-hidden": true, style: { position: "absolute", inset: 0, backgroundImage: `linear-gradient(${C.line} 1px, transparent 1px), linear-gradient(90deg, ${C.line} 1px, transparent 1px)`, backgroundSize: "48px 48px", opacity: 0.12, animation: "fxGrid 6s linear infinite", maskImage: "radial-gradient(120% 80% at 50% 0%, #000 35%, transparent 80%)", WebkitMaskImage: "radial-gradient(120% 80% at 50% 0%, #000 35%, transparent 80%)" } }),
         React.createElement("div", { "aria-hidden": true, style: { position: "absolute", top: -160, left: "50%", transform: "translateX(-50%)", width: 620, height: 360, background: `radial-gradient(closest-side, ${C.glow}, transparent)`, filter: "blur(20px)", animation: "fxGlowPulse 5s ease-in-out infinite", pointerEvents: "none" } }),
         React.createElement("div", { style: { maxWidth: 720, margin: "0 auto", padding: "14px 16px 96px", position: "relative", zIndex: 1 } },
             React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: 16, padding: "10px 14px", borderRadius: 16, border: `1px solid ${C.line}`, background: "rgba(16,20,30,.55)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" } },
-                React.createElement("button", { onClick: () => setShowPay(true), className: "fx-btn", style: { display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: 99, border: `1px solid ${daysLeft <= 1 ? C.amber : C.line}`, background: daysLeft <= 1 ? "rgba(255,194,75,.12)" : "transparent", color: daysLeft <= 1 ? C.amber : C.mut, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" } },
+                !isAdmin && React.createElement("button", { onClick: () => setShowPay(true), className: "fx-btn", style: { display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: 99, border: `1px solid ${daysLeft <= 1 ? C.amber : C.line}`, background: daysLeft <= 1 ? "rgba(255,194,75,.12)" : "transparent", color: daysLeft <= 1 ? C.amber : C.mut, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" } },
                     "\u23F3 ",
                     daysLeft <= 0 ? t("trialEndsToday") : t("trialLeft", { n: daysLeft })),
                 React.createElement("div", { style: { flex: 1 } }),
@@ -2677,6 +2719,14 @@ function Login({ onLogin, lang, setLang, t }) {
         if (mode === "signup" && (!name.trim() || !agree)) {
             setError(t("errName"));
             return;
+        }
+        // Check for referral code in URL
+        const urlRef = new URLSearchParams(window.location.search).get("ref");
+        if (mode === "signup" && urlRef) {
+            // Notify admin via WhatsApp about referral signup
+            const refMsg = encodeURIComponent(`🔔 Referral signup!\nNew user: ${email}\nReferred by code: ${urlRef}\nPlease create +10 day VIP code for referrer.`);
+            const adminWa = `https://wa.me/${WHATSAPP_NUMBER}?text=${refMsg}`;
+            setTimeout(() => window.open(adminWa, "_blank"), 2000);
         }
         // DEMO ONLY: no real verification. Replace with backend call.
         // New signups get a free trial; logins get a demo active period.
@@ -3555,7 +3605,7 @@ function ProfilePage({ t, user, lang, setLang, daysLeft, notify, setNotify, onPa
             React.createElement("div", { style: { color: C.mut, fontSize: 13, marginTop: 2 } }, user.email),
             React.createElement("div", { style: { display: "inline-flex", alignItems: "center", gap: 8, marginTop: 12, padding: "6px 14px", borderRadius: 99, background: C.bg2, border: `1px solid ${C.line}` } },
                 React.createElement("span", { style: { fontSize: 11, fontWeight: 700, color: "#04101F", background: `linear-gradient(95deg,${C.blue},${C.blueLt})`, borderRadius: 99, padding: "2px 10px" } }, user.plan),
-                React.createElement("span", { style: { fontSize: 12, color: daysLeft <= 1 ? C.amber : C.mut } }, daysLeft <= 0 ? t("trialEndsToday") : t("daysRemaining", { n: daysLeft }))),
+                React.createElement("span", { style: { fontSize: 12, color: isAdmin ? C.green : (daysLeft <= 1 ? C.amber : C.mut) } }, isAdmin ? "✅ Admin" : (daysLeft <= 0 ? t("trialEndsToday") : t("daysRemaining", { n: daysLeft })))),
             React.createElement("div", { style: { marginTop: 14 } },
                 React.createElement("button", { onClick: onPay, className: "fx-btn", style: { padding: "10px 22px", borderRadius: 11, border: "none", background: `linear-gradient(95deg,${C.blue},${C.blueLt})`, color: "#04101F", fontWeight: 700, fontSize: 13.5, cursor: "pointer", fontFamily: "inherit" } }, t("payNow")))),
         React.createElement(WalletReferral, { t: t, user: user }),
@@ -4033,7 +4083,7 @@ function WalletReferral({ t, user }) {
     const [history, setHistory] = useState([]);
     // Referral code derived from email (demo). Backend should assign a unique code.
     const code = (((_a = user === null || user === void 0 ? void 0 : user.email) === null || _a === void 0 ? void 0 : _a.split("@")[0]) || "user").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8) + "FX";
-    const link = `https://startupfx.app/?ref=${code}`;
+    const link = `https://kanhstartup-netizen.github.io/snipertech-/snipertech/?ref=${code}`;
     const copyLink = async () => {
         try {
             await navigator.clipboard.writeText(link);
@@ -4043,7 +4093,7 @@ function WalletReferral({ t, user }) {
         catch { }
     };
     const share = async () => {
-        const text = `Join SniperTech AI with my code ${code}: ${link}`;
+        const text = `🎯 SniperTech AI — AI ວິເຄາະທອງ XAU/USD\n\nສະໝັກທົດລອງຟຣີ 3 ວັນ ຜ່ານລິ້ງຂອງຂ້ອຍ:\n${link}\n\n(ໃສ່ code ${code} ຕອນສະໝັກ)`;
         try {
             if (navigator.share) {
                 await navigator.share({ title: "SniperTech AI", text, url: link });
@@ -4085,24 +4135,7 @@ function WalletReferral({ t, user }) {
             badge && React.createElement("span", { style: { marginLeft: "auto", fontSize: 9.5, fontWeight: 700, color: C.amber, background: "rgba(255,194,75,.12)", border: `1px solid rgba(255,194,75,.4)`, borderRadius: 99, padding: "2px 8px" } }, badge)),
         React.createElement("div", { style: { borderRadius: 16, border: `1px solid ${C.line}`, background: C.panel, overflow: "hidden" } }, children)));
     return (React.createElement(React.Fragment, null,
-        React.createElement(Section, { icon: "\uD83D\uDCB0", title: t("secWallet"), badge: t("demoBadge") },
-            React.createElement("div", { style: { padding: "18px 18px", background: `radial-gradient(120% 130% at 100% 0%, rgba(38,130,255,.18), transparent 55%), ${C.panel}` } },
-                React.createElement("div", { style: { fontSize: 11.5, color: C.mut } }, t("walletBalance")),
-                React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: 6, marginTop: 4 } },
-                    React.createElement("span", { style: { fontFamily: "'LaoOverride','Sora','Noto Sans Lao',sans-serif", fontSize: 32, fontWeight: 800, color: C.text, lineHeight: 1 } }, balance.toFixed(2)),
-                    React.createElement("span", { style: { fontSize: 14, fontWeight: 700, color: C.cyan } }, "USDT")),
-                React.createElement("div", { style: { display: "flex", gap: 18, marginTop: 14 } },
-                    React.createElement("div", null,
-                        React.createElement("div", { style: { fontSize: 10.5, color: C.mut } }, t("walletEarned")),
-                        React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: C.green, marginTop: 2 } },
-                            earned.toFixed(2),
-                            " USDT")),
-                    React.createElement("div", null,
-                        React.createElement("div", { style: { fontSize: 10.5, color: C.mut } }, t("refInvited")),
-                        React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: C.blueLt, marginTop: 2 } },
-                            invited,
-                            " ",
-                            t("refPeople")))))),
+        
         React.createElement(Section, { icon: "\uD83C\uDF81", title: t("secReferral"), badge: t("demoBadge") },
             React.createElement("div", { style: { padding: "16px 18px" } },
                 React.createElement("div", { style: { color: C.text, fontSize: 13, lineHeight: 1.6 } }, t("refDesc", { pct: REFERRAL_PCT })),
@@ -4123,33 +4156,7 @@ function WalletReferral({ t, user }) {
                     React.createElement("div", { style: { fontSize: 11.5, fontWeight: 700, color: C.blueLt, marginBottom: 5 } },
                         "\uD83D\uDCA1 ",
                         t("refHowTitle")),
-                    React.createElement("div", { style: { fontSize: 12, color: C.mut, lineHeight: 1.65 } }, t("refHow", { pct: REFERRAL_PCT }))))),
-        React.createElement(Section, { icon: "\uD83C\uDFE7", title: t("secWithdraw"), badge: t("demoBadge") },
-            React.createElement("div", { style: { padding: "16px 18px" } },
-                React.createElement("div", { style: { fontSize: 11, color: C.mut, marginBottom: 5 } },
-                    t("wdAmount"),
-                    " \u00B7 ",
-                    React.createElement("span", { style: { color: C.amber } }, t("wdMin", { min: WITHDRAW_MIN }))),
-                React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center", background: C.bg2, border: `1px solid ${C.line}`, borderRadius: 10, padding: "4px 12px", marginBottom: 10 } },
-                    React.createElement("input", { type: "number", value: wdAmt, onChange: (e) => setWdAmt(e.target.value), placeholder: "0.00", style: { flex: 1, background: "transparent", border: "none", color: C.text, fontSize: 15, fontFamily: "inherit", outline: "none", padding: "9px 0" } }),
-                    React.createElement("span", { style: { fontSize: 13, fontWeight: 700, color: C.cyan } }, "USDT")),
-                React.createElement("div", { style: { fontSize: 11, color: C.mut, marginBottom: 5 } }, t("wdAddress")),
-                React.createElement("input", { value: wdAddr, onChange: (e) => setWdAddr(e.target.value), placeholder: t("wdAddrPlaceholder"), style: { width: "100%", background: C.bg2, border: `1px solid ${C.line}`, borderRadius: 10, padding: "11px 12px", color: C.text, fontSize: 12.5, fontFamily: "inherit", outline: "none", marginBottom: 10 } }),
-                wdMsg && React.createElement("div", { style: { fontSize: 12, color: wdMsg === t("wdSuccess") ? C.green : "#FFB4B4", marginBottom: 10, lineHeight: 1.5 } }, wdMsg),
-                React.createElement("button", { onClick: withdraw, className: "fx-btn", style: { width: "100%", padding: "12px", borderRadius: 11, border: "none", background: balance > 0 ? `linear-gradient(95deg,${C.blue},${C.blueLt})` : C.line, color: balance > 0 ? "#04101F" : C.mut, fontWeight: 700, fontSize: 14, cursor: balance > 0 ? "pointer" : "not-allowed", fontFamily: "inherit" } },
-                    "\uD83C\uDFE7 ",
-                    t("wdBtn")),
-                history.length > 0 && (React.createElement("div", { style: { marginTop: 14 } },
-                    React.createElement("div", { style: { fontSize: 11.5, fontWeight: 700, color: C.mut, marginBottom: 7 } }, t("wdHistory")),
-                    React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6 } }, history.map((h) => (React.createElement("div", { key: h.id, style: { display: "flex", alignItems: "center", gap: 8, fontSize: 12, padding: "8px 11px", borderRadius: 8, background: C.bg2, border: `1px solid ${C.line}` } },
-                        React.createElement("span", { style: { fontWeight: 700, color: C.text } },
-                            h.amt,
-                            " USDT"),
-                        React.createElement("code", { style: { flex: 1, color: C.mut, fontSize: 10.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, h.addr),
-                        React.createElement("span", { style: { fontSize: 10, fontWeight: 700, color: C.amber } },
-                            "\u25CF ",
-                            t("walletPending")))))))),
-                React.createElement("p", { style: { fontSize: 10.5, color: C.mut, lineHeight: 1.6, marginTop: 12 } }, t("wdNote"))))));
+                    React.createElement("div", { style: { fontSize: 12, color: C.mut, lineHeight: 1.65 } }, t("refHow", { pct: REFERRAL_PCT })))))));
 }
 
 // Mount SniperTechX
