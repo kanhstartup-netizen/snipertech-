@@ -139,7 +139,7 @@ const ADMIN_EMAILS = ["admin@startupfx.app", "kanh.startup@gmail.com"];
 // Backend endpoint that proxies to Claude (keeps the API key server-side).
 // Relative path works automatically on the same Cloudflare Pages site.
 const CLAUDE_ENDPOINT = "https://sniper-proxy.kanh-startup-602.workers.dev";
-const OPENAI_API_KEY = "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"; // ໃສ່ OpenAI key ຂອງທ່ານບ່ອນນີ້
+const OPENAI_API_KEY = "YOUR_OPENAI_KEY_HERE"; // ໃສ່ OpenAI key ຂອງທ່ານບ່ອນນີ້
 
 // Fallback: call OpenAI if Claude fails
 async function callWithFallback(body, signal) {
@@ -1937,12 +1937,12 @@ function SniperTechX() {
     const [nav, setNav] = useState("home"); // home | tools | learn | news | profile
     const [tab, setTab] = useState("chart"); // tools sub-tab: chart | news
     const [courseUnlocked, setCourseUnlocked] = useState(false); // DEMO — backend should verify $100 payment
-    React.useEffect(() => { if (isAdmin) setCourseUnlocked(true); }, [isAdmin]);
     const [learnTab, setLearnTab] = useState("paid"); // learn sub-tab: paid | free
     const [notify, setNotify] = useState(typeof Notification !== "undefined" && Notification.permission === "granted");
     // Multi-AI consensus: which engines are enabled. Only Claude runs now; others need a backend.
     const [aiEngines, setAiEngines] = useState({ claude: true, gpt: false, gemini: false });
     const [isAdmin, setIsAdmin] = useState(false); // admin unlock — hides AI engine internals from clients
+    React.useEffect(() => { if (isAdmin) setCourseUnlocked(true); }, [isAdmin]);
     // ── Theme: mutate live C palette + re-render whole app on change ──
     const [theme, setThemeState] = useState(DEFAULT_THEME);
     const setTheme = (key) => { const applied = applyTheme(key); setThemeState(applied); };
