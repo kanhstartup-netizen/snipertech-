@@ -103,6 +103,15 @@ const QR_THB = "/img4.jpeg";
 const KCM_LOGO = "./img5.jpeg";
 // Subscription: 3-day free trial, then monthly
 const TRIAL_DAYS = 3;
+
+// Activation codes — Admin ສົ່ງໃຫ້ User ຫຼັງຊຳລະເງິນ
+// ເພີ່ມ/ແກ້ code ໄດ້ຢູ່ບ່ອນນີ້
+const ACTIVATION_CODES = {
+    "VIP30":    { days: 30,  plan: "VIP" },
+    "VIP365":   { days: 365, plan: "VIP" },
+    "SFX2025":  { days: 30,  plan: "VIP" },
+    "STARTUP1": { days: 30,  plan: "VIP" },
+};
 const PLANS = [
     { ccy: "LAK", price: "700,000 ກີບ", qr: QR_LAK, label: "ກີບ (LAK)", note: "BCEL One · LAPNet QR" },
     { ccy: "THB", price: "1,000 บาท", qr: QR_THB, label: "บาท (THB)", note: "BCEL One · LAPNet QR" },
@@ -1203,7 +1212,7 @@ const T = {
         contactTitle: "ສົນໃຈຄອສ ຫຼື ສັນຍານ VIP?", contactDesc: "ແຊັດກັບທີມ Startup FX ໂດຍກົງ.", chatWa: "ແຊັດ WhatsApp",
         // trial / payment
         trialLeft: "ທົດລອງໃຊ້ຟຣີ ເຫຼືອ {n} ມື້", trialEndsToday: "ໝົດທົດລອງມື້ນີ້", expired: "ບັນຊີໝົດອາຍຸແລ້ວ",
-        locked: "ບັນຊີຖືກລັອກ", lockedDesc: "ການທົດລອງ/ສະມາຊິກໝົດອາຍຸແລ້ວ. ກະລຸນາຊຳລະເພື່ອໃຊ້ຕໍ່.", payNow: "ຊຳລະເພື່ອປົດລັອກ",
+        locked: "ບັນຊີຖືກລັອກ", lockedDesc: "ການທົດລອງ/ສະມາຊິກໝົດອາຍຸແລ້ວ. ກະລຸນາຊຳລະເພື່ອໃຊ້ຕໍ່.", payNow: "ຊຳລະເພື່ອປົດລັອກ", actCodePlaceholder: "ໃສ່ລະຫັດ VIP ຂອງທ່ານ", actCodeBtn: "ຢືນຢັນລະຫັດ", actCodeOk: "✅ ປົດລັອກສຳເລັດ! ໄດ້ VIP {n} ວັນ", actCodeErr: "❌ ລະຫັດບໍ່ຖືກຕ້ອງ ຫຼື ໃຊ້ແລ້ວ",
         payTitle: "ຕໍ່ອາຍຸສະມາຊິກ", payDesc: "ເລືອກສະກຸນເງິນ ແລ້ວສະແກນ QR ເພື່ອຊຳລະ ({price}/ເດືອນ)", perMonth: "/ເດືອນ",
         scanToPay: "ສະແກນ QR ເພື່ອຊຳລະ", afterPay: "ຫຼັງຊຳລະແລ້ວ ສົ່ງສະລິບໃຫ້ Startup FX ທາງ WhatsApp ເພື່ອເປີດໃຊ້ງານ.",
         sentSlip: "ສົ່ງສະລິບ + ປົດລັອກ (Demo)", copyAddr: "ສຳເນົາ address", copied: "ສຳເນົາແລ້ວ!",
@@ -1495,7 +1504,7 @@ const T = {
         joinCourse: "สมัครเรียน", joinVip: "เข้าร่วม VIP", bookSeat: "จองที่นั่ง",
         contactTitle: "สนใจคอร์ส หรือ สัญญาณ VIP?", contactDesc: "แชทกับทีม Startup FX โดยตรง", chatWa: "แชท WhatsApp",
         trialLeft: "ทดลองใช้ฟรี เหลือ {n} วัน", trialEndsToday: "หมดทดลองวันนี้", expired: "บัญชีหมดอายุแล้ว",
-        locked: "บัญชีถูกล็อก", lockedDesc: "การทดลอง/สมาชิกหมดอายุแล้ว กรุณาชำระเพื่อใช้ต่อ", payNow: "ชำระเพื่อปลดล็อก",
+        locked: "บัญชีถูกล็อก", lockedDesc: "การทดลอง/สมาชิกหมดอายุแล้ว กรุณาชำระเพื่อใช้ต่อ", payNow: "ชำระเพื่อปลดล็อก", actCodePlaceholder: "ใส่รหัส VIP ของคุณ", actCodeBtn: "ยืนยันรหัส", actCodeOk: "✅ ปลดล็อกสำเร็จ! ได้ VIP {n} วัน", actCodeErr: "❌ รหัสไม่ถูกต้องหรือใช้แล้ว",
         payTitle: "ต่ออายุสมาชิก", payDesc: "เลือกสกุลเงินแล้วสแกน QR เพื่อชำระ ({price}/เดือน)", perMonth: "/เดือน",
         scanToPay: "สแกน QR เพื่อชำระ", afterPay: "หลังชำระแล้ว ส่งสลิปให้ Startup FX ทาง WhatsApp เพื่อเปิดใช้งาน",
         sentSlip: "ส่งสลิป + ปลดล็อก (Demo)", copyAddr: "คัดลอก address", copied: "คัดลอกแล้ว!",
@@ -1787,7 +1796,7 @@ const T = {
         joinCourse: "Enroll", joinVip: "Join VIP", bookSeat: "Book seat",
         contactTitle: "Interested in a course or VIP signals?", contactDesc: "Chat with the Startup FX team directly.", chatWa: "Chat on WhatsApp",
         trialLeft: "Free trial — {n} days left", trialEndsToday: "Trial ends today", expired: "Account expired",
-        locked: "Account locked", lockedDesc: "Your trial/membership has expired. Please pay to continue.", payNow: "Pay to unlock",
+        locked: "Account locked", lockedDesc: "Your trial/membership has expired. Please pay to continue.", payNow: "Pay to unlock", actCodePlaceholder: "Enter your VIP code", actCodeBtn: "Activate", actCodeOk: "✅ Activated! VIP for {n} days", actCodeErr: "❌ Invalid or already used code",
         payTitle: "Renew membership", payDesc: "Pick a currency and scan the QR to pay ({price}/month)", perMonth: "/mo",
         scanToPay: "Scan QR to pay", afterPay: "After paying, send the slip to Startup FX on WhatsApp to activate.",
         sentSlip: "Sent slip + unlock (Demo)", copyAddr: "Copy address", copied: "Copied!",
@@ -2159,8 +2168,9 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
     // VIP = a paid (non-trial) active member, or admin. Used to gate premium AI features.
     const isVip = isAdmin || (!!user && user.plan && user.plan !== "Trial" && !isLocked);
     // On successful payment (demo): extend 30 days and unlock
-    const onPaid = () => {
-        setUser((u) => ({ ...u, expiresAt: Date.now() + 30 * 86400000, plan: "VIP" }));
+    const onPaid = (days, plan) => {
+        const d = days || 30; const p = plan || "VIP";
+        setUser((u) => { const nu = { ...u, expiresAt: Date.now() + d * 86400000, plan: p }; try { localStorage.setItem("sniper_user", JSON.stringify(nu)); } catch(e) {} return nu; });
         setShowPay(false);
     };
     // Splash intro animation on app open
@@ -3193,6 +3203,41 @@ function LangSwitch({ lang, setLang }) {
 }
 // ── Payment / Locked screen ───────────────────────────────
 function PaymentScreen({ t, lang, setLang, locked, onPaid, onBack, onLogout }) {
+    const [actCode, setActCode] = React.useState("");
+    const [actMsg, setActMsg] = React.useState("");
+    const activateCode = () => {
+        const code = actCode.trim().toUpperCase();
+        
+        // Check static codes first (VIP30, VIP365, etc.)
+        if (ACTIVATION_CODES[code]) {
+            const found = ACTIVATION_CODES[code];
+            setActMsg(t("actCodeOk").replace("{n}", found.days));
+            setTimeout(() => onPaid(found.days, found.plan), 1200);
+            return;
+        }
+        
+        // Check dynamic codes (generated by admin)
+        try {
+            const codeMap = JSON.parse(localStorage.getItem("vip_codes") || "{}");
+            const entry = codeMap[code];
+            if (!entry) { setActMsg(t("actCodeErr")); return; }
+            if (entry.used) { setActMsg("❌ Code ນີ້ຖືກໃຊ້ແລ້ວ"); return; }
+            
+            // Mark as used
+            codeMap[code].used = true;
+            localStorage.setItem("vip_codes", JSON.stringify(codeMap));
+            
+            // Update admin history
+            const hist = JSON.parse(localStorage.getItem("admin_codes") || "[]");
+            const idx = hist.findIndex(h => h.code === code);
+            if (idx >= 0) { hist[idx].used = true; localStorage.setItem("admin_codes", JSON.stringify(hist)); }
+            
+            setActMsg(t("actCodeOk").replace("{n}", entry.days));
+            setTimeout(() => onPaid(entry.days, "VIP"), 1200);
+        } catch(e) {
+            setActMsg(t("actCodeErr"));
+        }
+    };
     // Lao users: all 3 channels (LAK/THB/USDT). Other countries: USDT only.
     const availablePlans = lang === "lo" ? PLANS : PLANS.filter((p) => p.ccy === "USDT");
     const [sel, setSel] = useState(0);
@@ -3251,7 +3296,13 @@ function PaymentScreen({ t, lang, setLang, locked, onPaid, onBack, onLogout }) {
                         React.createElement(WhatsAppIcon, { size: 18 }),
                         " ",
                         t("chatWa")),
-                    React.createElement("button", { onClick: onPaid, className: "fx-btn", style: { padding: "11px", borderRadius: 11, border: `1px solid ${C.line}`, background: "transparent", color: C.mut, fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit" } }, t("sentSlip")))),
+                    React.createElement("button", { onClick: onPaid, className: "fx-btn", style: { padding: "11px", borderRadius: 11, border: `1px solid ${C.line}`, background: "transparent", color: C.mut, fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit" } }, t("sentSlip")),
+                    React.createElement("div", { style: { marginTop: 8, borderTop: `1px solid ${C.line}`, paddingTop: 12 } },
+                        React.createElement("div", { style: { fontSize: 12, color: C.mut, textAlign: "center", marginBottom: 8 } }, "— ຫຼື ໃສ່ລະຫັດ VIP —"),
+                        React.createElement("div", { style: { display: "flex", gap: 8 } },
+                            React.createElement("input", { value: actCode, onChange: (e) => { setActCode(e.target.value.toUpperCase()); setActMsg(""); }, placeholder: t("actCodePlaceholder"), style: { flex: 1, background: C.bg2, border: `1px solid ${C.line}`, borderRadius: 10, padding: "10px 12px", color: C.text, fontSize: 13, fontFamily: "inherit", outline: "none" }, onKeyDown: (e) => e.key === "Enter" && activateCode() }),
+                            React.createElement("button", { onClick: activateCode, className: "fx-btn", style: { padding: "10px 14px", borderRadius: 10, border: "none", background: `linear-gradient(95deg,${C.blue},${C.blueLt})`, color: "#04101F", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" } }, t("actCodeBtn"))),
+                        actMsg && React.createElement("div", { style: { marginTop: 8, fontSize: 13, textAlign: "center", color: actMsg.startsWith("✅") ? C.green : "#FFB4B4", fontWeight: 600 } }, actMsg)))),
             React.createElement("p", { style: { marginTop: 14, fontSize: 11, color: C.mut, lineHeight: 1.7, textAlign: "center" } }, t("backendNote")),
             React.createElement("div", { style: { textAlign: "center", marginTop: 10 } },
                 React.createElement("button", { onClick: onLogout, style: { background: "none", border: "none", color: C.mut, fontSize: 12, cursor: "pointer", fontFamily: "inherit", textDecoration: "underline" } }, t("logout"))))));
@@ -3376,6 +3427,87 @@ function HomeCard({ icon, title, desc, onClick }) {
             React.createElement("div", { style: { color: C.mut, fontSize: 11.5, marginTop: 2 } }, desc))));
 }
 // ── Profile page (language, notifications, settings, help) ───
+
+// ── VIP Code Generator (Admin only) ─────────────────────────
+function VipCodeGenerator({ t }) {
+    const [email, setEmail] = React.useState("");
+    const [days, setDays] = React.useState("30");
+    const [generated, setGenerated] = React.useState("");
+    const [copied, setCopied] = React.useState(false);
+    const [history, setHistory] = React.useState(() => {
+        try { return JSON.parse(localStorage.getItem("admin_codes") || "[]"); } catch(e) { return []; }
+    });
+
+    const generateCode = () => {
+        if (!email.trim()) return;
+        // Create unique code: VIP + days + hash of email + timestamp
+        const emailPart = email.split("@")[0].toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,6);
+        const ts = Date.now().toString(36).toUpperCase().slice(-4);
+        const code = `VIP${days}-${emailPart}-${ts}`;
+        
+        // Save to history
+        const entry = { code, email: email.trim().toLowerCase(), days: parseInt(days), created: new Date().toLocaleDateString("lo-LA"), used: false };
+        const newHistory = [entry, ...history].slice(0, 50);
+        setHistory(newHistory);
+        try { localStorage.setItem("admin_codes", JSON.stringify(newHistory)); } catch(e) {}
+        
+        // Store code for validation (used by activation system)
+        const codeMap = {};
+        try { Object.assign(codeMap, JSON.parse(localStorage.getItem("vip_codes") || "{}")); } catch(e) {}
+        codeMap[code] = { email: email.trim().toLowerCase(), days: parseInt(days), used: false };
+        try { localStorage.setItem("vip_codes", JSON.stringify(codeMap)); } catch(e) {}
+        
+        setGenerated(code);
+        setCopied(false);
+        setEmail("");
+    };
+
+    const copyCode = async () => {
+        try { await navigator.clipboard.writeText(generated); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch(e) {}
+    };
+
+    const deleteCode = (code) => {
+        const newH = history.filter(h => h.code !== code);
+        setHistory(newH);
+        try { localStorage.setItem("admin_codes", JSON.stringify(newH)); } catch(e) {}
+        try {
+            const codeMap = JSON.parse(localStorage.getItem("vip_codes") || "{}");
+            delete codeMap[code];
+            localStorage.setItem("vip_codes", JSON.stringify(codeMap));
+        } catch(e) {}
+    };
+
+    return React.createElement("div", { style: { marginTop: 16 } },
+        React.createElement("div", { style: { background: C.panel, border: `1px solid ${C.line}`, borderRadius: 16, padding: "16px" } },
+            React.createElement("div", { style: { fontFamily: "'LaoOverride','Sora','Noto Sans Lao',sans-serif", fontWeight: 700, fontSize: 15, marginBottom: 14, color: C.cyan } }, "🔑 ສ້າງ VIP Code"),
+            React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } },
+                React.createElement("input", { value: email, onChange: e => setEmail(e.target.value), placeholder: "Email ຂອງ User (user@gmail.com)", style: { background: C.bg2, border: `1px solid ${C.line}`, borderRadius: 10, padding: "10px 12px", color: C.text, fontSize: 13, fontFamily: "inherit", outline: "none" } }),
+                React.createElement("div", { style: { display: "flex", gap: 8 } },
+                    ["30", "90", "180", "365"].map(d => React.createElement("button", { key: d, onClick: () => setDays(d), className: "fx-btn", style: { flex: 1, padding: "8px 4px", borderRadius: 9, border: `1px solid ${days === d ? C.blue : C.line}`, background: days === d ? "rgba(38,130,255,.15)" : C.bg2, color: days === d ? C.cyan : C.mut, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" } }, `${d}ວ`)),
+                ),
+                React.createElement("button", { onClick: generateCode, disabled: !email.trim(), className: "fx-btn", style: { padding: "11px", borderRadius: 11, border: "none", background: email.trim() ? `linear-gradient(95deg,${C.blue},${C.blueLt})` : C.bg2, color: email.trim() ? "#04101F" : C.mut, fontWeight: 700, fontSize: 14, cursor: email.trim() ? "pointer" : "default", fontFamily: "inherit" } }, "⚡ ສ້າງ Code"),
+            ),
+            generated && React.createElement("div", { style: { marginTop: 14, padding: "12px 14px", borderRadius: 12, border: `1px solid ${C.green}`, background: "rgba(63,217,152,.08)" } },
+                React.createElement("div", { style: { fontSize: 11, color: C.mut, marginBottom: 6 } }, "Code ສຳລັບ User:"),
+                React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center" } },
+                    React.createElement("code", { style: { flex: 1, fontSize: 15, fontWeight: 800, color: C.green, letterSpacing: "0.05em" } }, generated),
+                    React.createElement("button", { onClick: copyCode, className: "fx-btn", style: { padding: "6px 12px", borderRadius: 8, border: "none", background: copied ? C.green : C.blue, color: "#04101F", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" } }, copied ? "✓ Copied!" : "Copy")
+                )
+            )
+        ),
+        history.length > 0 && React.createElement("div", { style: { marginTop: 12, background: C.panel, border: `1px solid ${C.line}`, borderRadius: 16, padding: "14px 16px" } },
+            React.createElement("div", { style: { fontWeight: 700, fontSize: 13, color: C.mut, marginBottom: 10 } }, "📋 ປະຫວັດ Code"),
+            history.map(h => React.createElement("div", { key: h.code, style: { display: "flex", alignItems: "center", gap: 8, padding: "8px 0", borderBottom: `1px solid ${C.line}` } },
+                React.createElement("div", { style: { flex: 1, minWidth: 0 } },
+                    React.createElement("code", { style: { fontSize: 12, fontWeight: 700, color: h.used ? C.mut : C.cyan } }, h.code),
+                    React.createElement("div", { style: { fontSize: 11, color: C.mut, marginTop: 2 } }, `${h.email} · ${h.days}ວ · ${h.created}${h.used ? " · ✅ ໃຊ້ແລ້ວ" : ""}`),
+                ),
+                React.createElement("button", { onClick: () => deleteCode(h.code), style: { background: "none", border: "none", color: "#FF6B6B", cursor: "pointer", fontSize: 16, padding: "0 4px" } }, "×")
+            ))
+        )
+    );
+}
+
 function ProfilePage({ t, user, lang, setLang, daysLeft, notify, setNotify, onPay, onLogout, waLink, isAdmin, setIsAdmin, theme, setTheme }) {
     const [adminPass, setAdminPass] = useState("");
     const [showAdminInput, setShowAdminInput] = useState(false);
@@ -3451,6 +3583,7 @@ function ProfilePage({ t, user, lang, setLang, daysLeft, notify, setNotify, onPa
                 React.createElement("span", { style: { fontSize: 15 } }, "\uD83D\uDD11"),
                 React.createElement("span", { style: { flex: 1, fontSize: 13.5 } }, t("adminOnly")),
                 React.createElement("span", { style: { fontSize: 11, fontWeight: 700, color: "#04101F", background: C.green, borderRadius: 99, padding: "3px 10px" } }, "ON")))),
+        isAdmin && React.createElement(VipCodeGenerator, { t: t })),
         React.createElement(PlanCompare, { t: t, lang: lang, onUpgrade: onPay, currentPlan: user.plan }),
         React.createElement(Section, { icon: "\u2753", title: t("secHelp") },
             React.createElement(LinkRow, { icon: "\uD83D\uDCAC", label: t("helpContact"), href: waLink }),
@@ -3486,7 +3619,7 @@ function ProfilePage({ t, user, lang, setLang, daysLeft, notify, setNotify, onPa
                                 React.createElement("span", { style: { width: 14, height: 22, borderRadius: "0 5px 5px 0", background: th.swatch, border: `1px solid ${C.line}`, borderLeft: "none" } })),
                             React.createElement("span", { style: { flex: 1, minWidth: 0, fontSize: 12, fontWeight: active ? 800 : 600, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, th.name),
                             active && React.createElement("span", { style: { fontSize: 10, fontWeight: 800, color: "#04101F", background: th.swatch, borderRadius: 99, padding: "2px 6px", flexShrink: 0 } }, "\u2713")));
-                    })))))))));
+                    }))))))));
 }
 // ── Splash / intro screen (on app open) ──────────────────────
 function SplashScreen({ onDone }) {
