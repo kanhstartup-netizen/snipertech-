@@ -2008,7 +2008,7 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
             };
             // 55s timeout guard (no web search now, so analysis is faster)
             const ctrl = new AbortController();
-            const timer = setTimeout(() => ctrl.abort(), 55000);
+            const timer = setTimeout(() => ctrl.abort(), 90000);
             let response;
             try {
                 response = await fetch(CLAUDE_ENDPOINT, {
@@ -2022,8 +2022,8 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
                 clearTimeout(timer);
                 const e = new Error("network");
                 e.reason = netErr.name === "AbortError"
-                    ? "ໃຊ້ເວລານານເກີນ (timeout). ລອງປິດ 'ກວດຂ່າວ' ແລ້ວລອງໃໝ່ ຫຼື ໃຊ້ຮູບໜ້ອຍລົງ."
-                    : "ເຊື່ອມຕໍ່ AI ບໍ່ໄດ້. ແອັບນີ້ຕ້ອງແລ່ນໃນ Claude artifact ໂດຍກົງ — ຖ້າເປີດບ່ອນອື່ນ (VS Code / ເວັບຕົນເອງ) ຕ້ອງຕໍ່ backend + API key ຂອງເຈົ້າເອງ.";
+                    ? "ໃຊ້ເວລານານເກີນ — ລອງໃໝ່ ຫຼື ໃຊ້ຮູບໜ້ອຍລົງ (1-2 ຮູບ)."
+                    : "ເຊື່ອມຕໍ່ AI ບໍ່ໄດ້ — ກວດ internet ແລ້ວລອງໃໝ່.";
                 throw e;
             }
             clearTimeout(timer);
@@ -2038,7 +2038,7 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
                 if (response.status === 429)
                     e.reason = "AI ຖືກເອີ້ນຖີ່ເກີນໄປ (rate limit). ລໍຖ້າຈັກໜ່ອຍແລ້ວລອງໃໝ່.";
                 else if (response.status === 401 || response.status === 403)
-                    e.reason = "ບໍ່ມີສິດເອີ້ນ AI (auth). ຕອນແລ່ນນອກ Claude artifact ຕ້ອງໃສ່ API key ຂອງເຈົ້າເອງ.";
+                    e.reason = "ບໍ່ສາມາດເຊື່ອມ AI ໄດ້ — ກວດ internet ແລ້ວລອງໃໝ່.";
                 else if (response.status >= 500)
                     e.reason = "ເຊີບເວີ AI ຂັດຂ້ອງຊົ່ວຄາວ. ລອງໃໝ່ອີກເທື່ອ.";
                 else
@@ -2797,7 +2797,7 @@ Reminder: write all text values in ${outLang} (but keep the verbatim keys above 
 }`;
         const attempt = async () => {
             const ctrl = new AbortController();
-            const timer = setTimeout(() => ctrl.abort(), 55000);
+            const timer = setTimeout(() => ctrl.abort(), 90000);
             let resp;
             try {
                 resp = await fetch(CLAUDE_ENDPOINT, {
@@ -2815,7 +2815,7 @@ Reminder: write all text values in ${outLang} (but keep the verbatim keys above 
                 const e = new Error("net");
                 e.reason = netErr.name === "AbortError"
                     ? "ໃຊ້ເວລານານເກີນ. ລອງໃໝ່ອີກເທື່ອ."
-                    : "ເຊື່ອມຕໍ່ AI ບໍ່ໄດ້. ແອັບນີ້ຕ້ອງແລ່ນໃນ Claude artifact ໂດຍກົງ.";
+                    : "ເຊື່ອມຕໍ່ AI ບໍ່ໄດ້ — ກວດ internet ແລ້ວລອງໃໝ່.";
                 throw e;
             }
             clearTimeout(timer);
