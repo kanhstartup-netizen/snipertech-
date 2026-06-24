@@ -104,14 +104,17 @@ const KCM_LOGO = "./img5.jpeg";
 // Subscription: 3-day free trial, then monthly
 const TRIAL_DAYS = 3;
 
-// Activation codes — Admin ສົ່ງໃຫ້ User ຫຼັງຊຳລະເງິນ
-// ເພີ່ມ/ແກ້ code ໄດ້ຢູ່ບ່ອນນີ້
+// Activation codes — Static fallback codes
 const ACTIVATION_CODES = {
     "VIP30":    { days: 30,  plan: "VIP" },
     "VIP365":   { days: 365, plan: "VIP" },
     "SFX2025":  { days: 30,  plan: "VIP" },
     "STARTUP1": { days: 30,  plan: "VIP" },
 };
+
+// Google Sheets Web App URL — Admin paste URL here after setup
+// Leave empty "" to use only static codes above
+const SHEETS_URL = ""; // ໃສ່ Google Sheets Web App URL ບ່ອນນີ້
 const PLANS = [
     { ccy: "LAK", price: "700,000 ກີບ", qr: QR_LAK, label: "ກີບ (LAK)", note: "BCEL One · LAPNet QR" },
     { ccy: "THB", price: "1,000 บาท", qr: QR_THB, label: "บาท (THB)", note: "BCEL One · LAPNet QR" },
@@ -139,7 +142,7 @@ const ADMIN_EMAILS = ["admin@startupfx.app", "kanh.startup@gmail.com"];
 // Backend endpoint that proxies to Claude (keeps the API key server-side).
 // Relative path works automatically on the same Cloudflare Pages site.
 const CLAUDE_ENDPOINT = "https://sniper-proxy.kanh-startup-602.workers.dev";
-const OPENAI_API_KEY = "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"; // ໃສ່ OpenAI key ຂອງທ່ານບ່ອນນີ້
+const OPENAI_API_KEY = "YOUR_OPENAI_KEY_HERE"; // ໃສ່ OpenAI key ຂອງທ່ານບ່ອນນີ້
 
 // Fallback: call OpenAI if Claude fails
 async function callWithFallback(body, signal) {
@@ -950,7 +953,7 @@ const T = {
         walletEarned: "ລາຍຮັບລວມ",
         walletPending: "ລໍຖອນ",
         secReferral: "ແນະນຳໝູ່",
-        refDesc: "ຊວນໝູ່ສະໝັກ VIP — ຮັບ {pct}% ທຸກເດືອນທີ່ໝູ່ຈ່າຍ",
+        refDesc: "ຊວນໝູ່ສະໝັກ VIP — ໄດ້ຮັບສ່ວນຫຼຸດ {pct}% ຂອງທຸກໆເດືອນທີ່ໝູ່ສະໝັກ",
         refYourCode: "ໂຄ້ດແນະນຳຂອງເຈົ້າ",
         refYourLink: "ລິ້ງຊວນໝູ່",
         refCopy: "ສຳເນົາ",
@@ -959,8 +962,8 @@ const T = {
         refInvited: "ຊວນສຳເລັດ",
         refEarnings: "ລາຍຮັບຈາກ referral",
         refPeople: "ຄົນ",
-        refHowTitle: "ໄດ້ % ແບບໃດ?",
-        refHow: "1) ແຊຣ໌ລິ້ງ → 2) ໝູ່ສະໝັກ VIP ຜ່ານລິ້ງ → 3) ເຈົ້າໄດ້ {pct}% ທຸກເດືອນທີ່ລາວຕໍ່ອາຍຸ ເຂົ້າ wallet ອັດຕະໂນມັດ.",
+        refHowTitle: "ໄດ້ສ່ວນຫຼຸດແບບໃດ?",
+        refHow: "1) ແຊຣ໌ລິ້ງ → 2) ໝູ່ສະໝັກ VIP ຜ່ານລິ້ງ → 3) ໂທຫາ Admin ທາງ WhatsApp ສົ່ງຫຼັກຖານ → 4) ຮັບສ່ວນຫຼຸດ {pct}% ຈາກຄ່າສະໝັກໝູ່ (ຫັກຈາກເດືອນຕໍ່ໄປ)",
         secWithdraw: "ຖອນເງິນ (USDT)",
         wdAmount: "ຈຳນວນທີ່ຖອນ",
         wdAddress: "ທີ່ຢູ່ USDT (TRC20)",
@@ -1204,7 +1207,7 @@ const T = {
         direction: "ທິດທາງ", checkNews: "ກວດຂ່າວ (DXY · Fed · ຂ່າວແຮງ)", on: "ເປີດ", off: "ປິດ",
         dropHere: "ລາກ screenshot ກຣາຟມາວາງບ່ອນນີ້", clickChoose: "ກົດເພື່ອເລືອກ — ໄດ້ເຖິງ {n} ຮູບ · AI ກວດຄູ່ເງິນ & ກອບເວລາເອງ · PNG / JPG",
         addImg: "+ ເພີ່ມຮູບ", makeSignal: "⚡ ສ້າງສັນຍານ", clearAll: "ລ້າງທັງໝົດ", analyzing: "ກຳລັງວິເຄາະ…",
-        biasAuto: "ກວດອັດຕະໂນມັດ", biasLong: "ຊື້ຢ່າງດຽວ (Buy)", biasShort: "ຂາຍຢ່າງດຽວ (Sell)",
+        biasAuto: "ກວດອັດຕະໂນມັດ", biasLong: "ຊື້ຢ່າງດຽວ (Buy)", biasShort: "ຂາຍຢ່າງດຽວ (Sell)", styleSwing: "📊 ປົກກະຕິ", styleScalp: "⚡ Scalping",
         heroDesc: "ວິເຄາະກຣາຟທຸກຄູ່ເງິນ + Crypto ດ້ວຍ AI — ໝາຍ Order Block · Liquidity · Confluence ແລ້ວສ້າງສັນຍານພ້ອມໃຊ້.",
         secondOpinion: "ຄວາມເຫັນທີສອງ, ບໍ່ແມ່ນສັນຍານຮັບປະກັນ.",
         promoTitle: "ໂປຣໂມຊັ່ນ & ຄອສ", promo1: "ຮຽນ SMC · Order Block · Liquidity ຄົບ 8 ອາທິດ", promo2: "ສັນຍານປະຈຳວັນ + ການບໍລິຫານທຶນລາຍຕົວ", promo3: "ສຳລັບມືໃໝ່ — ປູພື້ນຖານ Price Action",
@@ -1243,7 +1246,7 @@ const T = {
         walletEarned: "รายรับรวม",
         walletPending: "รอถอน",
         secReferral: "แนะนำเพื่อน",
-        refDesc: "ชวนเพื่อนสมัคร VIP — รับ {pct}% ทุกเดือนที่เพื่อนจ่าย",
+        refDesc: "ชวนเพื่อนสมัคร VIP — รับส่วนลด {pct}% ของทุกเดือนที่เพื่อนสมัคร",
         refYourCode: "โค้ดแนะนำของคุณ",
         refYourLink: "ลิงก์ชวนเพื่อน",
         refCopy: "คัดลอก",
@@ -1253,7 +1256,7 @@ const T = {
         refEarnings: "รายรับจาก referral",
         refPeople: "คน",
         refHowTitle: "ได้ % แบบใด?",
-        refHow: "1) แชร์ลิงก์ของคุณ → 2) เพื่อนสมัคร VIP ผ่านลิงก์ → 3) คุณรับ {pct}% ทุกเดือนที่เพื่อนต่ออายุ เข้ากระเป๋าเงินอัตโนมัติ.",
+        refHow: "1) แชร์ลิงก์ → 2) เพื่อนสมัคร VIP ผ่านลิงก์ → 3) แจ้ง Admin ทาง WhatsApp → 4) รับส่วนลด {pct}% จากค่าสมัครของเพื่อน (หักเดือนถัดไป)",
         secWithdraw: "ถอนเงิน (USDT)",
         wdAmount: "จำนวนที่ถอน",
         wdAddress: "ที่อยู่ USDT (TRC20)",
@@ -1497,7 +1500,7 @@ const T = {
         direction: "ทิศทาง", checkNews: "ตรวจข่าว (DXY · Fed · ข่าวแรง)", on: "เปิด", off: "ปิด",
         dropHere: "ลาก screenshot กราฟมาวางที่นี่", clickChoose: "กดเพื่อเลือก — ได้ถึง {n} รูป · AI ตรวจคู่เงิน & กรอบเวลาเอง · PNG / JPG",
         addImg: "+ เพิ่มรูป", makeSignal: "⚡ สร้างสัญญาณ", clearAll: "ล้างทั้งหมด", analyzing: "กำลังวิเคราะห์…",
-        biasAuto: "ตรวจอัตโนมัติ", biasLong: "ซื้ออย่างเดียว (Buy)", biasShort: "ขายอย่างเดียว (Sell)",
+        biasAuto: "ตรวจอัตโนมัติ", biasLong: "ซื้ออย่างเดียว (Buy)", biasShort: "ขายอย่างเดียว (Sell)", styleSwing: "📊 ปกติ", styleScalp: "⚡ Scalping",
         heroDesc: "วิเคราะห์กราฟทุกคู่เงิน + Crypto ด้วย AI — มาร์ก Order Block · Liquidity · Confluence แล้วสร้างสัญญาณพร้อมใช้",
         secondOpinion: "ความเห็นที่สอง ไม่ใช่สัญญาณรับประกัน",
         promoTitle: "โปรโมชั่น & คอร์ส", promo1: "เรียน SMC · Order Block · Liquidity ครบ 8 สัปดาห์", promo2: "สัญญาณรายวัน + การบริหารพอร์ตรายตัว", promo3: "สำหรับมือใหม่ — ปูพื้นฐาน Price Action",
@@ -1535,7 +1538,7 @@ const T = {
         walletEarned: "Total earned",
         walletPending: "Pending",
         secReferral: "Refer a friend",
-        refDesc: "Invite friends to VIP — earn {pct}% every month they pay",
+        refDesc: "Invite friends to VIP — get {pct}% discount for every month your friend subscribes",
         refYourCode: "Your referral code",
         refYourLink: "Your invite link",
         refCopy: "Copy",
@@ -1545,7 +1548,7 @@ const T = {
         refEarnings: "Referral earnings",
         refPeople: "people",
         refHowTitle: "How do I earn %?",
-        refHow: "1) Share your link → 2) Friend subscribes VIP via your link → 3) You earn {pct}% every month they renew, paid into your wallet automatically.",
+        refHow: "1) Share your link → 2) Friend subscribes VIP via your link → 3) Contact Admin via WhatsApp with proof → 4) Get {pct}% discount deducted from your next month fee",
         secWithdraw: "Withdraw (USDT)",
         wdAmount: "Amount",
         wdAddress: "USDT address (TRC20)",
@@ -1789,7 +1792,7 @@ const T = {
         direction: "Bias", checkNews: "Check news (DXY · Fed · high-impact)", on: "On", off: "Off",
         dropHere: "Drag a chart screenshot here", clickChoose: "Click to choose — up to {n} images · AI detects pair & timeframe · PNG / JPG",
         addImg: "+ Add image", makeSignal: "⚡ Generate signal", clearAll: "Clear all", analyzing: "Analyzing…",
-        biasAuto: "Auto-detect", biasLong: "Buy only", biasShort: "Sell only",
+        biasAuto: "Auto-detect", biasLong: "Buy only", biasShort: "Sell only", styleSwing: "📊 Normal", styleScalp: "⚡ Scalping",
         heroDesc: "Analyze any pair + Crypto with AI — mark Order Block · Liquidity · Confluence, then build a ready signal.",
         secondOpinion: "A second opinion, not a guaranteed signal.",
         promoTitle: "Promotions & Courses", promo1: "Learn SMC · Order Block · Liquidity in 8 weeks", promo2: "Daily signals + personal risk coaching", promo3: "For beginners — Price Action foundations",
@@ -1952,6 +1955,7 @@ function SniperTechX() {
     const [showHowTo, setShowHowTo] = useState(false); // "How to screenshot" guide modal
     const [charts, setCharts] = useState([]);
     const [biasIdx, setBiasIdx] = useState(0);
+    const [styleIdx, setStyleIdx] = useState(0); // 0=swing, 1=scalp — resets every session
     const [loading, setLoading] = useState(false);
     const [stage, setStage] = useState("");
     const [result, setResult] = useState(() => {
@@ -1998,10 +2002,11 @@ function SniperTechX() {
         setStage("ກຳລັງວິເຄາະກຣາฟ…");
         const outLang = lang === "th" ? "Thai (ภาษาไทย)" : lang === "en" ? "English" : "Lao (ພາສາລາວ)";
         const biasEn = biasIdx === 1 ? "Buy only" : biasIdx === 2 ? "Sell only" : "Auto-detect";
+        const isScalp = styleIdx === 1;
         // No web search — analyze instantly. The model uses its own knowledge to give a
         // GENERAL news/DXY caution (no live lookup), which keeps analysis fast.
         const searchBlock = `STEP 1 — Do NOT use any tool or web search. Work only from the uploaded chart(s) and your own general knowledge. For "news_alert", "dxy_signal" and "oil_signal": give a SHORT general caution from what you already know (e.g. "If near a Fed/FOMC, NFP, CPI or PCE window, expect volatility — confirm the calendar yourself", and the usual DXY↔gold inverse relationship). Do NOT claim live/current prices or today's exact DXY level — keep these as general guidance, and if you have no specific basis, keep them brief or note the trader should check the live calendar.`;
-        const sys = `You are an elite XAU/USD (gold) intraday analyst giving a SHORT, ready-to-use trade signal. Bias preference: ${biasEn}. The user uploaded ${charts.length} chart screenshot(s) without timeframe labels.
+        const sys = `You are an elite XAU/USD (gold) ${isScalp ? "SCALPING" : "intraday"} analyst giving a SHORT, ready-to-use trade signal. Bias preference: ${biasEn}. Trading style: ${isScalp ? "SCALPING — user wants FAST in/out trades using H1+M15+M5 (NO M1 — too noisy). Focus on M5 entry refined from M15 OB/FVG confirmed by H1 direction. SL max 15-30 pip (1.5-3 dollars), TP1 quick 15-25 pip, TP2 30-50 pip, TP3 50-80 pip max. IMPORTANT: warn about false signals (fake breakouts) on lower TF. Entry must be at clear OB/FVG with M15 confirmation. Mark as scalp trade clearly with false-signal warning." : "SWING INTRADAY — standard SL 30-120 pip, standard TP levels"}. The user uploaded ${charts.length} chart screenshot(s) without timeframe labels.
 
 STEP 0 — DETECT each image's TIMEFRAME yourself from the chart's labels (e.g. "M5","15","1H","H4","D"), axis spacing and candle granularity. Report in "detected_timeframes" (in ${outLang}). Use higher TFs for trend/bias, lower TFs for entry.
 
@@ -2324,7 +2329,21 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
                             React.createElement("div", { style: { marginLeft: "auto", fontSize: 12, color: C.mut } }, t("maxImgs", { n: MAX_CHARTS }))),
                         React.createElement("div", { style: { display: "flex", gap: 18, flexWrap: "wrap", alignItems: "flex-end", marginBottom: 16 } },
                             React.createElement(Control, { label: t("direction") },
-                                React.createElement("div", { style: { display: "flex", gap: 6 } }, BIAS_KEYS.map((bk, i) => React.createElement("button", { key: bk, className: "fx-chip", onClick: () => setBiasIdx(i), style: chip(biasIdx === i) }, t(bk)))))),
+                                React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } },
+                                    React.createElement("div", { style: { display: "flex", gap: 6 } }, BIAS_KEYS.map((bk, i) => React.createElement("button", { key: bk, className: "fx-chip", onClick: () => setBiasIdx(i), style: chip(biasIdx === i) }, t(bk)))),
+                                    React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6 } },
+                                        React.createElement("div", { style: { display: "flex", gap: 6 } },
+                                            React.createElement("button", { className: "fx-chip", onClick: () => setStyleIdx(0), style: { ...chip(styleIdx === 0), flex: 1 } }, t("styleSwing")),
+                                            React.createElement("button", { className: "fx-chip", onClick: () => setStyleIdx(1), style: { ...chip(styleIdx === 1), flex: 1, borderColor: styleIdx === 1 ? "#FFB800" : undefined, color: styleIdx === 1 ? "#FFB800" : undefined, background: styleIdx === 1 ? "rgba(255,184,0,.12)" : undefined } }, t("styleScalp"))),
+                                        React.createElement("div", { style: { fontSize: 11, color: C.mut, lineHeight: 1.6, padding: "8px 10px", borderRadius: 8, background: C.bg2, border: `1px solid ${C.line}` } },
+                                            styleIdx === 0
+                                                ? React.createElement(React.Fragment, null,
+                                                    React.createElement("span", { style: { color: C.cyan, fontWeight: 700 } }, "📊 ປົກກະຕິ — ຕ້ອງການ: "),
+                                                    "H4 + H1 + M15 + M5 (4 ຮູບ) · SL 30-120 pip · TP ໄກ")
+                                                : React.createElement(React.Fragment, null,
+                                                    React.createElement("span", { style: { color: "#FFB800", fontWeight: 700 } }, "⚡ Scalping — ຕ້ອງການ: "),
+                                                    "H1 + M15 + M5 (3 ຮູບ) · SL 15-30 pip · TP ໄວ",
+                                                    React.createElement("div", { style: { marginTop: 4, color: "#FFB800", fontSize: 10.5 } }, "⚠️ ລະວັງ: ສາຍເທຣດສັ້ນ ສັນຍານຫຼອກສູງ — ຕ້ອງເຫັນ OB/FVG ຊັດ ແລະ ຢືນຢັນດ້ວຍ M15 ກ່ອນ"))))))),
                         charts.length === 0 ? (React.createElement(Dropzone, { onDrop: onDrop, onClick: () => { var _a; return (_a = fileRef.current) === null || _a === void 0 ? void 0 : _a.click(); }, t: t })) : (React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))", gap: 12 } },
                             charts.map((c, idx) => (React.createElement("div", { key: c.id, className: "fx-card", style: { borderRadius: 12, overflow: "hidden", border: `1px solid ${C.line}`, background: C.panel2 } },
                                 React.createElement("div", { style: { position: "relative" } },
@@ -3256,7 +3275,7 @@ function LangSwitch({ lang, setLang }) {
 function PaymentScreen({ t, lang, setLang, locked, onPaid, onBack, onLogout }) {
     const [actCode, setActCode] = React.useState("");
     const [actMsg, setActMsg] = React.useState("");
-    const activateCode = () => {
+    const activateCode = async () => {
         const code = actCode.trim().toUpperCase();
         
         // Check static codes first (VIP30, VIP365, etc.)
@@ -3265,6 +3284,20 @@ function PaymentScreen({ t, lang, setLang, locked, onPaid, onBack, onLogout }) {
             setActMsg(t("actCodeOk").replace("{n}", found.days));
             setTimeout(() => onPaid(found.days, found.plan), 1200);
             return;
+        }
+        
+        // Check Google Sheets first if configured
+        if (SHEETS_URL) {
+            try {
+                const r = await fetch(`${SHEETS_URL}?action=checkCode&code=${code}`);
+                const d = await r.json();
+                if (d.valid && !d.used) {
+                    await fetch(SHEETS_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "useCode", code }) });
+                    setActMsg(t("actCodeOk").replace("{n}", d.days));
+                    setTimeout(() => onPaid(d.days, "VIP"), 1200);
+                    return;
+                } else if (d.used) { setActMsg("❌ Code ນີ້ຖືກໃຊ້ແລ້ວ"); return; }
+            } catch(e) { console.log("Sheets check failed, using local"); }
         }
         
         // Check dynamic codes (generated by admin)
@@ -3502,11 +3535,20 @@ function VipCodeGenerator({ t }) {
         setHistory(newHistory);
         try { localStorage.setItem("admin_codes", JSON.stringify(newHistory)); } catch(e) {}
         
-        // Store code for validation (used by activation system)
+        // Store code locally
         const codeMap = {};
         try { Object.assign(codeMap, JSON.parse(localStorage.getItem("vip_codes") || "{}")); } catch(e) {}
         codeMap[code] = { email: email.trim().toLowerCase(), days: parseInt(days), used: false };
         try { localStorage.setItem("vip_codes", JSON.stringify(codeMap)); } catch(e) {}
+        
+        // If Google Sheets configured, save there too
+        if (SHEETS_URL) {
+            fetch(SHEETS_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "createCode", code, email: email.trim().toLowerCase(), days: parseInt(days) })
+            }).catch(() => {});
+        }
         
         setGenerated(code);
         setCopied(false);
@@ -3638,16 +3680,40 @@ function ProfilePage({ t, user, lang, setLang, daysLeft, notify, setNotify, onPa
         React.createElement(PlanCompare, { t: t, lang: lang, onUpgrade: onPay, currentPlan: user.plan }),
         React.createElement(Section, { icon: "\u2753", title: t("secHelp") },
             React.createElement(LinkRow, { icon: "\uD83D\uDCAC", label: t("helpContact"), href: waLink }),
-            React.createElement(LinkRow, { icon: "\uD83D\uDCCB", label: t("helpTerms"), onClick: (e) => e.preventDefault() }),
-            React.createElement(LinkRow, { icon: "\uD83C\uDFE2", label: t("helpAbout"), onClick: (e) => e.preventDefault(), last: true })),
+            React.createElement(LinkRow, { icon: "\uD83D\uDCCB", label: t("helpTerms"), onClick: () => setPicker("terms") }),
+            React.createElement(LinkRow, { icon: "\uD83C\uDFE2", label: t("helpAbout"), onClick: () => setPicker("about"), last: true })),
         React.createElement("button", { onClick: onLogout, className: "fx-btn", style: { width: "100%", marginTop: 18, padding: "13px", borderRadius: 13, border: `1px solid ${C.red}`, background: "rgba(255,107,107,.08)", color: "#FFB4B4", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" } }, t("logout")),
         React.createElement("div", { style: { textAlign: "center", marginTop: 16, fontSize: 10, color: C.mut, opacity: 0.6, letterSpacing: ".06em" } }, "UI v19 \u00B7 clean profile"),
         picker && (React.createElement("div", { onClick: () => setPicker(null), style: { position: "fixed", inset: 0, zIndex: 9000, background: "rgba(3,5,10,.6)", display: "flex", alignItems: "flex-end", justifyContent: "center", backdropFilter: "blur(2px)" } },
             React.createElement("div", { onClick: (e) => e.stopPropagation(), style: { width: "100%", maxWidth: 440, background: C.panel, borderRadius: "20px 20px 0 0", border: `1px solid ${C.line}`, borderBottom: "none", padding: "8px 16px 24px", maxHeight: "75vh", overflowY: "auto", boxShadow: "0 -12px 40px -10px rgba(0,0,0,.5)" } },
                 React.createElement("div", { style: { width: 38, height: 4, borderRadius: 99, background: C.line, margin: "8px auto 14px" } }),
                 React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 } },
-                    React.createElement("span", { style: { fontFamily: "'LaoOverride','Sora','Noto Sans Lao',sans-serif", fontWeight: 800, fontSize: 16, color: C.text } }, picker === "lang" ? "🌐 " + t("secLanguage") : "🎨 " + t("secTheme")),
+                    React.createElement("span", { style: { fontFamily: "'LaoOverride','Sora','Noto Sans Lao',sans-serif", fontWeight: 800, fontSize: 16, color: C.text } }, picker === "lang" ? "🌐 " + t("secLanguage") : picker === "theme" ? "🎨 " + t("secTheme") : picker === "terms" ? "📋 " + t("helpTerms") : "🏢 " + t("helpAbout")),
                     React.createElement("button", { onClick: () => setPicker(null), className: "fx-btn", style: { border: "none", background: C.bg2, color: C.mut, width: 30, height: 30, borderRadius: "50%", cursor: "pointer", fontSize: 16, fontFamily: "inherit" } }, "\u00D7")),
+                picker === "terms" && React.createElement("div", { style: { fontSize: 13, color: C.mut, lineHeight: 1.8 } },
+                    React.createElement("p", { style: { color: C.amber, fontWeight: 700, marginBottom: 8 } }, "⚠️ ຄຳເຕືອນຄວາມສ່ຽງ"),
+                    React.createElement("p", null, "SniperTech AI ໃຫ້ຂໍ້ມູນການວິເຄາະທາງດ້ານການສຶກສາເທົ່ານັ້ນ ບໍ່ແມ່ນຄຳແນະນຳທາງດ້ານການລົງທຶນ ຫຼື ການເງິນ."),
+                    React.createElement("p", null, "• ທອງ XAU/USD ມີຄວາມຜັນຜວນສູງ ລາຄາສາມາດປ່ຽນແປງໄດ້ໄວ"),
+                    React.createElement("p", null, "• AI ວິເຄາະຈາກຮູບ chart ເທົ່ານັ້ນ ບໍ່ໄດ້ເຂົ້າເຖິງລາຄາ real-time"),
+                    React.createElement("p", null, "• ທຸກ setup ສາມາດຜິດພາດໄດ້ — ບໍ່ມີລະບົບໃດໄດ້ກຳໄລ 90%"),
+                    React.createElement("p", null, "• ຕ້ອງໃຊ້ Stop Loss ສະເໝີ — ເທຣດດ້ວຍທຶນທີ່ຮັບຄວາມສ່ຽງໄດ້ເທົ່ານັ້ນ"),
+                    React.createElement("p", null, "• Startup FX ບໍ່ຮັບຜິດຊອບຕໍ່ການສູນເສຍໃດໆທີ່ເກີດຈາກການໃຊ້ app ນີ້"),
+                    React.createElement("p", { style: { color: C.blue, fontWeight: 600, marginTop: 12 } }, "ການໃຊ້ app ນີ້ຖືວ່າທ່ານຍອມຮັບເງື່ອນໄຂທັງໝົດ")),
+                picker === "about" && React.createElement("div", { style: { fontSize: 13, color: C.mut, lineHeight: 1.8 } },
+                    React.createElement("div", { style: { textAlign: "center", marginBottom: 16 } },
+                        React.createElement("img", { src: LOGO, alt: "Startup FX", style: { height: 60, objectFit: "contain" } }),
+                        React.createElement("div", { style: { fontFamily: "'LaoOverride','Sora','Noto Sans Lao',sans-serif", fontWeight: 800, fontSize: 18, color: C.text, marginTop: 8 } }, "SniperTech AI"),
+                        React.createElement("div", { style: { color: C.mut, fontSize: 12 } }, "by Startup FX Academy")),
+                    React.createElement("p", null, "SniperTech AI ແມ່ນເຄື່ອງມືວິເຄາະ XAU/USD ດ້ວຍ AI ທີ່ພັດທະນາໂດຍ Startup FX Academy ລາວ."),
+                    React.createElement("p", null, "• ວິເຄາະ chart ດ້ວຍ AI Claude (Anthropic) ລະດັບ Elite"),
+                    React.createElement("p", null, "• ຮອງຮັບ Multi-Timeframe: M5, M15, H1, H4"),
+                    React.createElement("p", null, "• ສະໜອງ Entry, Stop Loss, Take Profit ພ້ອມ RR"),
+                    React.createElement("p", null, "• ຮອງຮັບ 3 ພາສາ: ລາວ, ໄທ, ອັງກິດ"),
+                    React.createElement("div", { style: { marginTop: 12, padding: "10px 12px", borderRadius: 10, background: C.bg2, border: `1px solid ${C.line}` } },
+                        React.createElement("div", { style: { fontSize: 12, color: C.cyan, fontWeight: 700 } }, "📞 ຕິດຕໍ່"),
+                        React.createElement("div", null, "020 7777 7421"),
+                        React.createElement("div", null, "Startup FX Academy"),
+                        React.createElement("div", { style: { fontSize: 11, color: C.mut, marginTop: 4 } }, "Version 20.0 · © 2025 Startup FX"))),
                 picker === "lang" && LANGS.map((l) => {
                     const active = lang === l.id;
                     return (React.createElement("button", { key: l.id, onClick: () => { setLang(l.id); setPicker(null); }, className: "fx-btn", style: { width: "100%", padding: "13px 14px", marginBottom: 8, display: "flex", alignItems: "center", gap: 12, borderRadius: 13, cursor: "pointer", fontFamily: "inherit", textAlign: "left",
