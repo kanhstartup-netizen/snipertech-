@@ -130,6 +130,55 @@ const ADMIN_EMAILS = ["admin@startupfx.app", "kanh.startup@gmail.com"];
 // Backend endpoint that proxies to Claude (keeps the API key server-side).
 // Relative path works automatically on the same Cloudflare Pages site.
 const CLAUDE_ENDPOINT = "https://sniper-proxy.kanh-startup-602.workers.dev";
+const OPENAI_API_KEY = "YOUR_OPENAI_KEY_HERE"; // ໃສ່ OpenAI key ຂອງທ່ານບ່ອນນີ້
+
+// Fallback: call OpenAI if Claude fails
+async function callWithFallback(body, signal) {
+    // Try Claude first
+    try {
+        const r = await fetch(CLAUDE_ENDPOINT, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body), signal
+        });
+        if (r.ok) return r;
+        const err = await r.json().catch(() => ({}));
+        const isLimit = r.status === 429 || r.status === 529 || (err?.error?.type === "overloaded_error");
+        if (!isLimit) throw new Error("claude_" + r.status);
+        console.log("Claude limit — trying OpenAI...");
+    } catch(e) {
+        if (e.name === "AbortError") throw e;
+        if (!e.message?.startsWith("claude_")) throw e;
+        console.log("Claude error — trying OpenAI...");
+    }
+    // Fallback to OpenAI
+    if (!OPENAI_API_KEY || OPENAI_API_KEY === "YOUR_OPENAI_KEY_HERE") throw new Error("no_fallback");
+    const msgs = (body.messages || []).map(m => {
+        if (typeof m.content === "string") return { role: m.role, content: m.content };
+        const parts = m.content.map(c => {
+            if (c.type === "text") return { type: "text", text: c.text };
+            if (c.type === "image") return { type: "image_url", image_url: { url: "data:" + c.source.media_type + ";base64," + c.source.data } };
+            return { type: "text", text: JSON.stringify(c) };
+        });
+        return { role: m.role, content: parts };
+    });
+    if (body.system) msgs.unshift({ role: "system", content: body.system });
+    const oaResp = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + OPENAI_API_KEY },
+        body: JSON.stringify({ model: "gpt-4o", messages: msgs, max_tokens: body.max_tokens || 4096, temperature: body.temperature ?? 0 }),
+        signal
+    });
+    if (!oaResp.ok) throw new Error("openai_" + oaResp.status);
+    const oaData = await oaResp.json();
+    // Convert OpenAI response to Anthropic format
+    const converted = {
+        id: oaData.id, type: "message", role: "assistant",
+        content: [{ type: "text", text: oaData.choices[0].message.content }],
+        model: oaData.model, stop_reason: "end_turn",
+        usage: { input_tokens: oaData.usage?.prompt_tokens || 0, output_tokens: oaData.usage?.completion_tokens || 0 }
+    };
+    return new Response(JSON.stringify(converted), { status: 200, headers: { "Content-Type": "application/json" } });
+}
 const ADMIN_EMAIL = ADMIN_EMAILS[0]; // kept for backward-compat references
 const isAdminEmail = (email) => !!email && ADMIN_EMAILS.some((a) => a.toLowerCase() === String(email).trim().toLowerCase());
 const REFERRAL_PCT = 20; // % the referrer earns from each monthly payment (edit freely)
@@ -1827,7 +1876,7 @@ function tryRepairJson(text) {
 }
 function SniperTechX() {
     // ── Language (auto-detect, switchable) ──
-    const [lang, setLang] = useState(detectLang());
+    const [lang, setLang] = useState(() => { try { return localStorage.getItem("sniper_lang") || "lo"; } catch(e) { return "lo"; } });
     const [showSplash, setShowSplash] = useState(true);
     useEffect(() => { const id = setTimeout(() => setShowSplash(false), 2600); return () => clearTimeout(id); }, []);
     const t = (k, vars) => tr(lang, k, vars);
@@ -2016,12 +2065,7 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
             const timer = setTimeout(() => ctrl.abort(), 90000);
             let response;
             try {
-                response = await fetch(CLAUDE_ENDPOINT, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(reqBody),
-                    signal: ctrl.signal,
-                });
+                response = await callWithFallback(reqBody, ctrl.signal);
             }
             catch (netErr) {
                 clearTimeout(timer);
@@ -2607,8 +2651,9 @@ const ghostBtn = {
 function Login({ onLogin, lang, setLang, t }) {
     const [mode, setMode] = useState("login"); // login | signup
     const [name, setName] = useState("");
-    const [email, setEmail] = useState("");
-    const [pw, setPw] = useState("");
+    const [email, setEmail] = useState(() => { try { return localStorage.getItem("sniper_saved_email") || ""; } catch(e) { return ""; } });
+    const [pw, setPw] = useState(() => { try { return localStorage.getItem("sniper_saved_pw") || ""; } catch(e) { return ""; } });
+    const [rememberMe, setRememberMe] = useState(() => { try { return localStorage.getItem("sniper_remember") === "1"; } catch(e) { return false; } });
     const [broker, setBroker] = useState("");
     const [planSel, setPlanSel] = useState("VIP");
     const [agree, setAgree] = useState(false);
@@ -2626,6 +2671,11 @@ function Login({ onLogin, lang, setLang, t }) {
         // DEMO ONLY: no real verification. Replace with backend call.
         // New signups get a free trial; logins get a demo active period.
         const expiresAt = Date.now() + (mode === "signup" ? TRIAL_DAYS : 30) * 86400000;
+        if (rememberMe) {
+            try { localStorage.setItem("sniper_saved_email", email); localStorage.setItem("sniper_saved_pw", pw); localStorage.setItem("sniper_remember", "1"); } catch(e) {}
+        } else {
+            try { localStorage.removeItem("sniper_saved_email"); localStorage.removeItem("sniper_saved_pw"); localStorage.removeItem("sniper_remember"); } catch(e) {}
+        }
         onLogin({ name: name.trim() || email.split("@")[0], email, plan: mode === "signup" ? "Trial" : "VIP", expiresAt });
     };
     return (React.createElement("div", { style: { minHeight: "100%", background: C.bg, color: C.text, fontFamily: "'LaoOverride','Noto Sans Lao','Inter',system-ui,sans-serif", position: "relative", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", padding: "32px 18px" } },
@@ -2666,7 +2716,11 @@ function Login({ onLogin, lang, setLang, t }) {
                         React.createElement("input", { className: "lg-in", type: "email", value: email, onChange: (e) => setEmail(e.target.value), placeholder: "you@email.com" })),
                     React.createElement(Field, { label: t("password") },
                         React.createElement("input", { className: "lg-in", type: "password", value: pw, onChange: (e) => setPw(e.target.value), placeholder: "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" })),
-                    mode === "login" && (React.createElement("div", { style: { textAlign: "right", marginTop: -4 } },
+                    mode === "login" && React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: -4 } },
+                        React.createElement("label", { style: { display: "flex", gap: 6, alignItems: "center", fontSize: 12, color: C.mut, cursor: "pointer" } },
+                            React.createElement("input", { type: "checkbox", checked: rememberMe, onChange: (e) => setRememberMe(e.target.checked), style: { accentColor: C.blue } }),
+                            "ຈື່ລະຫັດຜ່ານ"),
+                        React.createElement("div", { style: { textAlign: "right" } },
                         React.createElement("button", { type: "button", onClick: () => setError(t("forgotPwNote")), style: { background: "none", border: "none", color: C.blueLt, fontSize: 12, cursor: "pointer", fontFamily: "inherit", padding: 0 } }, t("forgotPw")))),
                     mode === "signup" && (React.createElement(React.Fragment, null,
                         React.createElement(Field, { label: t("brokerAcc"), hint: t("brokerHint") },
