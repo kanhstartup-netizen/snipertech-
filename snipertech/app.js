@@ -130,7 +130,7 @@ const ADMIN_EMAILS = ["admin@startupfx.app", "kanh.startup@gmail.com"];
 // Backend endpoint that proxies to Claude (keeps the API key server-side).
 // Relative path works automatically on the same Cloudflare Pages site.
 const CLAUDE_ENDPOINT = "https://sniper-proxy.kanh-startup-602.workers.dev";
-const OPENAI_API_KEY = "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"; // ໃສ່ OpenAI key ຂອງທ່ານບ່ອນນີ້
+const OPENAI_API_KEY = "YOUR_OPENAI_KEY_HERE"; // ໃສ່ OpenAI key ຂອງທ່ານບ່ອນນີ້
 
 // Fallback: call OpenAI if Claude fails
 async function callWithFallback(body, signal) {
@@ -2670,13 +2670,39 @@ function Login({ onLogin, lang, setLang, t }) {
         }
         // DEMO ONLY: no real verification. Replace with backend call.
         // New signups get a free trial; logins get a demo active period.
-        const expiresAt = Date.now() + (mode === "signup" ? TRIAL_DAYS : 30) * 86400000;
+        // Signup: new trial. Login: restore saved expiresAt (don't reset timer!)
+        let expiresAt;
+        if (mode === "signup") {
+            expiresAt = Date.now() + TRIAL_DAYS * 86400000;
+        } else {
+            // Try to restore saved expiresAt from localStorage
+            try {
+                const saved = localStorage.getItem("sniper_user");
+                const savedUser = saved ? JSON.parse(saved) : null;
+                if (savedUser && savedUser.email === email && savedUser.expiresAt) {
+                    expiresAt = savedUser.expiresAt; // Keep original expiry
+                } else {
+                    expiresAt = Date.now() + TRIAL_DAYS * 86400000; // New user
+                }
+            } catch(e) {
+                expiresAt = Date.now() + TRIAL_DAYS * 86400000;
+            }
+        }
         if (rememberMe) {
             try { localStorage.setItem("sniper_saved_email", email); localStorage.setItem("sniper_saved_pw", pw); localStorage.setItem("sniper_remember", "1"); } catch(e) {}
         } else {
             try { localStorage.removeItem("sniper_saved_email"); localStorage.removeItem("sniper_saved_pw"); localStorage.removeItem("sniper_remember"); } catch(e) {}
         }
-        onLogin({ name: name.trim() || email.split("@")[0], email, plan: mode === "signup" ? "Trial" : "VIP", expiresAt });
+        // Restore saved plan on login
+        let plan = mode === "signup" ? "Trial" : "Trial";
+        try {
+            const saved = localStorage.getItem("sniper_user");
+            const savedUser = saved ? JSON.parse(saved) : null;
+            if (savedUser && savedUser.email === email && savedUser.plan) {
+                plan = savedUser.plan;
+            }
+        } catch(e) {}
+        onLogin({ name: name.trim() || email.split("@")[0], email, plan, expiresAt });
     };
     return (React.createElement("div", { style: { minHeight: "100%", background: C.bg, color: C.text, fontFamily: "'LaoOverride','Noto Sans Lao','Inter',system-ui,sans-serif", position: "relative", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", padding: "32px 18px" } },
         React.createElement("style", null, `
