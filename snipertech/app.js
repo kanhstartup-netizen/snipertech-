@@ -2278,7 +2278,7 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
                     daysLeft <= 0 ? t("trialEndsToday") : t("trialLeft", { n: daysLeft })),
                 React.createElement("div", { style: { flex: 1 } }),
                 React.createElement("img", { src: LOGO, alt: "Startup FX", style: { height: 30, objectFit: "contain" } }),
-                React.createElement("button", { onClick: () => { setNotify(n => !n); try { new Notification("SniperTech AI", { body: "\u0e41\u0e08\u0ec9\u0e87\u0ec0\u0e95\u0eb7\u0ead\u0e99\u0ec0\u0e9b\u0eb5\u0e94\u0ec3\u0e8a\u0ec9\u0e87\u0eb2\u0e99\u0ec1\u0ea5\u0ec9\u0ea7" }); } catch(e) {} }, className: "fx-btn", style: { position: "relative", width: 36, height: 36, borderRadius: "50%", border: `1px solid ${C.line}`, background: C.panel2, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, cursor: "pointer", flexShrink: 0 } },
+                React.createElement("button", { onClick: toggleNotify, className: "fx-btn", style: { position: "relative", width: 36, height: 36, borderRadius: "50%", border: `1px solid ${C.line}`, background: C.panel2, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, cursor: "pointer", flexShrink: 0 } },
                     "\uD83D\uDD14",
                     React.createElement("span", { style: { position: "absolute", top: 6, right: 7, width: 8, height: 8, borderRadius: "50%", background: C.red, border: `1.5px solid ${C.bg}`, animation: "fxGlowPulse 2s infinite" } }))),
             nav === "home" && (React.createElement("div", { className: "fx-rise" },
