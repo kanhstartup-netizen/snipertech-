@@ -1944,7 +1944,10 @@ function SniperTechX() {
     const [notify, setNotify] = useState(typeof Notification !== "undefined" && Notification.permission === "granted");
     // Multi-AI consensus: which engines are enabled. Only Claude runs now; others need a backend.
     const [aiEngines, setAiEngines] = useState({ claude: true, gpt: false, gemini: false });
-    const [isAdmin, setIsAdmin] = useState(false); // admin unlock — hides AI engine internals from clients
+    const [isAdmin, setIsAdmin] = useState(() => {
+        // Restore admin state on reload if user email matches ADMIN_EMAILS
+        try { const s = localStorage.getItem("sniper_user"); if (s) { const u = JSON.parse(s); return isAdminEmail(u.email); } } catch(e) {} return false;
+    }); // admin unlock — hides AI engine internals from clients
     React.useEffect(() => { if (isAdmin) setCourseUnlocked(true); }, [isAdmin]);
     // ── Theme: mutate live C palette + re-render whole app on change ──
     const [theme, setThemeState] = useState(DEFAULT_THEME);
