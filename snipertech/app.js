@@ -1,7 +1,7 @@
 "use strict";
 const { useState, useRef, useCallback, useEffect, useMemo, useReducer, useContext } = React;
 // Embedded Startup FX logo (black made transparent)
-const LOGO = "/logo.png";
+const LOGO = "./logo.png";
 // ───────────────────────────────────────────────────────────
 // Sniper Desk × Startup FX
 // Brand: electric blue on black · multi-TF · news · confluence
@@ -95,12 +95,12 @@ const WHATSAPP_MSG = "Startup FX — XAU/USD";
 const waLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MSG)}`;
 const KCM_REGISTER_URL = "https://auth-login.kcmtrade.com/th/links/go/19137";
 const KVB_REGISTER_URL = "https://cnf5g62e6.plusiaa.com";
-const KVB_LOGO = "/img1.jpeg";
+const KVB_LOGO = "./img1.jpeg";
 // Embedded payment assets (QR images + KCM logo)
 const QR_USDT = "/img2.jpeg";
 const QR_LAK = "/img3.jpeg";
 const QR_THB = "/img4.jpeg";
-const KCM_LOGO = "/img5.jpeg";
+const KCM_LOGO = "./img5.jpeg";
 // Subscription: 3-day free trial, then monthly
 const TRIAL_DAYS = 3;
 const PLANS = [
