@@ -2009,7 +2009,21 @@ function SniperTechX() {
         // No web search — analyze instantly. The model uses its own knowledge to give a
         // GENERAL news/DXY caution (no live lookup), which keeps analysis fast.
         const searchBlock = `STEP 1 — Do NOT use any tool or web search. Work only from the uploaded chart(s) and your own general knowledge. For "news_alert", "dxy_signal" and "oil_signal": give a SHORT general caution from what you already know (e.g. "If near a Fed/FOMC, NFP, CPI or PCE window, expect volatility — confirm the calendar yourself", and the usual DXY↔gold inverse relationship). Do NOT claim live/current prices or today's exact DXY level — keep these as general guidance, and if you have no specific basis, keep them brief or note the trader should check the live calendar.`;
-        const sys = `You are an elite XAU/USD (gold) ${isScalp ? "SCALPING" : "intraday"} analyst giving a SHORT, ready-to-use trade signal. Bias preference: ${biasEn}. Trading style: ${isScalp ? "SCALPING — user wants FAST in/out trades using H1+M15+M5 (NO M1 — too noisy). Focus on M5 entry refined from M15 OB/FVG confirmed by H1 direction. SL max 15-30 pip (1.5-3 dollars), TP1 quick 15-25 pip, TP2 30-50 pip, TP3 50-80 pip max. IMPORTANT: warn about false signals (fake breakouts) on lower TF. Entry must be at clear OB/FVG with M15 confirmation. Mark as scalp trade clearly with false-signal warning." : "SWING INTRADAY — standard SL 30-120 pip, standard TP levels"}. The user uploaded ${charts.length} chart screenshot(s) without timeframe labels.
+        const sys = `You are an elite XAU/USD (gold) ${isScalp ? "SCALPING" : "intraday"} analyst giving a SHORT, ready-to-use trade signal. Bias preference: ${biasEn}. Trading style: ${isScalp ? `SCALPING — STRICT institutional scalping rules. Required timeframes: H1 (trend direction) + M15 (OB/FVG zone) + M5 (confirmation candle). DO NOT use M1 — too noisy. 
+
+SCALPING ACCURACY RULES (mandatory — skip setup if ANY rule fails):
+1. H1 must show clear bias (BOS/CHoCH confirmed) — NO entry in sideways H1
+2. M15 must show a clear, untested (fresh) OB or FVG at a discount/premium zone
+3. M5 must confirm: a CLOSED candle body beyond the OB/FVG (not just a wick) + M5 BOS/CHoCH
+4. Entry ONLY after a liquidity sweep of a nearby high/low on M5/M15 (stop-hunt confirmation) — this is NON-NEGOTIABLE
+5. SL: place strictly BELOW the OB or swing low/high with 2-5 pip buffer. Max SL = 20 pip
+6. TP1: 15-20 pip (first liquidity above/below). TP2: 30-40 pip. TP3: max 60 pip only if H4 aligns
+7. GRADE A+ only: H1 bias + M15 OB/FVG + M5 sweep + M5 BOS + premium/discount aligned — ALL 5 must agree
+8. If fewer than 4 of the 5 conditions align → set status to "wait", do NOT force an entry
+9. FALSE SIGNAL WARNINGS to include in signal: equal highs/lows nearby (stop hunt risk), news within 30 min, Asian session range (low volume = fake moves)
+10. Confidence < 60% → MUST output "wait" not a trade signal
+
+SL max 20 pip, TP1 15-20 pip, TP2 30-40 pip, TP3 max 60 pip. Mark as scalp trade clearly with false-signal risk assessment (low/medium/high).` : "SWING INTRADAY — standard SL 30-120 pip, standard TP levels"}. The user uploaded ${charts.length} chart screenshot(s) without timeframe labels.
 
 STEP 0 — DETECT each image's TIMEFRAME yourself from the chart's labels (e.g. "M5","15","1H","H4","D"), axis spacing and candle granularity. Report in "detected_timeframes" (in ${outLang}). Use higher TFs for trend/bias, lower TFs for entry.
 
@@ -2237,10 +2251,14 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
     };
     const reset = () => { setCharts([]); setResult(null); setErr(null); try { localStorage.removeItem("sniper_result"); } catch(e) {} if (fileRef.current)
         fileRef.current.value = ""; };
-    // Membership status
-    const now = Date.now();
-    const msLeft = user ? (user.expiresAt - now) : 0;
-    const daysLeft = Math.ceil(msLeft / 86400000);
+    // Membership status — reactive countdown (updates every minute)
+    const [nowMs, setNowMs] = useState(Date.now());
+    useEffect(() => {
+        const id = setInterval(() => setNowMs(Date.now()), 60000);
+        return () => clearInterval(id);
+    }, []);
+    const msLeft = user ? (user.expiresAt - nowMs) : 0;
+    const daysLeft = Math.max(0, Math.ceil(msLeft / 86400000));
     const isLocked = isAdmin ? false : (user ? msLeft <= 0 : false);
     // VIP = a paid (non-trial) active member, or admin. Used to gate premium AI features.
     const isVip = isAdmin || (!!user && user.plan && user.plan !== "Trial" && !isLocked);
@@ -2255,10 +2273,25 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
         return React.createElement(SplashScreen, { onDone: () => setShowSplash(false) });
     // Show login screen until the customer is signed in
     if (!user)
-        return React.createElement(Login, { onLogin: (u) => { setUser(u); try { localStorage.setItem("sniper_user", JSON.stringify(u)); } catch(e) {} if (isAdminEmail(u.email)) { u.expiresAt = Date.now() + 36500 * 86400000; u.plan = "VIP"; try { localStorage.setItem("sniper_user", JSON.stringify(u)); } catch(e) {} }
-        if (isAdminEmail(u.email))
-                setIsAdmin(true); if (u.plan === "Trial")
-                setShowOnboard(true); }, lang: lang, setLang: setLang, t: t });
+        return React.createElement(Login, { onLogin: (u) => {
+            setUser(u);
+            try { localStorage.setItem("sniper_user", JSON.stringify(u)); } catch(e) {}
+            if (isAdminEmail(u.email)) {
+                u.expiresAt = Date.now() + 36500 * 86400000;
+                u.plan = "VIP";
+                try { localStorage.setItem("sniper_user", JSON.stringify(u)); } catch(e) {}
+            }
+            if (isAdminEmail(u.email)) setIsAdmin(true);
+            // ── #1 ເກັບກຳຂໍ້ມູນລູກຄ້າ → Google Sheets ──
+            if (SHEETS_URL && !isAdminEmail(u.email)) {
+                try {
+                    const isNew = u._isNewSignup;
+                    const logUrl = `${SHEETS_URL}?action=logUser&email=${encodeURIComponent(u.email)}&name=${encodeURIComponent(u.name||"")}&plan=${encodeURIComponent(u.plan||"Trial")}&broker=${encodeURIComponent(u.broker||"")}&lang=${lang}&isNew=${isNew?1:0}&ts=${Date.now()}`;
+                    fetch(logUrl, { cache: "no-store" }).catch(() => {});
+                } catch(e) {}
+            }
+            if (u.plan === "Trial") setShowOnboard(true);
+        }, lang: lang, setLang: setLang, t: t });
     // First-time onboarding tutorial (after signup)
     if (showOnboard)
         return React.createElement(Onboarding, { t: t, onDone: () => setShowOnboard(false) });
@@ -2294,9 +2327,14 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
         .fx-bars span{ display:inline-block; width:4px; margin:0 1.5px; background:linear-gradient(${C.cyan},${C.blue}); border-radius:2px; animation:fxBar 1s ease-in-out infinite; }
         @keyframes fxBar{ 0%,100%{ transform:scaleY(.45);} 50%{ transform:scaleY(1);} }
         @keyframes bgDrift{ from{ transform:translateX(0);} to{ transform:translateX(-50%);} }
+        @keyframes bounce{ 0%,100%{ transform:translateY(0); opacity:.5;} 50%{ transform:translateY(-5px); opacity:1;} }
+        @keyframes botRingPulse{ 0%{ transform:scale(.85); opacity:.9;} 100%{ transform:scale(1.5); opacity:0;} }
+        @keyframes botWiggle{ 0%,88%,100%{ transform:rotate(0deg);} 90%{ transform:rotate(-10deg);} 94%{ transform:rotate(10deg);} 96%{ transform:rotate(-6deg);} 98%{ transform:rotate(6deg);} }
+        @keyframes botDot{ 0%,100%{ transform:scale(1); opacity:1;} 50%{ transform:scale(1.35); opacity:.7;} }
       `),
         React.createElement(ChartBackdrop, { tint: "#C9A24B" }),
         React.createElement(Watermark, null),
+        React.createElement(TradingChatbot, { t: t, lang: lang, user: user, isVip: isVip }),
         React.createElement("div", { "aria-hidden": true, style: { position: "absolute", inset: 0, backgroundImage: `linear-gradient(${C.line} 1px, transparent 1px), linear-gradient(90deg, ${C.line} 1px, transparent 1px)`, backgroundSize: "48px 48px", opacity: 0.12, animation: "fxGrid 6s linear infinite", maskImage: "radial-gradient(120% 80% at 50% 0%, #000 35%, transparent 80%)", WebkitMaskImage: "radial-gradient(120% 80% at 50% 0%, #000 35%, transparent 80%)" } }),
         React.createElement("div", { "aria-hidden": true, style: { position: "absolute", top: -160, left: "50%", transform: "translateX(-50%)", width: 620, height: 360, background: `radial-gradient(closest-side, ${C.glow}, transparent)`, filter: "blur(20px)", animation: "fxGlowPulse 5s ease-in-out infinite", pointerEvents: "none" } }),
         React.createElement("div", { style: { maxWidth: 720, margin: "0 auto", padding: "14px 16px 96px", position: "relative", zIndex: 1 } },
@@ -2357,7 +2395,7 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
                         background: tab === id ? `linear-gradient(95deg,${C.blue},${C.blueLt})` : "transparent",
                         color: tab === id ? "#04101F" : C.mut, transition: "all .15s" } }, label)))),
                 tab === "chart" && (React.createElement(React.Fragment, null,
-                    React.createElement(AIEnginePanel, { t: t, engines: aiEngines, setEngines: isAdmin ? setAiEngines : null }),
+                    isAdmin && React.createElement(AIEnginePanel, { t: t, engines: aiEngines, setEngines: setAiEngines }),
                     React.createElement("section", { style: { marginTop: 14, background: C.panel, border: `1px solid ${C.line}`, borderRadius: 18, padding: "20px 18px", position: "relative", overflow: "hidden" } },
                         React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: 16, flexWrap: "wrap" } },
                             React.createElement(Bars, null),
@@ -2410,7 +2448,7 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
             nav === "news" && (React.createElement("div", { className: "fx-rise" },
                 React.createElement(NewsRoom, { t: t, notify: notify, setNotify: setNotify, isAdmin: isAdmin }))),
             nav === "profile" && (React.createElement("div", { className: "fx-rise" },
-                React.createElement(ProfilePage, { t: t, user: user, lang: lang, setLang: setLang, daysLeft: daysLeft, notify: notify, setNotify: setNotify, onPay: () => setShowPay(true), onLogout: () => { setUser(null); try { localStorage.removeItem("sniper_user"); } catch(e) {} }, waLink: waLink, isAdmin: isAdmin, setIsAdmin: setIsAdmin, theme: theme, setTheme: setTheme }))),
+                React.createElement(ProfilePage, { t: t, user: user, lang: lang, setLang: setLang, daysLeft: daysLeft, notify: notify, setNotify: setNotify, onPay: () => setShowPay(true), onLogout: () => { setUser(null); try { localStorage.removeItem("sniper_user"); } catch(e) {} }, waLink: waLink, isAdmin: isAdmin, setIsAdmin: setIsAdmin, theme: theme, setTheme: setTheme, onUpdateUser: (u) => setUser(u) })))),
             React.createElement("footer", { style: { marginTop: 36, paddingTop: 18, borderTop: `1px solid ${C.line}`, color: C.mut, fontSize: 11.5, lineHeight: 1.8, textAlign: "center" } }, t("footer"))),
         React.createElement("nav", { style: { position: "fixed", left: "50%", bottom: 0, transform: "translateX(-50%)", width: "100%", maxWidth: 720, zIndex: 50, padding: "0 12px 12px" } },
             React.createElement("div", { style: { display: "flex", justifyContent: "space-around", alignItems: "center", gap: 4, padding: "8px 6px", borderRadius: 20, border: `1px solid ${C.line}`, background: "rgba(16,20,30,.82)", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)", boxShadow: "0 -8px 30px -12px rgba(0,0,0,.7)" } }, [
@@ -2828,7 +2866,7 @@ function Login({ onLogin, lang, setLang, t }) {
                 plan = savedUser.plan;
             }
         } catch(e) {}
-        onLogin({ name: name.trim() || email.split("@")[0], email, plan, expiresAt });
+        onLogin({ name: name.trim() || email.split("@")[0], email, plan, expiresAt, broker, _isNewSignup: mode === "signup" });
     };
     return (React.createElement("div", { style: { minHeight: "100%", background: C.bg, color: C.text, fontFamily: "'LaoOverride','Noto Sans Lao','Inter',system-ui,sans-serif", position: "relative", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", padding: "32px 18px" } },
         React.createElement("style", null, `
@@ -3323,6 +3361,59 @@ function LangSwitch({ lang, setLang }) {
 function PaymentScreen({ t, lang, setLang, locked, onPaid, onBack, onLogout }) {
     const [actCode, setActCode] = React.useState("");
     const [actMsg, setActMsg] = React.useState("");
+    // Slip upload state
+    const [slipFile, setSlipFile] = React.useState(null);  // {url, name}
+    const [slipEmail, setSlipEmail] = React.useState(() => { try { const u = JSON.parse(localStorage.getItem("sniper_user")||"{}"); return u.email||""; } catch(e){return "";} });
+    const [slipPhone, setSlipPhone] = React.useState(() => { try { const u = JSON.parse(localStorage.getItem("sniper_user")||"{}"); return u.phone||""; } catch(e){return "";} });
+    const [slipSent, setSlipSent] = React.useState(false);
+    const [slipSending, setSlipSending] = React.useState(false);
+    const slipRef = React.useRef(null);
+    // Must declare before sendSlip (used inside it)
+    const availablePlansEarly = lang === "lo" ? PLANS : PLANS.filter((p) => p.ccy === "USDT");
+    const [sel, setSel] = useState(0);
+    const [copied, setCopied] = useState(false);
+
+    const pickSlip = (files) => {
+        const f = Array.from(files||[])[0];
+        if (!f) return;
+        const r = new FileReader();
+        r.onload = e => setSlipFile({ url: e.target.result, name: f.name });
+        r.readAsDataURL(f);
+    };
+
+    const sendSlip = async () => {
+        if (!slipFile && !slipEmail) { setActMsg("❌ ກະລຸນາໃສ່ Email + ອັບໂຫຼດສະລິບ"); return; }
+        setSlipSending(true);
+        // Build WhatsApp message with all info
+        const userInfo = localStorage.getItem("sniper_user");
+        let name = "";
+        try { name = JSON.parse(userInfo||"{}").name || ""; } catch(e) {}
+        const msg = `🧾 *ສົ່ງສະລິບຊຳລະເງິນ*
+━━━━━━━━━━━━━━━
+👤 ຊື່: ${name}
+📧 Email: ${slipEmail}
+📞 ເບີໂທ: ${slipPhone || "ບໍ່ໄດ້ໃສ່"}
+💰 ແຜນ: VIP ${availablePlansEarly[sel]?.ccy || ""} ${availablePlansEarly[sel]?.price || ""}
+━━━━━━━━━━━━━━━
+📎 ສະລິບ: ${slipFile ? slipFile.name : "ຍັງບໍ່ທັນໄດ້ອັບໂຫຼດ"}
+ກະລຸນາ Activate ແລ້ວສົ່ງ Code ກັບຄືນ 🙏`;
+
+        // Log to Google Sheets
+        if (SHEETS_URL) {
+            try {
+                const logUrl = `${SHEETS_URL}?action=logSlip&email=${encodeURIComponent(slipEmail)}&phone=${encodeURIComponent(slipPhone)}&plan=${encodeURIComponent(availablePlansEarly[sel]?.ccy||"")}&price=${encodeURIComponent(availablePlansEarly[sel]?.price||"")}&name=${encodeURIComponent(name)}&ts=${Date.now()}`;
+                fetch(logUrl, { cache: "no-store" }).catch(() => {});
+            } catch(e) {}
+        }
+
+        // Open WhatsApp with full info (image must be shared manually after)
+        const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
+        window.open(waUrl, "_blank");
+
+        setSlipSent(true);
+        setSlipSending(false);
+        setActMsg("✅ ສົ່ງຂໍ້ຄວາມໄປ WhatsApp ແລ້ວ! ແນບຮູບສະລິບໃນ WhatsApp ນຳ ແລ້ວລໍ Admin ສົ່ງ Code ກັບ.");
+    };
     const activateCode = async () => {
         const code = actCode.trim().toUpperCase();
         setActMsg("⏳ ກຳລັງກວດສອບ...");
@@ -3376,10 +3467,9 @@ function PaymentScreen({ t, lang, setLang, locked, onPaid, onBack, onLogout }) {
         }
     };
     // Lao users: all 3 channels (LAK/THB/USDT). Other countries: USDT only.
-    const availablePlans = lang === "lo" ? PLANS : PLANS.filter((p) => p.ccy === "USDT");
-    const [sel, setSel] = useState(0);
-    const [copied, setCopied] = useState(false);
+    const availablePlans = availablePlansEarly;
     const plan = availablePlans[sel] || availablePlans[0];
+
     const copyAddr = async () => {
         try {
             await navigator.clipboard.writeText(USDT_ADDRESS);
@@ -3428,12 +3518,33 @@ function PaymentScreen({ t, lang, setLang, locked, onPaid, onBack, onLogout }) {
                             React.createElement("code", { style: { flex: 1, fontSize: 11, color: C.text, wordBreak: "break-all", lineHeight: 1.4 } }, USDT_ADDRESS),
                             React.createElement("button", { onClick: copyAddr, className: "fx-btn", style: { flexShrink: 0, fontSize: 11, fontWeight: 700, color: "#04101F", background: copied ? C.green : C.blueLt, border: "none", borderRadius: 7, padding: "6px 10px", cursor: "pointer", fontFamily: "inherit" } }, copied ? t("copied") : t("copyAddr")))))),
                 React.createElement("div", { style: { marginTop: 16, padding: "11px 14px", borderRadius: 10, background: "rgba(37,211,102,.08)", border: `1px solid rgba(37,211,102,.4)`, color: "#BFF3D2", fontSize: 12.5, lineHeight: 1.6 } }, t("afterPay")),
-                React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 9, marginTop: 14 } },
+                // ── Slip Upload Form ──
+                React.createElement("div", { style: { marginTop: 16, background: C.panel2, borderRadius: 14, border: `1px solid ${C.line}`, padding: "16px 16px" } },
+                    React.createElement("div", { style: { fontWeight: 700, fontSize: 14, color: C.text, marginBottom: 12 } }, "📤 ສົ່ງຫຼັກຖານການຊຳລະ"),
+                    React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } },
+                        React.createElement("input", { value: slipEmail, onChange: e => setSlipEmail(e.target.value), placeholder: "Email ຂອງທ່ານ *", type: "email", style: { background: C.bg2, border: `1px solid ${C.line}`, borderRadius: 10, padding: "10px 12px", color: C.text, fontSize: 13.5, fontFamily: "inherit", outline: "none" } }),
+                        React.createElement("input", { value: slipPhone, onChange: e => setSlipPhone(e.target.value), placeholder: "📞 ເບີໂທ (ເຊັ່ນ 020XXXXXXXX)", type: "tel", style: { background: C.bg2, border: `1px solid ${C.line}`, borderRadius: 10, padding: "10px 12px", color: C.text, fontSize: 13.5, fontFamily: "inherit", outline: "none" } }),
+                        // Slip image upload
+                        React.createElement("div", { onClick: () => slipRef.current && slipRef.current.click(), style: { borderRadius: 10, border: `1.5px dashed ${slipFile ? C.green : C.line}`, background: C.bg2, padding: slipFile ? 0 : "18px 12px", textAlign: "center", cursor: "pointer", overflow: "hidden" } },
+                            slipFile
+                                ? React.createElement("img", { src: slipFile.url, alt: "slip", style: { width: "100%", maxHeight: 200, objectFit: "contain", display: "block" } })
+                                : React.createElement(React.Fragment, null,
+                                    React.createElement("div", { style: { fontSize: 24 } }, "🧾"),
+                                    React.createElement("div", { style: { fontSize: 13, color: C.mut, marginTop: 4 } }, "ກົດເພື່ອອັບໂຫຼດສະລິບ (PNG/JPG)")
+                                )
+                        ),
+                        React.createElement("input", { ref: slipRef, type: "file", accept: "image/*", style: { display: "none" }, onChange: e => pickSlip(e.target.files) }),
+                        React.createElement("button", { onClick: sendSlip, disabled: slipSending || slipSent, className: "fx-btn", style: { padding: "12px", borderRadius: 11, border: "none", background: slipSent ? C.green : `linear-gradient(95deg,${C.wa},#1DA851)`, color: "#04130A", fontWeight: 700, fontSize: 14, cursor: slipSent ? "default" : "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 } },
+                            React.createElement(WhatsAppIcon, { size: 18 }),
+                            slipSent ? "✅ ສົ່ງແລ້ວ — ລໍ Code ຈາກ Admin" : slipSending ? "ກຳລັງສົ່ງ..." : "📤 ສົ່ງສະລິບ + ແຈ້ງ Admin (WhatsApp)"),
+                        slipFile && !slipSent && React.createElement("div", { style: { fontSize: 11.5, color: C.mut, lineHeight: 1.6, textAlign: "center" } }, "⚠️ WhatsApp ຈະເປີດ — ໃຫ້ແນບຮູບສະລິບໃນ chat ນຳ")
+                    )
+                ),
+                React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 9, marginTop: 12 } },
                     React.createElement("a", { className: "fx-link", href: waLink, target: "_blank", rel: "noopener noreferrer", style: { display: "flex", alignItems: "center", justifyContent: "center", gap: 9, textDecoration: "none", background: C.wa, color: "#04130A", fontWeight: 700, fontSize: 14, padding: "12px", borderRadius: 11 } },
                         React.createElement(WhatsAppIcon, { size: 18 }),
                         " ",
                         t("chatWa")),
-                    React.createElement("button", { onClick: onPaid, className: "fx-btn", style: { padding: "11px", borderRadius: 11, border: `1px solid ${C.line}`, background: "transparent", color: C.mut, fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit" } }, t("sentSlip")),
                     React.createElement("div", { style: { marginTop: 8, borderTop: `1px solid ${C.line}`, paddingTop: 12 } },
                         React.createElement("div", { style: { fontSize: 12, color: C.mut, textAlign: "center", marginBottom: 8 } }, "— ຫຼື ໃສ່ລະຫັດ VIP —"),
                         React.createElement("div", { style: { display: "flex", gap: 8 } },
@@ -3492,40 +3603,54 @@ function CoursePanel({ t, unlocked, onUnlock, waLink }) {
 }
 // ── News room / announcements (admin can post; browser notifications) ──
 function NewsRoom({ t, notify: extNotify, setNotify: extSetNotify, isAdmin = false }) {
-    const [posts, setPosts] = useState([
-        { id: 1, text: "ຍິນດີຕ້ອນຮັບສູ່ຫ້ອງຂ່າວ Startup FX! ປະກາດ ແລະ ສັນຍານສຳຄັນຈະລົງທີ່ນີ້.", ts: Date.now() - 3600000 },
-    ]);
+    const POSTS_KEY = "sniper_news_posts";
+    const [posts, setPosts] = useState(() => {
+        try {
+            const saved = JSON.parse(localStorage.getItem(POSTS_KEY) || "null");
+            if (saved && saved.length > 0) return saved;
+        } catch(e) {}
+        return [{ id: 1, text: "ຍິນດີຕ້ອນຮັບສູ່ຫ້ອງຂ່າວ Startup FX! ປະກາດ ແລະ ສັນຍານສຳຄັນຈະລົງທີ່ນີ້.", ts: Date.now() - 3600000 }];
+    });
+    // Persist every time posts change
+    useEffect(() => {
+        try { localStorage.setItem(POSTS_KEY, JSON.stringify(posts)); } catch(e) {}
+    }, [posts]);
     const [localNotify, setLocalNotify] = useState(typeof Notification !== "undefined" && Notification.permission === "granted");
     const notify = extNotify !== undefined ? extNotify : localNotify;
     const setNotify = extSetNotify || setLocalNotify;
     const [denied, setDenied] = useState(typeof Notification !== "undefined" && Notification.permission === "denied");
     const [draft, setDraft] = useState("");
+    // #3 — image state for admin post
+    const [postImages, setPostImages] = useState([]); // [{url, name}]
+    const imgRef = React.useRef(null);
+
     const enableNotify = async () => {
-        if (typeof Notification === "undefined")
-            return;
-        if (Notification.permission === "granted") {
-            setNotify(true);
-            return;
-        }
+        if (typeof Notification === "undefined") return;
+        if (Notification.permission === "granted") { setNotify(true); return; }
         const p = await Notification.requestPermission();
-        if (p === "granted")
-            setNotify(true);
-        else if (p === "denied")
-            setDenied(true);
+        if (p === "granted") setNotify(true);
+        else if (p === "denied") setDenied(true);
     };
+
+    // #3 — read selected images as base64
+    const addPostImages = (files) => {
+        const list = Array.from(files || []).filter(f => f.type.startsWith("image/")).slice(0, 4);
+        list.forEach(file => {
+            const r = new FileReader();
+            r.onload = e => setPostImages(prev => [...prev, { url: e.target.result, name: file.name }].slice(0, 4));
+            r.readAsDataURL(file);
+        });
+    };
+
     const post = () => {
         const text = draft.trim();
-        if (!text)
-            return;
-        const p = { id: Date.now(), text, ts: Date.now() };
+        if (!text && postImages.length === 0) return;
+        const p = { id: Date.now(), text, images: postImages, ts: Date.now() };
         setPosts((arr) => [p, ...arr]);
         setDraft("");
-        // Real-time notification (this browser only — real push needs a backend)
+        setPostImages([]);
         if (notify && typeof Notification !== "undefined" && Notification.permission === "granted") {
-            try {
-                new Notification("Startup FX", { body: text.slice(0, 120) });
-            }
-            catch { }
+            try { new Notification("Startup FX", { body: (text || "ໂພສຮູບໃໝ່").slice(0, 120) }); } catch { }
         }
     };
     const fmt = (ts) => {
@@ -3546,13 +3671,27 @@ function NewsRoom({ t, notify: extNotify, setNotify: extSetNotify, isAdmin = fal
             isAdmin && (React.createElement("div", { style: { marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.line}` } },
                 React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } },
                     React.createElement("textarea", { value: draft, onChange: (e) => setDraft(e.target.value), placeholder: t("roomPostPlaceholder"), rows: 3, style: { width: "100%", background: C.bg2, border: `1px solid ${C.line}`, borderRadius: 10, padding: "10px 12px", color: C.text, fontSize: 13.5, fontFamily: "inherit", outline: "none", resize: "vertical", lineHeight: 1.6 } }),
-                    React.createElement("button", { onClick: post, className: "fx-btn", style: { alignSelf: "flex-start", padding: "9px 18px", borderRadius: 10, border: "none", background: `linear-gradient(95deg,${C.blue},${C.blueLt})`, color: "#04101F", fontSize: 13.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" } }, t("roomPostBtn")))))),
+                    // #3 image preview strip
+                    postImages.length > 0 && React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } },
+                        postImages.map((img, i) => React.createElement("div", { key: i, style: { position: "relative" } },
+                            React.createElement("img", { src: img.url, alt: img.name, style: { width: 72, height: 72, objectFit: "cover", borderRadius: 8, border: `1px solid ${C.line}` } }),
+                            React.createElement("button", { onClick: () => setPostImages(prev => prev.filter((_, j) => j !== i)), style: { position: "absolute", top: 2, right: 2, width: 18, height: 18, borderRadius: "50%", border: "none", background: "rgba(5,7,13,.85)", color: C.text, cursor: "pointer", fontSize: 12, lineHeight: 1, padding: 0 } }, "×")))
+                    ),
+                    React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center" } },
+                        React.createElement("button", { onClick: () => imgRef.current && imgRef.current.click(), className: "fx-btn", style: { padding: "9px 14px", borderRadius: 10, border: `1px solid ${C.line}`, background: C.bg2, color: C.mut, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" } }, "🖼️ ແນບຮູບ"),
+                        React.createElement("button", { onClick: post, className: "fx-btn", style: { flex: 1, padding: "9px 18px", borderRadius: 10, border: "none", background: `linear-gradient(95deg,${C.blue},${C.blueLt})`, color: "#04101F", fontSize: 13.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" } }, t("roomPostBtn"))),
+                    React.createElement("input", { ref: imgRef, type: "file", accept: "image/*", multiple: true, style: { display: "none" }, onChange: (e) => addPostImages(e.target.files) }))))),
         React.createElement("div", { style: { marginTop: 14, display: "flex", flexDirection: "column", gap: 10 } }, posts.length === 0 ? (React.createElement("div", { style: { color: C.mut, fontSize: 13, textAlign: "center", padding: "24px 0" } }, t("roomEmpty"))) : posts.map((p) => (React.createElement("div", { key: p.id, className: "fx-card", style: { borderRadius: 14, border: `1px solid ${C.line}`, background: C.panel, padding: "14px 16px" } },
             React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 7 } },
                 React.createElement("span", { style: { width: 7, height: 7, borderRadius: "50%", background: C.blue } }),
                 React.createElement("span", { style: { fontSize: 11.5, color: C.mut } }, fmt(p.ts)),
                 isNew(p.ts) && React.createElement("span", { style: { fontSize: 10, fontWeight: 700, color: "#04101F", background: C.cyan, borderRadius: 6, padding: "1px 7px" } }, t("roomNew"))),
-            React.createElement("div", { style: { color: C.text, fontSize: 14, lineHeight: 1.65, whiteSpace: "pre-wrap" } }, p.text))))),
+            p.text ? React.createElement("div", { style: { color: C.text, fontSize: 14, lineHeight: 1.65, whiteSpace: "pre-wrap" } }, p.text) : null,
+            // #3 display attached images
+            p.images && p.images.length > 0 && React.createElement("div", { style: { marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" } },
+                p.images.map((img, i) => React.createElement("img", { key: i, src: img.url, alt: "ຮູບ", style: { maxWidth: "100%", width: p.images.length === 1 ? "100%" : "calc(50% - 4px)", borderRadius: 10, objectFit: "cover", maxHeight: 320, cursor: "pointer" }, onClick: () => window.open(img.url, "_blank") }))
+            ),
+            isAdmin && React.createElement("button", { onClick: () => setPosts(prev => prev.filter(x => x.id !== p.id)), style: { marginTop: 8, background: "none", border: "none", color: C.mut, fontSize: 11, cursor: "pointer", fontFamily: "inherit" } }, "🗑 ລຶບ"))))),
         React.createElement("p", { style: { fontSize: 11, color: C.mut, lineHeight: 1.7, marginTop: 14 } }, t("roomBackendNote"))));
 }
 // ── Home quick-action card ───────────────────────────────────
@@ -3680,11 +3819,29 @@ function VipCodeGenerator({ t }) {
     );
 }
 
-function ProfilePage({ t, user, lang, setLang, daysLeft, notify, setNotify, onPay, onLogout, waLink, isAdmin, setIsAdmin, theme, setTheme }) {
+function ProfilePage({ t, user, lang, setLang, daysLeft, notify, setNotify, onPay, onLogout, waLink, isAdmin, setIsAdmin, theme, setTheme, onUpdateUser }) {
     const [adminPass, setAdminPass] = useState("");
     const [showAdminInput, setShowAdminInput] = useState(false);
     const [denied, setDenied] = useState(typeof Notification !== "undefined" && Notification.permission === "denied");
-    const [picker, setPicker] = useState(null); // null | "lang" | "theme"
+    const [picker, setPicker] = useState(null); // null | "lang" | "theme" | "editProfile"
+    // Profile edit state
+    const [editName, setEditName] = useState(user?.name || "");
+    const [editPhone, setEditPhone] = useState(user?.phone || "");
+    const [editAvatar, setEditAvatar] = useState(user?.avatar || null);
+    const avatarRef = useRef(null);
+    const saveProfile = () => {
+        const updated = { ...user, name: editName.trim() || user.name, phone: editPhone.trim(), avatar: editAvatar };
+        try { localStorage.setItem("sniper_user", JSON.stringify(updated)); } catch(e) {}
+        if (onUpdateUser) onUpdateUser(updated);
+        setPicker(null);
+    };
+    const pickAvatar = (files) => {
+        const f = Array.from(files || [])[0];
+        if (!f) return;
+        const r = new FileReader();
+        r.onload = e => setEditAvatar(e.target.result);
+        r.readAsDataURL(f);
+    };
     const toggleNotify = async () => {
         if (typeof Notification === "undefined")
             return;
@@ -3722,14 +3879,21 @@ function ProfilePage({ t, user, lang, setLang, daysLeft, notify, setNotify, onPa
     const curTheme = THEMES[theme] || THEMES[DEFAULT_THEME];
     return (React.createElement("section", { style: { marginTop: 8 } },
         React.createElement("div", { style: { borderRadius: 20, border: `1px solid ${C.line}`, background: `radial-gradient(120% 130% at 0% 0%, rgba(38,130,255,.16), transparent 55%), ${C.panel}`, padding: "22px 20px", textAlign: "center" } },
-            React.createElement("div", { style: { width: 72, height: 72, borderRadius: "50%", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, fontFamily: "'LaoOverride','Sora','Noto Sans Lao',sans-serif", fontWeight: 700, color: "#04101F", background: `linear-gradient(135deg,${C.cyan},${C.blue})`, boxShadow: `0 8px 24px -8px ${C.glow}` } }, (user.name || "U").charAt(0).toUpperCase()),
+            // Avatar — show uploaded photo or initial
+            React.createElement("div", { style: { position: "relative", width: 72, height: 72, margin: "0 auto" } },
+                user.avatar
+                    ? React.createElement("img", { src: user.avatar, alt: "avatar", style: { width: 72, height: 72, borderRadius: "50%", objectFit: "cover", border: `2px solid ${C.blue}` } })
+                    : React.createElement("div", { style: { width: 72, height: 72, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, fontFamily: "'LaoOverride','Sora','Noto Sans Lao',sans-serif", fontWeight: 700, color: "#04101F", background: `linear-gradient(135deg,${C.cyan},${C.blue})`, boxShadow: `0 8px 24px -8px ${C.glow}` } }, (user.name || "U").charAt(0).toUpperCase())
+            ),
             React.createElement("div", { style: { fontFamily: "'LaoOverride','Sora','Noto Sans Lao',sans-serif", fontWeight: 700, fontSize: 19, marginTop: 12 } }, user.name),
             React.createElement("div", { style: { color: C.mut, fontSize: 13, marginTop: 2 } }, user.email),
+            user.phone && React.createElement("div", { style: { color: C.mut, fontSize: 12, marginTop: 3 } }, "📞 " + user.phone),
             React.createElement("div", { style: { display: "inline-flex", alignItems: "center", gap: 8, marginTop: 12, padding: "6px 14px", borderRadius: 99, background: C.bg2, border: `1px solid ${C.line}` } },
                 React.createElement("span", { style: { fontSize: 11, fontWeight: 700, color: "#04101F", background: `linear-gradient(95deg,${C.blue},${C.blueLt})`, borderRadius: 99, padding: "2px 10px" } }, user.plan),
                 React.createElement("span", { style: { fontSize: 12, color: isAdmin ? C.green : (daysLeft <= 1 ? C.amber : C.mut) } }, isAdmin ? "✅ Admin" : (daysLeft <= 0 ? t("trialEndsToday") : t("daysRemaining", { n: daysLeft })))),
-            !isAdmin && React.createElement("div", { style: { marginTop: 14 } },
-                React.createElement("button", { onClick: onPay, className: "fx-btn", style: { padding: "10px 22px", borderRadius: 11, border: "none", background: `linear-gradient(95deg,${C.blue},${C.blueLt})`, color: "#04101F", fontWeight: 700, fontSize: 13.5, cursor: "pointer", fontFamily: "inherit" } }, t("payNow")))),
+            React.createElement("div", { style: { display: "flex", gap: 8, justifyContent: "center", marginTop: 14 } },
+                React.createElement("button", { onClick: () => { setEditName(user.name||""); setEditPhone(user.phone||""); setEditAvatar(user.avatar||null); setPicker("editProfile"); }, className: "fx-btn", style: { padding: "8px 18px", borderRadius: 11, border: `1px solid ${C.line}`, background: C.bg2, color: C.mut, fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit" } }, "✏️ ແກ້ໄຂໂປຣໄຟລ໌"),
+                !isAdmin && React.createElement("button", { onClick: onPay, className: "fx-btn", style: { padding: "8px 18px", borderRadius: 11, border: "none", background: `linear-gradient(95deg,${C.blue},${C.blueLt})`, color: "#04101F", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" } }, t("payNow")))),
         React.createElement(WalletReferral, { t: t, user: user }),
         React.createElement(Section, { icon: "\u2699\uFE0F", title: t("secSettings") },
             React.createElement(SelectRow, { icon: "\uD83C\uDF10", label: t("secLanguage"), onClick: () => setPicker("lang"), value: React.createElement(React.Fragment, null,
@@ -3768,8 +3932,30 @@ function ProfilePage({ t, user, lang, setLang, daysLeft, notify, setNotify, onPa
             React.createElement("div", { onClick: (e) => e.stopPropagation(), style: { width: "100%", maxWidth: 440, background: C.panel, borderRadius: "20px 20px 0 0", border: `1px solid ${C.line}`, borderBottom: "none", padding: "8px 16px 24px", maxHeight: "75vh", overflowY: "auto", boxShadow: "0 -12px 40px -10px rgba(0,0,0,.5)" } },
                 React.createElement("div", { style: { width: 38, height: 4, borderRadius: 99, background: C.line, margin: "8px auto 14px" } }),
                 React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 } },
-                    React.createElement("span", { style: { fontFamily: "'LaoOverride','Sora','Noto Sans Lao',sans-serif", fontWeight: 800, fontSize: 16, color: C.text } }, picker === "lang" ? "🌐 " + t("secLanguage") : picker === "theme" ? "🎨 " + t("secTheme") : picker === "terms" ? "📋 " + t("helpTerms") : "🏢 " + t("helpAbout")),
+                    React.createElement("span", { style: { fontFamily: "'LaoOverride','Sora','Noto Sans Lao',sans-serif", fontWeight: 800, fontSize: 16, color: C.text } }, picker === "lang" ? "🌐 " + t("secLanguage") : picker === "theme" ? "🎨 " + t("secTheme") : picker === "editProfile" ? "✏️ ແກ້ໄຂໂປຣໄຟລ໌" : picker === "terms" ? "📋 " + t("helpTerms") : "🏢 " + t("helpAbout")),
                     React.createElement("button", { onClick: () => setPicker(null), className: "fx-btn", style: { border: "none", background: C.bg2, color: C.mut, width: 30, height: 30, borderRadius: "50%", cursor: "pointer", fontSize: 16, fontFamily: "inherit" } }, "\u00D7")),
+                // Edit Profile sheet
+                picker === "editProfile" && React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 14 } },
+                    // Avatar upload
+                    React.createElement("div", { style: { textAlign: "center" } },
+                        React.createElement("div", { onClick: () => avatarRef.current && avatarRef.current.click(), style: { width: 80, height: 80, borderRadius: "50%", margin: "0 auto", cursor: "pointer", border: `2px dashed ${C.blue}`, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", background: C.bg2 } },
+                            editAvatar
+                                ? React.createElement("img", { src: editAvatar, style: { width: "100%", height: "100%", objectFit: "cover" } })
+                                : React.createElement("span", { style: { fontSize: 28, color: C.mut } }, "📷")
+                        ),
+                        React.createElement("div", { style: { fontSize: 11, color: C.mut, marginTop: 6 } }, "ກົດເພື່ອປ່ຽນຮູບ"),
+                        React.createElement("input", { ref: avatarRef, type: "file", accept: "image/*", style: { display: "none" }, onChange: e => pickAvatar(e.target.files) })
+                    ),
+                    React.createElement("div", null,
+                        React.createElement("div", { style: { fontSize: 11.5, color: C.mut, marginBottom: 5 } }, "ຊື່"),
+                        React.createElement("input", { value: editName, onChange: e => setEditName(e.target.value), placeholder: "ຊື່ຂອງທ່ານ", style: { width: "100%", background: C.bg2, border: `1px solid ${C.line}`, borderRadius: 10, padding: "11px 13px", color: C.text, fontSize: 14, fontFamily: "inherit", outline: "none" } })
+                    ),
+                    React.createElement("div", null,
+                        React.createElement("div", { style: { fontSize: 11.5, color: C.mut, marginBottom: 5 } }, "📞 ເບີໂທ"),
+                        React.createElement("input", { value: editPhone, onChange: e => setEditPhone(e.target.value), placeholder: "+856 20 XXXX XXXX", type: "tel", style: { width: "100%", background: C.bg2, border: `1px solid ${C.line}`, borderRadius: 10, padding: "11px 13px", color: C.text, fontSize: 14, fontFamily: "inherit", outline: "none" } })
+                    ),
+                    React.createElement("button", { onClick: saveProfile, className: "fx-btn", style: { padding: "12px", borderRadius: 12, border: "none", background: `linear-gradient(95deg,${C.blue},${C.blueLt})`, color: "#04101F", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" } }, "💾 ບັນທຶກ")
+                ),
                 picker === "terms" && React.createElement("div", { style: { fontSize: 13, color: C.mut, lineHeight: 1.8 } },
                     React.createElement("p", { style: { color: C.amber, fontWeight: 700, marginBottom: 8 } }, "⚠️ ຄຳເຕືອນຄວາມສ່ຽງ"),
                     React.createElement("p", null, "SniperTech AI ໃຫ້ຂໍ້ມູນການວິເຄາະທາງດ້ານການສຶກສາເທົ່ານັ້ນ ບໍ່ແມ່ນຄຳແນະນຳທາງດ້ານການລົງທຶນ ຫຼື ການເງິນ."),
@@ -4305,6 +4491,155 @@ function WalletReferral({ t, user }) {
                         "\uD83D\uDCA1 ",
                         t("refHowTitle")),
                     React.createElement("div", { style: { fontSize: 12, color: C.mut, lineHeight: 1.65 } }, t("refHow", { pct: REFERRAL_PCT })))))));
+}
+
+// ── #5 ── Trading Chatbot (floating bubble) ──────────────────────
+// ເວົ້າຈາເປັນກັນເອງ, ເນັ້ນ: ການເທຣດ + ການໃຊ້ແອັບ SniperTech AI
+function TradingChatbot({ t, lang, user, isVip }) {
+    const [open, setOpen] = useState(false);
+    const [msgs, setMsgs] = useState([
+        { role: "assistant", text: lang === "th"
+            ? "สวัสดี! 👋 ฉันคือ SniperBot — ถามเรื่องเทรดหรือแอปได้เลย เช่น 'ตอนนี้ควรปิด trade ไหม?' หรือ 'OB คืออะไร?'"
+            : lang === "en"
+            ? "Hey! 👋 I'm SniperBot — ask me anything about trading or this app. e.g. 'Should I close my trade now?' or 'What is an OB?'"
+            : "ສະບາຍດີ! 👋 ຂ້ອຍແມ່ນ SniperBot — ຖາມໄດ້ທຸກຢ່າງກ່ຽວກັບການເທຣດ ຫຼື ການໃຊ້ແອັບ ເຊັ່ນ 'ຄວນປິດ trade ໄດ້ຫຼືຍັງ?' ຫຼື 'OB ຄືຫຍັງ?'" }
+    ]);
+    const [input, setInput] = useState("");
+    const [loading, setLoading] = useState(false);
+    const bottomRef = useRef(null);
+    const inputRef = useRef(null);
+
+    useEffect(() => {
+        if (open && bottomRef.current) bottomRef.current.scrollIntoView({ behavior: "smooth" });
+    }, [msgs, open]);
+
+    const langLabel = lang === "th" ? "Thai (ภาษาไทย)" : lang === "en" ? "English" : "Lao (ພາສາລາວ)";
+
+    const send = async () => {
+        const text = input.trim();
+        if (!text || loading) return;
+        setInput("");
+        setMsgs(prev => [...prev, { role: "user", text }]);
+        setLoading(true);
+
+        const history = msgs.map(m => ({ role: m.role === "assistant" ? "assistant" : "user", content: m.text }));
+        history.push({ role: "user", content: text });
+
+        try {
+            const r = await fetch(CLAUDE_ENDPOINT, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    model: "claude-sonnet-4-6",
+                    max_tokens: 600,
+                    system: `You are SniperBot, a friendly trading assistant for the SniperTech AI app by Startup FX. 
+Speak in ${langLabel} in a warm, casual, friend-to-friend tone (like a knowledgeable trader friend, not a formal advisor).
+You ONLY answer about: XAU/USD (gold) trading, forex trading, SMC/ICT concepts, trading psychology, risk management, and how to use the SniperTech AI app.
+For questions outside trading/this app, politely say you only handle trading topics.
+Keep answers SHORT (3-6 sentences max). Use emojis naturally. 
+App features: AI chart analysis (upload screenshot → get signal), News tab (economic calendar), Academy lessons (SMC/ICT/Scalping), VIP membership.
+If asked about closing a trade: ask for details (entry price, current price, SL, TP) then give a SHORT, practical opinion based on SMC principles.
+Never guarantee profits. Always mention risk management.`,
+                    messages: history,
+                })
+            });
+            const d = await r.json();
+            const reply = d?.content?.[0]?.text || "ຂໍໂທດ, ລອງຖາມໃໝ່ຄືໃໝ່ 🙏";
+            setMsgs(prev => [...prev, { role: "assistant", text: reply }]);
+        } catch(e) {
+            setMsgs(prev => [...prev, { role: "assistant", text: "ເນັດຂາດ ຫຼື server ມີບັນຫາ — ລອງໃໝ່ 🙏" }]);
+        }
+        setLoading(false);
+        setTimeout(() => inputRef.current && inputRef.current.focus(), 100);
+    };
+
+    const onKey = (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } };
+
+    return React.createElement(React.Fragment, null,
+        // Floating bubble button
+        React.createElement("div", { style: { position: "fixed", bottom: 80, right: 18, zIndex: 9990 } },
+            // Pulse ring (alive indicator)
+            React.createElement("span", { "aria-hidden": true, style: {
+                position: "absolute", inset: -6, borderRadius: "50%",
+                border: `2px solid ${C.blue}`,
+                animation: "botRingPulse 2s ease-out infinite",
+                pointerEvents: "none",
+            } }),
+            React.createElement("span", { "aria-hidden": true, style: {
+                position: "absolute", inset: -12, borderRadius: "50%",
+                border: `1.5px solid ${C.cyan}`,
+                animation: "botRingPulse 2s ease-out .6s infinite",
+                pointerEvents: "none",
+                opacity: 0.5,
+            } }),
+            // Live dot
+            !open && React.createElement("span", { "aria-hidden": true, style: {
+                position: "absolute", top: 0, right: 0,
+                width: 13, height: 13, borderRadius: "50%",
+                background: C.green, border: `2px solid ${C.bg}`,
+                animation: "botDot 1.4s ease-in-out infinite", zIndex: 2,
+            } }),
+            React.createElement("button", {
+                onClick: () => setOpen(v => !v),
+                className: "fx-btn",
+                style: {
+                    position: "relative",
+                    width: 52, height: 52, borderRadius: "50%", border: "none",
+                    background: `linear-gradient(135deg, ${C.blue}, #5B4FFF)`,
+                    color: "#fff", fontSize: 24, cursor: "pointer",
+                    boxShadow: `0 6px 24px -6px ${C.glow}`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    animation: open ? "none" : "botWiggle 4s ease-in-out infinite",
+                    zIndex: 1,
+                }
+            }, open ? "×" : "🤖")
+        ),
+
+        // Chat window
+        open && React.createElement("div", {
+            style: {
+                position: "fixed", bottom: 142, right: 14, zIndex: 9989,
+                width: "min(360px, calc(100vw - 28px))", height: 460,
+                borderRadius: 20, border: `1px solid ${C.line}`,
+                background: C.panel, display: "flex", flexDirection: "column",
+                boxShadow: `0 20px 60px -20px rgba(0,0,0,.7)`, overflow: "hidden",
+            }
+        },
+            // Header
+            React.createElement("div", { style: { padding: "14px 16px", borderBottom: `1px solid ${C.line}`, background: C.panel2, display: "flex", alignItems: "center", gap: 10 } },
+                React.createElement("span", { style: { fontSize: 22 } }, "🤖"),
+                React.createElement("div", null,
+                    React.createElement("div", { style: { fontWeight: 700, fontSize: 14, color: C.text, fontFamily: "'LaoOverride','Sora',sans-serif" } }, "SniperBot"),
+                    React.createElement("div", { style: { fontSize: 11, color: C.green } }, "● Online · ເທຣດ + ແອັບ")
+                ),
+                React.createElement("button", { onClick: () => setMsgs(msgs.slice(0,1)), style: { marginLeft: "auto", background: "none", border: "none", color: C.mut, fontSize: 11, cursor: "pointer", fontFamily: "inherit" } }, "ລ້າງ")
+            ),
+            // Messages
+            React.createElement("div", { style: { flex: 1, overflowY: "auto", padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 } },
+                msgs.map((m, i) => React.createElement("div", { key: i, style: { display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start" } },
+                    React.createElement("div", { style: {
+                        maxWidth: "82%", padding: "9px 12px", borderRadius: m.role === "user" ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
+                        background: m.role === "user" ? `linear-gradient(135deg,${C.blue},#5B4FFF)` : C.bg2,
+                        color: m.role === "user" ? "#fff" : C.text, fontSize: 13.5, lineHeight: 1.6,
+                        border: m.role === "user" ? "none" : `1px solid ${C.line}`,
+                    } }, m.text)
+                )),
+                loading && React.createElement("div", { style: { display: "flex", gap: 5, padding: "8px 12px", background: C.bg2, borderRadius: "14px 14px 14px 4px", width: "fit-content", border: `1px solid ${C.line}` } },
+                    [0,1,2].map(i => React.createElement("span", { key: i, style: { width: 7, height: 7, borderRadius: "50%", background: C.blue, animation: "bounce .9s ease-in-out infinite", animationDelay: `${i*0.2}s` } }))
+                ),
+                React.createElement("div", { ref: bottomRef })
+            ),
+            // Input
+            React.createElement("div", { style: { padding: "10px 12px", borderTop: `1px solid ${C.line}`, display: "flex", gap: 8, background: C.panel2 } },
+                React.createElement("input", {
+                    ref: inputRef, value: input, onChange: e => setInput(e.target.value), onKeyDown: onKey,
+                    placeholder: "ຖາມໄດ້ເລີຍ...",
+                    style: { flex: 1, background: C.bg2, border: `1px solid ${C.line}`, borderRadius: 10, padding: "9px 12px", color: C.text, fontSize: 13.5, fontFamily: "inherit", outline: "none" }
+                }),
+                React.createElement("button", { onClick: send, disabled: loading || !input.trim(), className: "fx-btn", style: { padding: "9px 14px", borderRadius: 10, border: "none", background: input.trim() ? `linear-gradient(95deg,${C.blue},${C.blueLt})` : C.bg2, color: input.trim() ? "#04101F" : C.mut, fontWeight: 700, fontSize: 14, cursor: input.trim() ? "pointer" : "default", fontFamily: "inherit" } }, "→")
+            )
+        )
+    );
 }
 
 // Mount SniperTechX
