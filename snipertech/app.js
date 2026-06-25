@@ -1890,9 +1890,26 @@ function tryRepairJson(text) {
 // ── Watermark Component ──────────────────────────────────────
 function Watermark() {
     const text = "020 7777 7421  |  Startup FX Academy";
-    // Repeat text to fill screen
     const items = Array.from({ length: 40 }, (_, i) => i);
+    // Inject print-only CSS once
+    React.useEffect(() => {
+        const id = "wm-style";
+        if (!document.getElementById(id)) {
+            const s = document.createElement("style");
+            s.id = id;
+            // Hidden on screen, visible only when printing / screenshotting via media print
+            s.textContent = `
+                #wm-layer { display: none !important; }
+                @media print {
+                    #wm-layer { display: block !important; }
+                    #wm-layer * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                }
+            `;
+            document.head.appendChild(s);
+        }
+    }, []);
     return React.createElement("div", {
+        id: "wm-layer",
         "aria-hidden": true,
         style: {
             position: "fixed", inset: 0, zIndex: 9998,
@@ -1907,7 +1924,7 @@ function Watermark() {
                 gridTemplateColumns: "repeat(3, 1fr)",
                 gap: "40px 20px",
                 transform: "rotate(-30deg)",
-                opacity: 0.055,
+                opacity: 0.18,
             }
         },
             items.map(i => React.createElement("div", {
@@ -2300,6 +2317,7 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
         @keyframes botRingPulse{ 0%{ transform:scale(.85); opacity:.9;} 100%{ transform:scale(1.5); opacity:0;} }
         @keyframes botWiggle{ 0%,88%,100%{ transform:rotate(0deg);} 90%{ transform:rotate(-10deg);} 94%{ transform:rotate(10deg);} 96%{ transform:rotate(-6deg);} 98%{ transform:rotate(6deg);} }
         @keyframes botDot{ 0%,100%{ transform:scale(1); opacity:1;} 50%{ transform:scale(1.35); opacity:.7;} }
+        @keyframes popIn{ 0%{ opacity:0; transform:scale(.88) translateY(18px);} 60%{ transform:scale(1.03) translateY(-3px);} 100%{ opacity:1; transform:scale(1) translateY(0);} }
         #root, #root > div { transform: none !important; }
       `),
         React.createElement(ChartBackdrop, { tint: "#C9A24B" }),
@@ -3941,8 +3959,8 @@ function ProfilePage({ t, user, lang, setLang, daysLeft, notify, setNotify, onPa
             React.createElement(LinkRow, { icon: "\uD83C\uDFE2", label: t("helpAbout"), onClick: () => setPicker("about"), last: true })),
         React.createElement("button", { onClick: onLogout, className: "fx-btn", style: { width: "100%", marginTop: 18, padding: "13px", borderRadius: 13, border: `1px solid ${C.red}`, background: "rgba(255,107,107,.08)", color: "#FFB4B4", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" } }, t("logout")),
         React.createElement("div", { style: { textAlign: "center", marginTop: 16, fontSize: 10, color: C.mut, opacity: 0.6, letterSpacing: ".06em" } }, "UI v19 \u00B7 clean profile"),
-        picker && (React.createElement("div", { onClick: () => setPicker(null), style: { position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", zIndex: 99999, background: "rgba(3,5,10,.92)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px 16px", boxSizing: "border-box" } },
-            React.createElement("div", { onClick: (e) => e.stopPropagation(), style: { width: "100%", maxWidth: 420, background: C.panel, borderRadius: 20, border: `1px solid ${C.line}`, padding: "20px 20px 28px", maxHeight: "75vh", overflowY: "auto", boxShadow: "0 32px 80px -16px rgba(0,0,0,.95)", animation: "fxRise .2s ease both" } },
+        picker && (React.createElement("div", { onClick: () => setPicker(null), style: { position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", zIndex: 99999, background: "rgba(0,0,0,.88)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px 16px", boxSizing: "border-box" } },
+            React.createElement("div", { onClick: (e) => e.stopPropagation(), style: { width: "100%", maxWidth: 420, background: C.panel, borderRadius: 20, border: `1px solid ${C.line}`, padding: "20px 20px 28px", maxHeight: "75vh", overflowY: "auto", boxShadow: "0 32px 80px -16px rgba(0,0,0,.95)", animation: "popIn .28s cubic-bezier(.34,1.56,.64,1) both" } },
                 React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 } },
                     React.createElement("span", { style: { fontFamily: "'LaoOverride','Sora','Noto Sans Lao',sans-serif", fontWeight: 800, fontSize: 16, color: C.text } }, picker === "lang" ? "🌐 " + t("secLanguage") : picker === "theme" ? "🎨 " + t("secTheme") : picker === "editProfile" ? "✏️ ແກ້ໄຂໂປຣໄຟລ໌" : picker === "terms" ? "📋 " + t("helpTerms") : "🏢 " + t("helpAbout")),
                     React.createElement("button", { onClick: () => setPicker(null), className: "fx-btn", style: { border: "none", background: C.bg2, color: C.mut, width: 30, height: 30, borderRadius: "50%", cursor: "pointer", fontSize: 16, fontFamily: "inherit" } }, "\u00D7")),
