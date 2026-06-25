@@ -1943,7 +1943,7 @@ function SniperTechX() {
     const [learnTab, setLearnTab] = useState("paid"); // learn sub-tab: paid | free
     const [notify, setNotify] = useState(typeof Notification !== "undefined" && Notification.permission === "granted");
     // Multi-AI consensus: which engines are enabled. Only Claude runs now; others need a backend.
-    const [aiEngines, setAiEngines] = useState({ claude: true, gpt: false, gemini: false });
+    const [aiEngines, setAiEngines] = useState({ claude: true, gpt: true, gemini: true });
     const [isAdmin, setIsAdmin] = useState(() => {
         // Restore admin state on reload if user email matches ADMIN_EMAILS
         try { const s = localStorage.getItem("sniper_user"); if (s) { const u = JSON.parse(s); return isAdminEmail(u.email); } } catch(e) {} return false;
@@ -3858,7 +3858,7 @@ function AIEnginePanel({ t, engines, setEngines }) {
     const [showNote, setShowNote] = useState(false);
     const AIS = [
 { id: "claude", name: "Claude", icon: "🟣", desc: t("aiClaudeDesc"), live: true },
-{ id: "gpt", name: "ChatGPT", icon: "🟢", desc: t("aiGPTDesc"), live: true },
+{ id: "gpt", name: "ChatGPT", icon: "🟢", desc: t("aiGptDesc"), live: true },
 { id: "gemini", name: "Gemini", icon: "🔵", desc: t("aiGeminiDesc"), live: true },
     ];
     const toggle = (ai) => {
