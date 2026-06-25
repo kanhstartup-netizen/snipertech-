@@ -2318,7 +2318,9 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
         @keyframes botWiggle{ 0%,88%,100%{ transform:rotate(0deg);} 90%{ transform:rotate(-10deg);} 94%{ transform:rotate(10deg);} 96%{ transform:rotate(-6deg);} 98%{ transform:rotate(6deg);} }
         @keyframes botDot{ 0%,100%{ transform:scale(1); opacity:1;} 50%{ transform:scale(1.35); opacity:.7;} }
         @keyframes popIn{ 0%{ opacity:0; transform:scale(.88) translateY(18px);} 60%{ transform:scale(1.03) translateY(-3px);} 100%{ opacity:1; transform:scale(1) translateY(0);} }
-        #root, #root > div { transform: none !important; }
+        #root { transform: none !important; -webkit-transform: none !important; }
+        #root > * { transform: none !important; -webkit-transform: none !important; }
+        html, body { overscroll-behavior: none; }
       `),
         React.createElement(ChartBackdrop, { tint: "#C9A24B" }),
         React.createElement(Watermark, null),
@@ -3863,18 +3865,19 @@ function ProfilePage({ t, user, lang, setLang, daysLeft, notify, setNotify, onPa
         r.onload = e => compressImage(e.target.result, compressed => setEditAvatar(compressed));
         r.readAsDataURL(f);
     };
-    // Lock body scroll when picker open (iOS-safe)
+    // Lock body scroll when picker open + ensure modal renders on body (not inside scroll container)
     useEffect(() => {
         if (picker) {
-            const y = window.scrollY;
-            document.body.dataset.scrollY = y;
+            document.documentElement.style.overflow = "hidden";
             document.body.style.overflow = "hidden";
         } else {
+            document.documentElement.style.overflow = "";
             document.body.style.overflow = "";
-            const y = parseInt(document.body.dataset.scrollY || "0");
-            if (y) window.scrollTo(0, y);
         }
-        return () => { document.body.style.overflow = ""; };
+        return () => {
+            document.documentElement.style.overflow = "";
+            document.body.style.overflow = "";
+        };
     }, [picker]);
     const toggleNotify = async () => {
         if (typeof Notification === "undefined")
@@ -3959,7 +3962,7 @@ function ProfilePage({ t, user, lang, setLang, daysLeft, notify, setNotify, onPa
             React.createElement(LinkRow, { icon: "\uD83C\uDFE2", label: t("helpAbout"), onClick: () => setPicker("about"), last: true })),
         React.createElement("button", { onClick: onLogout, className: "fx-btn", style: { width: "100%", marginTop: 18, padding: "13px", borderRadius: 13, border: `1px solid ${C.red}`, background: "rgba(255,107,107,.08)", color: "#FFB4B4", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" } }, t("logout")),
         React.createElement("div", { style: { textAlign: "center", marginTop: 16, fontSize: 10, color: C.mut, opacity: 0.6, letterSpacing: ".06em" } }, "UI v19 \u00B7 clean profile"),
-        picker && (React.createElement("div", { onClick: () => setPicker(null), style: { position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", zIndex: 99999, background: "rgba(0,0,0,.88)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px 16px", boxSizing: "border-box" } },
+        picker && (React.createElement("div", { onClick: () => setPicker(null), style: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 99999, background: "rgba(0,0,0,.92)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px 16px", boxSizing: "border-box" } },
             React.createElement("div", { onClick: (e) => e.stopPropagation(), style: { width: "100%", maxWidth: 420, background: C.panel, borderRadius: 20, border: `1px solid ${C.line}`, padding: "20px 20px 28px", maxHeight: "75vh", overflowY: "auto", boxShadow: "0 32px 80px -16px rgba(0,0,0,.95)", animation: "popIn .28s cubic-bezier(.34,1.56,.64,1) both" } },
                 React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 } },
                     React.createElement("span", { style: { fontFamily: "'LaoOverride','Sora','Noto Sans Lao',sans-serif", fontWeight: 800, fontSize: 16, color: C.text } }, picker === "lang" ? "🌐 " + t("secLanguage") : picker === "theme" ? "🎨 " + t("secTheme") : picker === "editProfile" ? "✏️ ແກ້ໄຂໂປຣໄຟລ໌" : picker === "terms" ? "📋 " + t("helpTerms") : "🏢 " + t("helpAbout")),
