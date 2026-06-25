@@ -2057,7 +2057,23 @@ STEP 3 — ADVANCED CONFIRMATIONS (apply when the chart clearly shows them; do N
 - WYCKOFF: identify accumulation/distribution schematics if present — spring, upthrust (UTAD), sign of strength/weakness, the phase (A-E). Note which phase price seems to be in.
 - HARMONIC PATTERNS: spot Gartley, Bat, Butterfly, Crab, or Shark if the swing ratios fit; give the potential reversal zone (PRZ). Only if ratios actually align.
 - ICT KILLZONES (timing): note which session/killzone is active or upcoming (Asian range, London Open 07:00-10:00 UK, New York Open / AM session 08:00-11:00 ET, London close). Gold often runs liquidity during London & NY opens — factor timing into the entry.
-- EXPECTED RANGE / IMPLIED VOLATILITY: if the uploaded image is an options/volatility tool (e.g. CME QuikStrike Vol2Vol, expected move, IV chart), READ the expected range / standard-deviation levels and use them as TP/SL guides and to gauge how far price can travel. If no IV data is in the image, you MAY use the web_search result for gold expected-move/IV context if found; otherwise note expected range was not available.
+- EXPECTED RANGE / IMPLIED VOLATILITY (CME QuikStrike Vol2Vol): if the uploaded image is a CME QuikStrike Vol2Vol Expected Range chart (OG|GC options), read it as follows:
+  • RANGES BAR (top of chart): the colored range boxes show 1σ/2σ/3σ standard-deviation expected move from current futures price. The tightest center boxes = highest-probability range for the expiration. Read the dollar values and use them as TP/SL outer limits.
+  • INTRADAY VOLUME chart: orange bars = PUT volume by strike, blue bars = CALL volume by strike. Heavy PUT volume at a strike = strong SUPPORT / institutional hedge floor. Heavy CALL volume at a strike = strong RESISTANCE / distribution ceiling. A strike where BOTH put and call volume spike = max pain / pin risk zone — price gravitates there at expiration.
+  • OPEN INTEREST (OI) chart: same color coding but shows CUMULATIVE open contracts, not just today's volume. High PUT OI strike = dealers are long gamma / short delta there = acts as magnetic support. High CALL OI strike = dealers are short gamma / long delta = acts as magnetic resistance. The strike with the LARGEST total OI (put+call) = MAX PAIN price — institutions often pin price near max pain into expiration.
+  • VOLATILITY SMILE (red dashed line): the U-shaped volatility curve. Where the smile is LOWEST = ATM implied volatility. Where it rises steeply on put side = fear premium. A skewed smile (puts much higher vol than calls) = market fears downside; flat or call-skewed smile = bullish flow. Read the ATM vol level and note direction of skew.
+  • VOL CHG field: if shown (e.g. "Vol Chg: -5.68"), negative = IV dropping = market calming / directional move expected soon; positive = IV rising = uncertainty / big move coming.
+  • DELTA MARKERS (dashed vertical lines labeled 5ΔP, 15ΔP, 25ΔP, 35ΔP, 45ΔP, 45ΔC, 35ΔC, 25ΔC, 15ΔC, 5ΔC): these show where options with those delta values are struck. The 25ΔP and 25ΔC lines bracket the "expected 1σ move" range. Any price action OUTSIDE the 25Δ lines is statistically in the tail (< 25% probability).
+  • DTE (Days To Expiration): shown in title (e.g. "0.89 DTE"). < 1 DTE = same-day or next-day expiry = gamma extremely high = price moves are violent and pinned near max pain or major OI strikes.
+  • FUTURE CHG: current futures price change vs prior settle. Combine with where price sits relative to max pain strike — if price is below max pain, dealers are buying futures to hedge (upward pressure); if above max pain, dealers are selling (downward pressure).
+  HOW TO TRADE FROM THIS:
+  1. Find the MAX PAIN strike (largest total OI) → this is the gravitational center for intraday price.
+  2. Find the highest PUT OI strike BELOW current price → this is the floor / strong support.
+  3. Find the highest CALL OI strike ABOVE current price → this is the ceiling / strong resistance.
+  4. Combine with 25ΔP/25ΔC range → entries inside this range are in the "expected move" zone; entries near the edges are mean-reversion trades.
+  5. If Vol Chg is sharply negative AND DTE < 1 → expect a pinning move toward max pain → fade breakouts, trade range.
+  6. If Vol Chg is rising AND large directional volume (one side dominant) → expect a breakout toward that side.
+  Report findings in "options_flow" field with: max_pain_strike, put_wall, call_wall, expected_range_1sigma, iv_atm, vol_skew_direction, trade_implication (1-2 lines).
 - ICT POWER OF 3 (AMD): look for Accumulation (range/consolidation), Manipulation (fake breakout / liquidity grab), then Distribution (real move begins). Identify which phase is active and whether the manipulation candle (stop hunt) has already completed.
 - ICT SILVER BULLET: identify if price is in a Silver Bullet window (10:00-11:00 ET or 14:00-15:00 ET New York time). A FVG formed during these windows inside a killzone = premium entry. Flag if visible.
 - ICT OPTIMAL TRADE ENTRY (OTE): the highest-probability entry sits in the 0.618-0.786 Fibonacci retracement of the last confirmed swing (AFTER a BOS/CHoCH). If price has retraced into the 62-79% zone overlapping an OB or FVG, flag as OTE = true.
@@ -2134,6 +2150,7 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
   "order_book": "in ${outLang} — only if DOM/volume profile is visible; otherwise note it isn't shown and you used price/volume (1 line)",
   "advanced_read": "in ${outLang} — short notes on Elliott Wave / Wyckoff / Harmonic / ICT killzone / expected-range IF clearly present; omit what's not visible. Keep to 1-3 short lines total.",
   "ict_read": "in ${outLang} — ICT-specific observations IF visible: Power of 3 phase (A/M/D), Silver Bullet window active, OTE zone hit, Breaker block, Inducement level, Daily Profile type, Asia range status, Unicorn Model. 1-2 lines max, omit what isn't clearly present.",
+  "options_flow": "in ${outLang} — ONLY if a CME QuikStrike Vol2Vol / OI / Intraday Volume chart is uploaded. Include: max_pain_strike, put_wall (highest put OI strike), call_wall (highest call OI strike), expected_1sigma_range, iv_atm_level, vol_skew (put-skewed/call-skewed/neutral), vol_chg_signal, dte_note, trade_implication. If no options chart uploaded, set to 'ບໍ່ມີ options chart'.",
   "sniper_grade": "A+++ | A+ | A | B | C | WAIT — overall ICT/SMC grade: A+++ = fractal alignment 3+ TFs + all confluences; A+ = 5+ confluences; A = 3-4; B = 2-3 partial; C = weak; WAIT = <2 or no sweep yet",
   "zones": [{"type":"resistance|support","label":"in ${outLang}","range":"TIGHT range, e.g. 2348-2352 (max ~10 dollars wide)","why":"in ${outLang}, short — mention OB/FVG/sweep if relevant"}],
   "setups": [{
@@ -2411,9 +2428,10 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
                         React.createElement("a", { className: "fx-link", href: b.url, target: "_blank", rel: "noopener noreferrer", style: { display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", background: `linear-gradient(95deg,${C.blue},${C.blueLt})`, color: "#04101F", fontWeight: 700, fontSize: 13.5, padding: "11px 16px", borderRadius: 11, whiteSpace: "nowrap" } },
                             b.cta, " \u2192"))))))),
             nav === "tools" && (React.createElement("div", { className: "fx-rise" },
-                React.createElement("div", { style: { display: "flex", gap: 6, background: C.bg2, border: `1px solid ${C.line}`, borderRadius: 14, padding: 5, maxWidth: 420, margin: "0 auto" } }, [["chart", "📊 " + t("analyzeChart")], ["news", "📰 " + t("analyzeNews")]].map(([id, label]) => (React.createElement("button", { key: id, className: "fx-btn", onClick: () => setTab(id), style: { flex: 1, padding: "10px 12px", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13.5, fontWeight: 600,
+                React.createElement("div", { style: { display: "flex", gap: 6, background: C.bg2, border: `1px solid ${C.line}`, borderRadius: 14, padding: 5, maxWidth: 560, margin: "0 auto" } }, [["live", "📡 " + t("navLive") || "📡 Live"], ["chart", "📊 " + t("analyzeChart")], ["news", "📰 " + t("analyzeNews")]].map(([id, label]) => (React.createElement("button", { key: id, className: "fx-btn", onClick: () => setTab(id), style: { flex: 1, padding: "10px 8px", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600,
                         background: tab === id ? `linear-gradient(95deg,${C.blue},${C.blueLt})` : "transparent",
                         color: tab === id ? "#04101F" : C.mut, transition: "all .15s" } }, label)))),
+                tab === "live" && React.createElement(LiveChartPanel, { t: t, lang: lang }),
                 tab === "chart" && (React.createElement(React.Fragment, null,
                     React.createElement(AIEnginePanel, { t: t, engines: aiEngines, setEngines: setAiEngines }),
                     React.createElement("section", { style: { marginTop: 14, background: C.panel, border: `1px solid ${C.line}`, borderRadius: 18, padding: "20px 18px", position: "relative", overflow: "hidden" } },
@@ -2700,7 +2718,13 @@ function Result({ data, t, engines, isAdmin }) {
                 data.liquidity && React.createElement(SmcRow, { icon: "\uD83D\uDCA7", k: t("rLiquidity"), v: data.liquidity, color: C.blueLt }),
                 data.order_flow && React.createElement(SmcRow, { icon: "\uD83C\uDF0A", k: t("rOrderFlow"), v: data.order_flow, color: C.green }),
                 data.order_book && React.createElement(SmcRow, { icon: "\uD83D\uDCD6", k: t("rOrderBook"), v: data.order_book, color: C.mut }),
-                data.advanced_read && React.createElement(SmcRow, { icon: "\uD83E\uDDEC", k: t("rAdvanced"), v: data.advanced_read, color: C.amber }))))));
+                data.advanced_read && React.createElement(SmcRow, { icon: "\uD83E\uDDEC", k: t("rAdvanced"), v: data.advanced_read, color: C.amber }),
+                data.ict_read && React.createElement(SmcRow, { icon: "\uD83C\uDFAF", k: "ICT Read", v: data.ict_read, color: C.cyan }),
+                data.sniper_grade && data.sniper_grade !== "WAIT" && React.createElement(SmcRow, { icon: "\u2B50", k: "Sniper Grade", v: data.sniper_grade, color: data.sniper_grade.startsWith("A+++") ? C.green : data.sniper_grade.startsWith("A+") ? C.blueLt : C.amber }),
+                data.options_flow && data.options_flow !== "ບໍ່ມີ options chart" && React.createElement("div", { style: { marginTop: 6, padding: "12px 14px", borderRadius: 12, background: "rgba(255,180,0,.07)", border: "1px solid rgba(255,180,0,.3)" } },
+                    React.createElement("div", { style: { fontWeight: 700, fontSize: 12, color: "#FFB800", marginBottom: 6 } }, "\uD83D\uDCC8 CME Options Flow (QuikStrike)"),
+                    React.createElement("div", { style: { fontSize: 12.5, color: C.text, lineHeight: 1.7, whiteSpace: "pre-wrap" } }, data.options_flow)
+                ))))));
 }
 // ── small components ──────────────────────────────────────
 function Dropzone({ onDrop, onClick, t }) {
@@ -3621,7 +3645,96 @@ function CoursePanel({ t, unlocked, onUnlock, waLink }) {
                 React.createElement("span", { style: { fontSize: 11, color: C.mut } }, l.dur),
                 React.createElement("span", { style: { fontSize: 12, color: C.green, fontWeight: 700 } }, t("courseWatch")))))))));
 }
-// ── News room / announcements (admin can post; browser notifications) ──
+// ── Live Chart Panel (TradingView real-time widgets) ─────────────
+function LiveChartPanel({ t, lang }) {
+    const [symbol, setSymbol] = useState("XAUUSD");
+    const [interval, setIntervalVal] = useState("15");
+    const chartRef = useRef(null);
+    const tickerRef = useRef(null);
+
+    const SYMBOLS = [
+        { id: "XAUUSD", label: "XAU/USD 🥇" },
+        { id: "USINDEX", label: "DXY 💵" },
+        { id: "USOIL", label: "Oil 🛢️" },
+    ];
+    const INTERVALS = [
+        { id: "1", label: "M1" }, { id: "5", label: "M5" },
+        { id: "15", label: "M15" }, { id: "60", label: "H1" },
+        { id: "240", label: "H4" }, { id: "D", label: "D1" },
+    ];
+
+    // Inject TradingView ticker tape
+    useEffect(() => {
+        if (!tickerRef.current) return;
+        tickerRef.current.innerHTML = "";
+        const s = document.createElement("script");
+        s.src = "https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js";
+        s.async = true;
+        s.innerHTML = JSON.stringify({
+            symbols: [
+                { proName: "OANDA:XAUUSD", title: "Gold" },
+                { proName: "TVC:DXY", title: "DXY" },
+                { proName: "TVC:USOIL", title: "Oil" },
+                { proName: "BITSTAMP:BTCUSD", title: "BTC" },
+                { proName: "OANDA:EURUSD", title: "EUR/USD" },
+            ],
+            showSymbolLogo: true, colorTheme: "dark", isTransparent: true,
+            displayMode: "adaptive", locale: "en"
+        });
+        tickerRef.current.appendChild(s);
+    }, []);
+
+    // Inject TradingView advanced chart
+    useEffect(() => {
+        if (!chartRef.current) return;
+        chartRef.current.innerHTML = "";
+        const container = document.createElement("div");
+        container.className = "tradingview-widget-container__widget";
+        chartRef.current.appendChild(container);
+        const s = document.createElement("script");
+        s.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
+        s.async = true;
+        const tvSymbol = symbol === "XAUUSD" ? "OANDA:XAUUSD" : symbol === "USINDEX" ? "TVC:DXY" : "TVC:USOIL";
+        s.innerHTML = JSON.stringify({
+            autosize: true, symbol: tvSymbol,
+            interval: interval, timezone: "Asia/Bangkok",
+            theme: "dark", style: "1",
+            locale: "en", backgroundColor: C.panel,
+            gridColor: "rgba(38,130,255,0.06)",
+            hide_top_toolbar: false, hide_legend: false,
+            allow_symbol_change: true, save_image: false,
+            calendar: false, hide_volume: false,
+            support_host: "https://www.tradingview.com",
+            studies: ["STD;Bollinger_Bands", "STD;RSI", "STD;MACD"],
+        });
+        chartRef.current.appendChild(s);
+    }, [symbol, interval]);
+
+    return React.createElement("div", { style: { marginTop: 14 } },
+        // Ticker tape
+        React.createElement("div", { ref: tickerRef, style: { borderRadius: 12, overflow: "hidden", marginBottom: 14, border: `1px solid ${C.line}` } }),
+
+        // Symbol + TF selector
+        React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12, alignItems: "center" } },
+            React.createElement("div", { style: { display: "flex", gap: 6, background: C.bg2, borderRadius: 10, padding: 4, border: `1px solid ${C.line}` } },
+                SYMBOLS.map(sym => React.createElement("button", { key: sym.id, onClick: () => setSymbol(sym.id), className: "fx-btn", style: { padding: "6px 12px", borderRadius: 7, border: "none", fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, cursor: "pointer", background: symbol === sym.id ? `linear-gradient(95deg,${C.blue},${C.blueLt})` : "transparent", color: symbol === sym.id ? "#04101F" : C.mut } }, sym.label))
+            ),
+            React.createElement("div", { style: { display: "flex", gap: 4, background: C.bg2, borderRadius: 10, padding: 4, border: `1px solid ${C.line}` } },
+                INTERVALS.map(iv => React.createElement("button", { key: iv.id, onClick: () => setIntervalVal(iv.id), className: "fx-btn", style: { padding: "6px 9px", borderRadius: 7, border: "none", fontFamily: "inherit", fontSize: 12, fontWeight: 600, cursor: "pointer", background: interval === iv.id ? `linear-gradient(95deg,${C.blue},${C.blueLt})` : "transparent", color: interval === iv.id ? "#04101F" : C.mut } }, iv.label))
+            )
+        ),
+
+        // Chart container
+        React.createElement("div", { style: { borderRadius: 16, overflow: "hidden", border: `1px solid ${C.line}`, background: C.panel } },
+            React.createElement("div", { ref: chartRef, className: "tradingview-widget-container", style: { height: 520, width: "100%" } })
+        ),
+
+        // Hint
+        React.createElement("div", { style: { marginTop: 10, padding: "10px 14px", borderRadius: 10, background: C.bg2, border: `1px solid ${C.line}`, fontSize: 11.5, color: C.mut, lineHeight: 1.6 } },
+            "💡 Screenshot chart ຈາກ Live Chart → ໄປ 📊 ວິເຄາະກຣາຟ → Upload → AI ວິເຄາະ SMC/ICT ໄດ້ທັນທີ"
+        )
+    );
+}
 function NewsRoom({ t, notify: extNotify, setNotify: extSetNotify, isAdmin = false }) {
     const POSTS_KEY = "sniper_news_posts";
     const [posts, setPosts] = useState(() => {
