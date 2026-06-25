@@ -3333,49 +3333,74 @@ function SlipUploadForm({ t, plan, waLink, onPaid }) {
     const [email, setEmail] = React.useState(() => { try { return JSON.parse(localStorage.getItem("sniper_user")||"{}").email||""; } catch(e){return "";} });
     const [phone, setPhone] = React.useState(() => { try { return JSON.parse(localStorage.getItem("sniper_user")||"{}").phone||""; } catch(e){return "";} });
     const [sent, setSent] = React.useState(false);
+    const [step, setStep] = React.useState(0); // 0=form, 1=sent
     const slipRef = React.useRef(null);
+
     const pickSlip = (files) => {
         const f = Array.from(files||[])[0];
         if (!f) return;
         const r = new FileReader();
-        r.onload = e => setSlipFile({ url: e.target.result, name: f.name });
+        r.onload = e => setSlipFile({ url: e.target.result, name: f.name, raw: f });
         r.readAsDataURL(f);
     };
+
     const sendSlip = () => {
         if (!email) { alert("ກະລຸນາໃສ່ Email ກ່ອນ"); return; }
         let name = "";
         try { name = JSON.parse(localStorage.getItem("sniper_user")||"{}").name||""; } catch(e) {}
-        const msg = "\uD83E\uDDFE *ສົ່ງສະລິບຊຳລະເງິນ*\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n"
+        const planStr = plan ? plan.ccy + " " + plan.price : "";
+
+        // 1) Send WhatsApp text message (no image in URL - WhatsApp doesn't support it)
+        const waMsg = "\uD83E\uDDFE *ສົ່ງສະລິບຊຳລະເງິນ*\n━━━━━━━━━━━━━━━\n"
             + "\uD83D\uDC64 ຊື່: " + name + "\n"
             + "\uD83D\uDCE7 Email: " + email + "\n"
-            + "\uD83D\uDCDE ເບີໂທ: " + (phone || "ບໍ່ໄດ້ໃສ່") + "\n"
-            + "\uD83D\uDCB0 ແຜນ: " + (plan ? plan.ccy + " " + plan.price : "") + "\n"
-            + "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n"
-            + "\uD83D\uDCCE ສະລິບ: " + (slipFile ? slipFile.name : "ຍັງບໍ່ໄດ້ອັບໂຫຼດ") + "\n"
+            + "\uD83D\uDCDE ເບີໂທ: " + (phone||"ບໍ່ໄດ້ໃສ່") + "\n"
+            + "\uD83D\uDCB0 ແຜນ: " + planStr + "\n"
+            + "━━━━━━━━━━━━━━━\n"
+            + "\uD83D\uDCCE ສະລິບ: " + (slipFile ? slipFile.name : "-") + "\n"
             + "ກະລຸນາ Activate ແລ້ວສົ່ງ Code ກັບຄືນ \uD83D\uDE4F";
+        window.open("https://wa.me/" + WHATSAPP_NUMBER + "?text=" + encodeURIComponent(waMsg), "_blank");
+
+        // 2) Log to Sheets
         if (SHEETS_URL) {
-            try { fetch(SHEETS_URL + "?action=logSlip&email=" + encodeURIComponent(email) + "&phone=" + encodeURIComponent(phone) + "&plan=" + encodeURIComponent(plan ? plan.ccy : "") + "&price=" + encodeURIComponent(plan ? plan.price : "") + "&name=" + encodeURIComponent(name) + "&ts=" + Date.now(), { cache: "no-store" }).catch(()=>{}); } catch(e) {}
+            try { fetch(SHEETS_URL + "?action=logSlip&email=" + encodeURIComponent(email) + "&phone=" + encodeURIComponent(phone) + "&plan=" + encodeURIComponent(planStr) + "&name=" + encodeURIComponent(name) + "&ts=" + Date.now(), { cache: "no-store" }).catch(()=>{}); } catch(e) {}
         }
-        window.open("https://wa.me/" + WHATSAPP_NUMBER + "?text=" + encodeURIComponent(msg), "_blank");
+
         setSent(true);
+        setStep(1);
     };
-    return React.createElement("div", { style: { marginTop: 14, background: C.panel2 || C.bg2, borderRadius: 14, border: "1px solid " + C.line, padding: "16px" } },
+
+    // Step 1: confirm sent — now guide to send image separately
+    if (step === 1) return React.createElement("div", { style: { marginTop: 14, background: "rgba(37,211,102,.08)", borderRadius: 14, border: "1px solid rgba(37,211,102,.4)", padding: "16px" } },
+        React.createElement("div", { style: { fontWeight: 700, fontSize: 14, color: C.green, marginBottom: 10 } }, "✅ ສົ່ງຂໍ້ຄວາມໄປ WhatsApp ແລ້ວ!"),
+        slipFile && React.createElement(React.Fragment, null,
+            React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.7, marginBottom: 10 } },
+                "⚠️ WhatsApp ສົ່ງຮູບຜ່ານ link ບໍ່ໄດ້ — ກະລຸນາ:\n\n1. ເປີດ WhatsApp ທີ່ຫາກໍ່ open\n2. ກົດ 📎 ແນບໄຟລ໌\n3. ເລືອກຮູບສະລິບ: ", React.createElement("strong", null, slipFile.name)),
+            React.createElement("img", { src: slipFile.url, alt: "slip preview", style: { width: "100%", maxHeight: 160, objectFit: "contain", borderRadius: 10, border: "1px solid " + C.line, marginTop: 6 } })
+        ),
+        React.createElement("div", { style: { fontSize: 12, color: C.mut, marginTop: 8 } }, "Admin ຈະ Activate ແລະສົ່ງ Code ກັບໃຫ້ທ່ານ")
+    );
+
+    return React.createElement("div", { style: { marginTop: 14, background: C.bg2, borderRadius: 14, border: "1px solid " + C.line, padding: "16px" } },
         React.createElement("div", { style: { fontWeight: 700, fontSize: 14, color: C.text, marginBottom: 12 } }, "\uD83D\uDCE4 ສົ່ງຫຼັກຖານການຊຳລະ"),
         React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } },
-            React.createElement("input", { value: email, onChange: e => setEmail(e.target.value), placeholder: "Email *", type: "email", style: { background: C.bg2, border: "1px solid " + C.line, borderRadius: 10, padding: "10px 12px", color: C.text, fontSize: 13.5, fontFamily: "inherit", outline: "none" } }),
-            React.createElement("input", { value: phone, onChange: e => setPhone(e.target.value), placeholder: "\uD83D\uDCDE ເບີໂທ (020XXXXXXXX)", type: "tel", style: { background: C.bg2, border: "1px solid " + C.line, borderRadius: 10, padding: "10px 12px", color: C.text, fontSize: 13.5, fontFamily: "inherit", outline: "none" } }),
-            React.createElement("div", { onClick: () => slipRef.current && slipRef.current.click(), style: { borderRadius: 10, border: "1.5px dashed " + (slipFile ? C.green : C.line), background: C.bg2, padding: slipFile ? 0 : "18px 12px", textAlign: "center", cursor: "pointer", overflow: "hidden" } },
+            React.createElement("input", { value: email, onChange: e => setEmail(e.target.value), placeholder: "Email *", type: "email", style: { background: C.bg, border: "1px solid " + C.line, borderRadius: 10, padding: "10px 12px", color: C.text, fontSize: 13.5, fontFamily: "inherit", outline: "none" } }),
+            React.createElement("input", { value: phone, onChange: e => setPhone(e.target.value), placeholder: "\uD83D\uDCDE ເບີໂທ (020XXXXXXXX)", type: "tel", style: { background: C.bg, border: "1px solid " + C.line, borderRadius: 10, padding: "10px 12px", color: C.text, fontSize: 13.5, fontFamily: "inherit", outline: "none" } }),
+            // Slip image picker (for preview + reference)
+            React.createElement("div", { onClick: () => slipRef.current && slipRef.current.click(), style: { borderRadius: 10, border: "1.5px dashed " + (slipFile ? C.green : C.line), background: C.bg, padding: slipFile ? 0 : "16px 12px", textAlign: "center", cursor: "pointer", overflow: "hidden" } },
                 slipFile
-                    ? React.createElement("img", { src: slipFile.url, alt: "slip", style: { width: "100%", maxHeight: 200, objectFit: "contain", display: "block" } })
+                    ? React.createElement("img", { src: slipFile.url, alt: "slip", style: { width: "100%", maxHeight: 180, objectFit: "contain", display: "block" } })
                     : React.createElement(React.Fragment, null,
-                        React.createElement("div", { style: { fontSize: 24 } }, "\uD83E\uDFFE"),
-                        React.createElement("div", { style: { fontSize: 13, color: C.mut, marginTop: 4 } }, "ກົດເພື່ອອັບໂຫຼດສະລິບ (PNG/JPG)"))
+                        React.createElement("div", { style: { fontSize: 22 } }, "\uD83E\uDFFE"),
+                        React.createElement("div", { style: { fontSize: 13, color: C.mut, marginTop: 4 } }, "ກົດເພື່ອເລືອກຮູບສະລິບ"))
             ),
             React.createElement("input", { ref: slipRef, type: "file", accept: "image/*", style: { display: "none" }, onChange: e => pickSlip(e.target.files) }),
-            React.createElement("button", { onClick: sendSlip, disabled: sent, className: "fx-btn", style: { padding: "12px", borderRadius: 11, border: "none", background: sent ? C.green : "linear-gradient(95deg," + C.wa + ",#1DA851)", color: "#04130A", fontWeight: 700, fontSize: 14, cursor: sent ? "default" : "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 } },
+            React.createElement("div", { style: { fontSize: 11.5, color: C.mut, lineHeight: 1.6, padding: "8px 10px", background: "rgba(255,180,50,.07)", borderRadius: 8, border: "1px solid rgba(255,180,50,.2)" } },
+                "⚠️ WhatsApp ບໍ່ຮອງຮັບການສົ່ງຮູບຜ່ານ link — ລະບົບຈະສົ່ງ\u200Bຂໍ້ຄວາມໄປກ່ອນ, ຈາກນັ້ນໃຫ້ທ່ານ\u200Bແນບຮູບໃນ WhatsApp ເອງ"
+            ),
+            React.createElement("button", { onClick: sendSlip, className: "fx-btn", style: { padding: "12px", borderRadius: 11, border: "none", background: "linear-gradient(95deg," + C.wa + ",#1DA851)", color: "#04130A", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 } },
                 React.createElement(WhatsAppIcon, { size: 18 }),
-                sent ? "✅ ສົ່ງແລ້ວ — ລໍ Code ຈາກ Admin" : "\uD83D\uDCE4 ສົ່ງສະລິບ + ແຈ້ງ Admin (WhatsApp)"),
-            slipFile && !sent && React.createElement("div", { style: { fontSize: 11.5, color: C.mut, textAlign: "center" } }, "⚠️ WhatsApp ຈະເປີດ — ໃຫ້ແນບຮູບສະລິບໃນ chat ນຳ")
+                "\uD83D\uDCE4 ສົ່ງຂໍ້ຄວາມ + ເປີດ WhatsApp")
         )
     );
 }
@@ -3763,19 +3788,46 @@ function ProfilePage({ t, user, lang, setLang, daysLeft, notify, setNotify, onPa
     const [editPhone, setEditPhone] = useState(user?.phone || "");
     const [editAvatar, setEditAvatar] = useState(user?.avatar || null);
     const avatarRef = React.useRef(null);
+
+    // Compress image to small JPEG (max 200x200, quality 0.7) before storing
+    const compressImage = (dataUrl, cb) => {
+        const img = new Image();
+        img.onload = () => {
+            const MAX = 200;
+            const scale = Math.min(MAX / img.width, MAX / img.height, 1);
+            const w = Math.round(img.width * scale);
+            const h = Math.round(img.height * scale);
+            const canvas = document.createElement("canvas");
+            canvas.width = w; canvas.height = h;
+            canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+            cb(canvas.toDataURL("image/jpeg", 0.72));
+        };
+        img.src = dataUrl;
+    };
+
     const saveProfile = () => {
         const updated = { ...user, name: editName.trim() || user.name, phone: editPhone.trim(), avatar: editAvatar };
-        try { localStorage.setItem("sniper_user", JSON.stringify(updated)); } catch(e) {}
+        try { localStorage.setItem("sniper_user", JSON.stringify(updated)); } catch(e) {
+            // If quota exceeded (large avatar) — save without avatar, keep in memory only
+            try { localStorage.setItem("sniper_user", JSON.stringify({ ...updated, avatar: null })); } catch(e2) {}
+        }
         if (onUpdateUser) onUpdateUser(updated);
         setPicker(null);
     };
+
     const pickAvatar = (files) => {
         const f = Array.from(files||[])[0];
         if (!f) return;
         const r = new FileReader();
-        r.onload = e => setEditAvatar(e.target.result);
+        r.onload = e => compressImage(e.target.result, compressed => setEditAvatar(compressed));
         r.readAsDataURL(f);
     };
+    // Lock body scroll when picker is open
+    useEffect(() => {
+        if (picker) { document.body.style.overflow = "hidden"; document.body.style.position = "fixed"; document.body.style.width = "100%"; }
+        else { document.body.style.overflow = ""; document.body.style.position = ""; document.body.style.width = ""; }
+        return () => { document.body.style.overflow = ""; document.body.style.position = ""; document.body.style.width = ""; };
+    }, [picker]);
     const toggleNotify = async () => {
         if (typeof Notification === "undefined")
             return;
@@ -3813,7 +3865,9 @@ function ProfilePage({ t, user, lang, setLang, daysLeft, notify, setNotify, onPa
     const curTheme = THEMES[theme] || THEMES[DEFAULT_THEME];
     return (React.createElement("section", { style: { marginTop: 8 } },
         React.createElement("div", { style: { borderRadius: 20, border: `1px solid ${C.line}`, background: `radial-gradient(120% 130% at 0% 0%, rgba(38,130,255,.16), transparent 55%), ${C.panel}`, padding: "22px 20px", textAlign: "center" } },
-            React.createElement("div", { style: { width: 72, height: 72, borderRadius: "50%", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, fontFamily: "'LaoOverride','Sora','Noto Sans Lao',sans-serif", fontWeight: 700, color: "#04101F", background: `linear-gradient(135deg,${C.cyan},${C.blue})`, boxShadow: `0 8px 24px -8px ${C.glow}` } }, (user.name || "U").charAt(0).toUpperCase()),
+            user.avatar
+                ? React.createElement("img", { src: user.avatar, alt: "avatar", style: { width: 72, height: 72, borderRadius: "50%", objectFit: "cover", border: `2px solid ${C.blue}`, boxShadow: `0 8px 24px -8px ${C.glow}`, display: "block", margin: "0 auto" } })
+                : React.createElement("div", { style: { width: 72, height: 72, borderRadius: "50%", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, fontFamily: "'LaoOverride','Sora','Noto Sans Lao',sans-serif", fontWeight: 700, color: "#04101F", background: `linear-gradient(135deg,${C.cyan},${C.blue})`, boxShadow: `0 8px 24px -8px ${C.glow}` } }, (user.name || "U").charAt(0).toUpperCase()),
             React.createElement("div", { style: { fontFamily: "'LaoOverride','Sora','Noto Sans Lao',sans-serif", fontWeight: 700, fontSize: 19, marginTop: 12 } }, user.name),
             React.createElement("div", { style: { color: C.mut, fontSize: 13, marginTop: 2 } }, user.email),
             React.createElement("div", { style: { display: "inline-flex", alignItems: "center", gap: 8, marginTop: 12, padding: "6px 14px", borderRadius: 99, background: C.bg2, border: `1px solid ${C.line}` } },
@@ -3857,8 +3911,8 @@ function ProfilePage({ t, user, lang, setLang, daysLeft, notify, setNotify, onPa
             React.createElement(LinkRow, { icon: "\uD83C\uDFE2", label: t("helpAbout"), onClick: () => setPicker("about"), last: true })),
         React.createElement("button", { onClick: onLogout, className: "fx-btn", style: { width: "100%", marginTop: 18, padding: "13px", borderRadius: 13, border: `1px solid ${C.red}`, background: "rgba(255,107,107,.08)", color: "#FFB4B4", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" } }, t("logout")),
         React.createElement("div", { style: { textAlign: "center", marginTop: 16, fontSize: 10, color: C.mut, opacity: 0.6, letterSpacing: ".06em" } }, "UI v19 \u00B7 clean profile"),
-        picker && (React.createElement("div", { onClick: () => setPicker(null), style: { position: "fixed", inset: 0, zIndex: 9000, background: "rgba(3,5,10,.7)", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)", padding: "20px 16px" } },
-            React.createElement("div", { onClick: (e) => e.stopPropagation(), style: { width: "100%", maxWidth: 440, background: C.panel, borderRadius: 20, border: `1px solid ${C.line}`, padding: "20px 20px 24px", maxHeight: "85vh", overflowY: "auto", boxShadow: "0 24px 60px -16px rgba(0,0,0,.8)" } },
+        picker && (React.createElement("div", { onClick: () => setPicker(null), style: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 9900, background: "rgba(3,5,10,.75)", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", padding: "16px" } },
+            React.createElement("div", { onClick: (e) => e.stopPropagation(), style: { width: "100%", maxWidth: 420, background: C.panel, borderRadius: 20, border: `1px solid ${C.line}`, padding: "20px 20px 28px", maxHeight: "80vh", overflowY: "auto", boxShadow: "0 32px 80px -16px rgba(0,0,0,.9)", animation: "fxRise .22s ease both" } },
                 React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 } },
                     React.createElement("span", { style: { fontFamily: "'LaoOverride','Sora','Noto Sans Lao',sans-serif", fontWeight: 800, fontSize: 16, color: C.text } }, picker === "lang" ? "🌐 " + t("secLanguage") : picker === "theme" ? "🎨 " + t("secTheme") : picker === "editProfile" ? "✏️ ແກ້ໄຂໂປຣໄຟລ໌" : picker === "terms" ? "📋 " + t("helpTerms") : "🏢 " + t("helpAbout")),
                     React.createElement("button", { onClick: () => setPicker(null), className: "fx-btn", style: { border: "none", background: C.bg2, color: C.mut, width: 30, height: 30, borderRadius: "50%", cursor: "pointer", fontSize: 16, fontFamily: "inherit" } }, "\u00D7")),
@@ -4422,57 +4476,126 @@ function WalletReferral({ t, user }) {
 // ── #5 Trading Chatbot (floating animated bubble) ───────────────
 function TradingChatbot({ t, lang, user }) {
     const [open, setOpen] = useState(false);
-    const [msgs, setMsgs] = useState([{ role: "assistant", text: lang === "th" ? "สวัสดี! 👋 ฉันคือ SniperBot — ถามเรื่องเทรดหรือแอปได้เลย เช่น 'ควรปิด trade ไหม?' หรือ 'OB คืออะไร?'" : lang === "en" ? "Hey! 👋 I'm SniperBot — ask me anything about trading or this app. e.g. 'Should I close my trade?' or 'What is an OB?'" : "ສະບາຍດີ! 👋 ຂ້ອຍແມ່ນ SniperBot — ຖາມໄດ້ທຸກຢ່າງກ່ຽວກັບການເທຣດ ຫຼື ແອັບ ເຊັ່ນ 'ຄວນປິດ trade ຫຼືຍັງ?' ຫຼື 'OB ຄືຫຍັງ?'" }]);
+    const [msgs, setMsgs] = useState([{ role: "assistant", text: lang === "th" ? "สวัสดี! 👋 ฉันคือ SniperBot — ถามเรื่องเทรดหรือแอปได้เลย หรือส่งรูป chart มาวิเคราะห์ได้เลย 📊" : lang === "en" ? "Hey! 👋 I'm SniperBot — ask me anything about trading or send a chart image for analysis 📊" : "ສະບາຍດີ! 👋 ຂ້ອຍແມ່ນ SniperBot — ຖາມໄດ້ທຸກຢ່າງກ່ຽວກັບການເທຣດ ຫຼື ສົ່ງຮູບກຣາຟມາວິເຄາະໄດ້ເລີຍ 📊" }]);
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
+    const [pendingImg, setPendingImg] = useState(null); // {url, base64, type}
     const bottomRef = useRef(null);
     const inputRef = useRef(null);
+    const imgRef = useRef(null);
     const langLabel = lang === "th" ? "Thai (ภาษาไทย)" : lang === "en" ? "English" : "Lao (ພາສາລາວ)";
+
     useEffect(() => { if (open && bottomRef.current) bottomRef.current.scrollIntoView({ behavior: "smooth" }); }, [msgs, open]);
+
+    const pickImg = (files) => {
+        const f = Array.from(files||[])[0];
+        if (!f || !f.type.startsWith("image/")) return;
+        const r = new FileReader();
+        r.onload = e => {
+            const base64 = e.target.result.split(",")[1];
+            setPendingImg({ url: e.target.result, base64, type: f.type });
+        };
+        r.readAsDataURL(f);
+    };
+
     const send = async () => {
         const text = input.trim();
-        if (!text || loading) return;
+        if (!text && !pendingImg || loading) return;
         setInput("");
-        const newMsgs = [...msgs, { role: "user", text }];
-        setMsgs(newMsgs);
+
+        // Build user message for display
+        const displayMsg = { role: "user", text: text || "📊 ສົ່ງຮູບກຣາຟ", img: pendingImg?.url };
+        setMsgs(prev => [...prev, displayMsg]);
+        const imgToSend = pendingImg;
+        setPendingImg(null);
         setLoading(true);
+
         try {
-            const r = await fetch(CLAUDE_ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, system: "You are SniperBot, a friendly trading assistant for the SniperTech AI app by Startup FX. Speak in " + langLabel + " in a warm casual friend-to-friend tone. ONLY answer about XAU/USD trading, forex, SMC/ICT concepts, risk management, and how to use the SniperTech AI app. For anything else say you only handle trading topics. Keep answers SHORT (3-5 sentences). Use emojis naturally.", messages: newMsgs.map(m => ({ role: m.role === "assistant" ? "assistant" : "user", content: m.text })) }) });
+            // Build history for API (text only for history, current msg with image)
+            const history = msgs.map(m => ({ role: m.role === "assistant" ? "assistant" : "user", content: m.text }));
+
+            // Current message content - with optional image
+            let userContent;
+            if (imgToSend) {
+                userContent = [
+                    { type: "image", source: { type: "base64", media_type: imgToSend.type, data: imgToSend.base64 } },
+                    { type: "text", text: text || "ກະລຸນາວິເຄາະ chart ນີ້ ບອກ bias, entry, SL, TP ຕາມຫຼັກ SMC/ICT" }
+                ];
+            } else {
+                userContent = text;
+            }
+
+            const apiMessages = [
+                ...history,
+                { role: "user", content: userContent }
+            ];
+
+            const r = await fetch(CLAUDE_ENDPOINT, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    model: "claude-sonnet-4-6",
+                    max_tokens: 600,
+                    system: "You are SniperBot, a friendly trading assistant for the SniperTech AI app by Startup FX. Speak in " + langLabel + " in a warm casual friend-to-friend tone. ONLY answer about XAU/USD trading, forex, SMC/ICT concepts, risk management, and how to use the SniperTech AI app. If user sends a chart image: analyze it using SMC/ICT — identify bias, key levels, OB/FVG, entry zone, SL, TP. Keep answers SHORT (4-6 sentences). Use emojis naturally.",
+                    messages: apiMessages,
+                })
+            });
             const d = await r.json();
             const reply = d?.content?.[0]?.text || "ຂໍໂທດ, ລອງໃໝ່ 🙏";
             setMsgs(prev => [...prev, { role: "assistant", text: reply }]);
-        } catch(e) { setMsgs(prev => [...prev, { role: "assistant", text: "ເນັດຂາດ — ລອງໃໝ່ 🙏" }]); }
+        } catch(e) {
+            setMsgs(prev => [...prev, { role: "assistant", text: "ເນັດຂາດ — ລອງໃໝ່ 🙏" }]);
+        }
         setLoading(false);
         setTimeout(() => inputRef.current && inputRef.current.focus(), 100);
     };
+
     const onKey = (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } };
+
     return React.createElement(React.Fragment, null,
+        // Floating bubble
         React.createElement("div", { style: { position: "fixed", bottom: 80, right: 18, zIndex: 9990 } },
             React.createElement("span", { "aria-hidden": true, style: { position: "absolute", inset: -6, borderRadius: "50%", border: "2px solid " + C.blue, animation: "botRingPulse 2s ease-out infinite", pointerEvents: "none" } }),
             React.createElement("span", { "aria-hidden": true, style: { position: "absolute", inset: -12, borderRadius: "50%", border: "1.5px solid " + C.cyan, animation: "botRingPulse 2s ease-out .6s infinite", pointerEvents: "none", opacity: 0.5 } }),
             !open && React.createElement("span", { "aria-hidden": true, style: { position: "absolute", top: 0, right: 0, width: 13, height: 13, borderRadius: "50%", background: C.green, border: "2px solid " + C.bg, animation: "botDot 1.4s ease-in-out infinite", zIndex: 2 } }),
             React.createElement("button", { onClick: () => setOpen(v => !v), className: "fx-btn", style: { position: "relative", width: 52, height: 52, borderRadius: "50%", border: "none", background: "linear-gradient(135deg," + C.blue + ",#5B4FFF)", color: "#fff", fontSize: 24, cursor: "pointer", boxShadow: "0 6px 24px -6px " + C.glow, display: "flex", alignItems: "center", justifyContent: "center", animation: open ? "none" : "botWiggle 4s ease-in-out infinite", zIndex: 1 } }, open ? "\u00D7" : "\uD83E\uDD16")
         ),
-        open && React.createElement("div", { style: { position: "fixed", bottom: 142, right: 14, zIndex: 9989, width: "min(360px, calc(100vw - 28px))", height: 460, borderRadius: 20, border: "1px solid " + C.line, background: C.panel, display: "flex", flexDirection: "column", boxShadow: "0 20px 60px -20px rgba(0,0,0,.7)", overflow: "hidden" } },
-            React.createElement("div", { style: { padding: "14px 16px", borderBottom: "1px solid " + C.line, background: C.bg2, display: "flex", alignItems: "center", gap: 10 } },
+        // Chat window
+        open && React.createElement("div", { style: { position: "fixed", bottom: 142, right: 14, zIndex: 9989, width: "min(360px, calc(100vw - 28px))", height: 480, borderRadius: 20, border: "1px solid " + C.line, background: C.panel, display: "flex", flexDirection: "column", boxShadow: "0 20px 60px -20px rgba(0,0,0,.7)", overflow: "hidden" } },
+            // Header
+            React.createElement("div", { style: { padding: "12px 16px", borderBottom: "1px solid " + C.line, background: C.bg2, display: "flex", alignItems: "center", gap: 10 } },
                 React.createElement("span", { style: { fontSize: 22 } }, "\uD83E\uDD16"),
-                React.createElement("div", null,
+                React.createElement("div", { style: { flex: 1 } },
                     React.createElement("div", { style: { fontWeight: 700, fontSize: 14, color: C.text } }, "SniperBot"),
-                    React.createElement("div", { style: { fontSize: 11, color: C.green } }, "● Online · ເທຣດ + ແອັບ")),
-                React.createElement("button", { onClick: () => setMsgs(msgs.slice(0,1)), style: { marginLeft: "auto", background: "none", border: "none", color: C.mut, fontSize: 11, cursor: "pointer", fontFamily: "inherit" } }, "ລ້າງ")
+                    React.createElement("div", { style: { fontSize: 11, color: C.green } }, "● Online · ເທຣດ + ວິເຄາະກຣາຟ")),
+                React.createElement("button", { onClick: () => setMsgs(msgs.slice(0,1)), style: { background: "none", border: "none", color: C.mut, fontSize: 11, cursor: "pointer", fontFamily: "inherit" } }, "ລ້າງ")
             ),
+            // Messages
             React.createElement("div", { style: { flex: 1, overflowY: "auto", padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 } },
                 msgs.map((m, i) => React.createElement("div", { key: i, style: { display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start" } },
-                    React.createElement("div", { style: { maxWidth: "82%", padding: "9px 12px", borderRadius: m.role === "user" ? "14px 14px 4px 14px" : "14px 14px 14px 4px", background: m.role === "user" ? "linear-gradient(135deg," + C.blue + ",#5B4FFF)" : C.bg2, color: m.role === "user" ? "#fff" : C.text, fontSize: 13.5, lineHeight: 1.6, border: m.role === "user" ? "none" : "1px solid " + C.line } }, m.text)
+                    React.createElement("div", { style: { maxWidth: "85%", display: "flex", flexDirection: "column", gap: 4, alignItems: m.role === "user" ? "flex-end" : "flex-start" } },
+                        m.img && React.createElement("img", { src: m.img, alt: "chart", style: { maxWidth: 180, borderRadius: 10, border: "1px solid " + C.line, marginBottom: 2 } }),
+                        React.createElement("div", { style: { padding: "9px 12px", borderRadius: m.role === "user" ? "14px 14px 4px 14px" : "14px 14px 14px 4px", background: m.role === "user" ? "linear-gradient(135deg," + C.blue + ",#5B4FFF)" : C.bg2, color: m.role === "user" ? "#fff" : C.text, fontSize: 13.5, lineHeight: 1.6, border: m.role === "user" ? "none" : "1px solid " + C.line } }, m.text)
+                    )
                 )),
                 loading && React.createElement("div", { style: { display: "flex", gap: 5, padding: "8px 12px", background: C.bg2, borderRadius: "14px 14px 14px 4px", width: "fit-content", border: "1px solid " + C.line } },
                     [0,1,2].map(i => React.createElement("span", { key: i, style: { width: 7, height: 7, borderRadius: "50%", background: C.blue, animation: "bounce .9s ease-in-out infinite", animationDelay: (i*0.2) + "s" } }))
                 ),
                 React.createElement("div", { ref: bottomRef })
             ),
-            React.createElement("div", { style: { padding: "10px 12px", borderTop: "1px solid " + C.line, display: "flex", gap: 8, background: C.bg2 } },
-                React.createElement("input", { ref: inputRef, value: input, onChange: e => setInput(e.target.value), onKeyDown: onKey, placeholder: "ຖາມໄດ້ເລີຍ...", style: { flex: 1, background: C.bg, border: "1px solid " + C.line, borderRadius: 10, padding: "9px 12px", color: C.text, fontSize: 13.5, fontFamily: "inherit", outline: "none" } }),
-                React.createElement("button", { onClick: send, disabled: loading || !input.trim(), className: "fx-btn", style: { padding: "9px 14px", borderRadius: 10, border: "none", background: input.trim() ? "linear-gradient(95deg," + C.blue + "," + C.blueLt + ")" : C.bg2, color: input.trim() ? "#04101F" : C.mut, fontWeight: 700, fontSize: 14, cursor: input.trim() ? "pointer" : "default", fontFamily: "inherit" } }, "\u2192")
+            // Pending image preview
+            pendingImg && React.createElement("div", { style: { padding: "6px 14px", borderTop: "1px solid " + C.line, background: C.bg2, display: "flex", alignItems: "center", gap: 8 } },
+                React.createElement("img", { src: pendingImg.url, alt: "pending", style: { width: 44, height: 44, objectFit: "cover", borderRadius: 8, border: "1px solid " + C.line } }),
+                React.createElement("span", { style: { flex: 1, fontSize: 12, color: C.mut } }, "📊 ຮູບກຣາຟ — ກົດ → ເພື່ອສົ່ງ"),
+                React.createElement("button", { onClick: () => setPendingImg(null), style: { background: "none", border: "none", color: C.mut, fontSize: 16, cursor: "pointer", padding: 0 } }, "\u00D7")
+            ),
+            // Input bar
+            React.createElement("div", { style: { padding: "10px 10px", borderTop: "1px solid " + C.line, display: "flex", gap: 6, background: C.bg2, alignItems: "center" } },
+                // Image upload button
+                React.createElement("button", { onClick: () => imgRef.current && imgRef.current.click(), className: "fx-btn", title: "ສົ່ງຮູບກຣາຟ", style: { width: 36, height: 36, borderRadius: 10, border: "1px solid " + C.line, background: pendingImg ? C.blue : C.bg, color: pendingImg ? "#fff" : C.mut, fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 } }, "📊"),
+                React.createElement("input", { ref: imgRef, type: "file", accept: "image/*", style: { display: "none" }, onChange: e => pickImg(e.target.files) }),
+                React.createElement("input", { ref: inputRef, value: input, onChange: e => setInput(e.target.value), onKeyDown: onKey, placeholder: pendingImg ? "ຕັ້ງຄຳຖາມກ່ຽວກັບຮູບ (ຫຼືສົ່ງເລີຍ)..." : "ຖາມໄດ້ເລີຍ...", style: { flex: 1, background: C.bg, border: "1px solid " + C.line, borderRadius: 10, padding: "9px 12px", color: C.text, fontSize: 13, fontFamily: "inherit", outline: "none" } }),
+                React.createElement("button", { onClick: send, disabled: loading || (!input.trim() && !pendingImg), className: "fx-btn", style: { width: 36, height: 36, borderRadius: 10, border: "none", background: (input.trim() || pendingImg) ? "linear-gradient(95deg," + C.blue + "," + C.blueLt + ")" : C.bg2, color: (input.trim() || pendingImg) ? "#04101F" : C.mut, fontWeight: 700, fontSize: 16, cursor: (input.trim() || pendingImg) ? "pointer" : "default", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center" } }, "\u2192")
             )
         )
     );
