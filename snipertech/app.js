@@ -3793,9 +3793,9 @@ function SplashScreen({ onDone }) {
 function AIEnginePanel({ t, engines, setEngines }) {
     const [showNote, setShowNote] = useState(false);
     const AIS = [
-        { id: "claude", name: "Claude", icon: "🟣", desc: t("aiClaudeDesc"), live: true },
-        { id: "gpt", name: "ChatGPT", icon: "🟢", desc: t("aiGptDesc"), live: false },
-        { id: "gemini", name: "Gemini", icon: "🔵", desc: t("aiGeminiDesc"), live: false },
+{ id: "claude", name: "Claude", icon: "🟣", desc: t("aiClaudeDesc"), live: true },
+{ id: "gpt", name: "ChatGPT", icon: "🟢", desc: t("aiGPTDesc"), live: true },
+{ id: "gemini", name: "Gemini", icon: "🔵", desc: t("aiGeminiDesc"), live: true },
     ];
     const toggle = (ai) => {
         if (!ai.live) {
