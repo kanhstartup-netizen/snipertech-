@@ -92,6 +92,10 @@ function applyTheme(key) {
 // ─────────────────────────────────────────────────────────────
 const WHATSAPP_NUMBER = "8562092694499"; // intl format, no '+'
 const WHATSAPP_MSG = "Startup FX — XAU/USD";
+// ── Supabase (Phase 2 — Signal History) ──────────────────────
+const SUPABASE_URL = "https://wxnejgpbofvywkijfjmx.supabase.co";
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4bmVqZ3Bib2Z2eXdraWpmam14Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MDc1MjMsImV4cCI6MjA5Nzk4MzUyM30.pfw4ZcUUiEop5gi6K0F6rCs4-MmO5b_tmM9B4Fpa7yM";
+const sbFetch = (path, opts={}) => fetch(SUPABASE_URL + path, { ...opts, headers: { "apikey": SUPABASE_ANON, "Authorization": "Bearer " + SUPABASE_ANON, "Content-Type": "application/json", "Prefer": "return=representation", ...(opts.headers||{}) } });
 const waLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MSG)}`;
 const KCM_REGISTER_URL = "https://auth-login.kcmtrade.com/th/links/go/19137";
 const KVB_REGISTER_URL = "https://cnf5g62e6.plusiaa.com";
@@ -2291,6 +2295,29 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
                 setResult({ ...parsed, consensus });
             }
             try { localStorage.setItem("sniper_result", JSON.stringify(parsed)); } catch(e) {}
+            // ── Phase 2: Save signal to Supabase ──────────────────
+            try {
+                const setup = parsed.setups?.[0] || {};
+                const userEmail = (() => { try { return JSON.parse(localStorage.getItem("sniper_user")||"{}").email||""; } catch(e){return "";} })();
+                sbFetch("/rest/v1/signals", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        user_email: userEmail,
+                        direction: setup.direction || parsed.bias || "",
+                        entry: setup.entry_zone || "",
+                        sl: setup.stop || "",
+                        tp1: setup.targets?.[0] || "",
+                        tp2: setup.targets?.[1] || "",
+                        tp3: setup.targets?.[2] || "",
+                        grade: setup.grade || "",
+                        confidence: setup.confidence || "",
+                        sniper_grade: parsed.sniper_grade || "",
+                        rr: setup.rr || "",
+                        result: "pending",
+                        lang: lang || "lo",
+                    })
+                }).catch(() => {});
+            } catch(e) {}
         }
         catch (e) {
             setErr(e.reason || "ການວິເຄາະລົ້ມເຫຼວ. ລອງໃໝ່ອີກເທື່ອ.");
@@ -2487,7 +2514,8 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
                 React.createElement(NewsRoom, { t: t, notify: notify, setNotify: setNotify, isAdmin: isAdmin }))),
             nav === "profile" && (React.createElement("div", { className: "fx-rise" },
                 React.createElement(ProfileErrorBoundary, null,
-                    React.createElement(ProfilePage, { t: t, user: user, lang: lang, setLang: setLang, daysLeft: daysLeft, notify: notify, setNotify: setNotify, onPay: () => setShowPay(true), onLogout: () => { setUser(null); try { localStorage.removeItem("sniper_user"); } catch(e) {} }, waLink: waLink, isAdmin: isAdmin, setIsAdmin: setIsAdmin, theme: theme, setTheme: setTheme, onUpdateUser: (u) => setUser(u) })))),
+                    React.createElement(ProfilePage, { t: t, user: user, lang: lang, setLang: setLang, daysLeft: daysLeft, notify: notify, setNotify: setNotify, onPay: () => setShowPay(true), onLogout: () => { setUser(null); try { localStorage.removeItem("sniper_user"); } catch(e) {} }, waLink: waLink, isAdmin: isAdmin, setIsAdmin: setIsAdmin, theme: theme, setTheme: setTheme, onUpdateUser: (u) => setUser(u) })),
+                React.createElement(SignalHistory, { user: user, t: t }))),
             React.createElement("footer", { style: { marginTop: 36, paddingTop: 18, borderTop: `1px solid ${C.line}`, color: C.mut, fontSize: 11.5, lineHeight: 1.8, textAlign: "center" } }, t("footer"))),
         React.createElement("nav", { style: { position: "fixed", left: "50%", bottom: 0, transform: "translateX(-50%)", width: "100%", maxWidth: 720, zIndex: 50, padding: "0 12px 12px" } },
             React.createElement("div", { style: { display: "flex", justifyContent: "space-around", alignItems: "center", gap: 4, padding: "8px 6px", borderRadius: 20, border: `1px solid ${C.line}`, background: "rgba(16,20,30,.82)", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)", boxShadow: "0 -8px 30px -12px rgba(0,0,0,.7)" } }, [
@@ -4639,6 +4667,90 @@ function WalletReferral({ t, user }) {
                         "\uD83D\uDCA1 ",
                         t("refHowTitle")),
                     React.createElement("div", { style: { fontSize: 12, color: C.mut, lineHeight: 1.65 } }, t("refHow", { pct: REFERRAL_PCT })))))));
+}
+
+// ── Phase 2: Signal History + Win Rate ───────────────────────
+function SignalHistory({ user, t }) {
+    const [signals, setSignals] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [updating, setUpdating] = useState(null);
+
+    useEffect(() => {
+        if (!user?.email) return;
+        const email = encodeURIComponent(user.email);
+        sbFetch(`/rest/v1/signals?user_email=eq.${email}&order=created_at.desc&limit=50`)
+            .then(r => r.json())
+            .then(data => { setSignals(Array.isArray(data) ? data : []); setLoading(false); })
+            .catch(() => setLoading(false));
+    }, [user?.email]);
+
+    const updateResult = async (id, result) => {
+        setUpdating(id);
+        await sbFetch(`/rest/v1/signals?id=eq.${id}`, {
+            method: "PATCH",
+            body: JSON.stringify({ result })
+        }).catch(()=>{});
+        setSignals(prev => prev.map(s => s.id === id ? { ...s, result } : s));
+        setUpdating(null);
+    };
+
+    const wins   = signals.filter(s => s.result === "win").length;
+    const losses = signals.filter(s => s.result === "loss").length;
+    const total  = signals.filter(s => s.result !== "pending").length;
+    const wr     = total > 0 ? Math.round(wins / total * 100) : null;
+
+    const resultColor = r => r === "win" ? "#3FD98A" : r === "loss" ? "#FF6B6B" : "#888";
+    const resultLabel = r => r === "win" ? "✅ ກຳໄລ" : r === "loss" ? "❌ ຂາດທຶນ" : "⏳ ລໍຜົນ";
+
+    return React.createElement("section", { style: { marginTop: 18 } },
+        // Win Rate card
+        React.createElement("div", { style: { borderRadius: 18, border: `1px solid ${C.line}`, background: C.panel, padding: "18px 18px 14px", marginBottom: 14 } },
+            React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: 12 } },
+                React.createElement("span", { style: { fontSize: 20 } }, "📊"),
+                React.createElement("div", { style: { fontFamily: "'LaoOverride','Sora','Noto Sans Lao',sans-serif", fontWeight: 700, fontSize: 15 } }, "ສະຖິຕິ Signal"),
+                React.createElement("span", { style: { marginLeft: "auto", fontSize: 11, color: C.mut } }, signals.length + " signals ທັງໝົດ")),
+            React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 } },
+                [
+                    { label: "Win Rate", value: wr !== null ? wr + "%" : "—", color: wr >= 60 ? "#3FD98A" : wr >= 40 ? C.amber : "#FF6B6B" },
+                    { label: "✅ ກຳໄລ", value: wins, color: "#3FD98A" },
+                    { label: "❌ ຂາດທຶນ", value: losses, color: "#FF6B6B" },
+                ].map((s, i) => React.createElement("div", { key: i, style: { background: C.bg2, borderRadius: 12, padding: "12px 10px", textAlign: "center", border: `1px solid ${C.line}` } },
+                    React.createElement("div", { style: { fontSize: 22, fontWeight: 700, color: s.color, fontFamily: "inherit" } }, s.value),
+                    React.createElement("div", { style: { fontSize: 11, color: C.mut, marginTop: 3 } }, s.label)
+                ))
+            ),
+            wr !== null && React.createElement("div", { style: { marginTop: 12, height: 6, borderRadius: 99, background: C.bg2, overflow: "hidden" } },
+                React.createElement("div", { style: { height: "100%", width: wr + "%", background: wr >= 60 ? "#3FD98A" : wr >= 40 ? C.amber : "#FF6B6B", borderRadius: 99, transition: "width 1s ease" } })
+            )
+        ),
+        // Signal list
+        React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } },
+            loading
+                ? React.createElement("div", { style: { textAlign: "center", color: C.mut, padding: "24px 0", fontSize: 13 } }, "⏳ ກຳລັງໂຫຼດ...")
+                : signals.length === 0
+                    ? React.createElement("div", { style: { textAlign: "center", color: C.mut, padding: "24px 0", fontSize: 13 } }, "ຍັງບໍ່ທັນມີ signal — ໄປວິເຄາະກຣາຟກ່ອນ 📊")
+                    : signals.map(s => React.createElement("div", { key: s.id, style: { borderRadius: 14, border: `1px solid ${C.line}`, background: C.panel, padding: "14px 16px" } },
+                        React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 8 } },
+                            React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: s.direction === "Buy" ? "#3FD98A" : s.direction === "Sell" ? "#FF6B6B" : C.mut, background: s.direction === "Buy" ? "rgba(63,217,138,.12)" : s.direction === "Sell" ? "rgba(255,107,107,.12)" : C.bg2, borderRadius: 6, padding: "2px 10px", border: `1px solid ${s.direction === "Buy" ? "rgba(63,217,138,.3)" : s.direction === "Sell" ? "rgba(255,107,107,.3)" : C.line}` } }, s.direction || "—"),
+                            React.createElement("span", { style: { fontSize: 11, color: C.mut } }, new Date(s.created_at).toLocaleString("lo", { day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit" })),
+                            s.sniper_grade && React.createElement("span", { style: { fontSize: 10, fontWeight: 700, color: "#04101F", background: s.sniper_grade.startsWith("A+++") ? "#3FD98A" : s.sniper_grade.startsWith("A+") ? C.blueLt : C.amber, borderRadius: 6, padding: "2px 7px" } }, s.sniper_grade),
+                            React.createElement("span", { style: { marginLeft: "auto", fontSize: 11, fontWeight: 700, color: resultColor(s.result) } }, resultLabel(s.result))
+                        ),
+                        React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, fontSize: 11.5, color: C.mut, marginBottom: 10 } },
+                            React.createElement("div", null, "Entry: ", React.createElement("span", { style: { color: C.text } }, s.entry || "—")),
+                            React.createElement("div", null, "SL: ", React.createElement("span", { style: { color: "#FF6B6B" } }, s.sl || "—")),
+                            React.createElement("div", null, "RR: ", React.createElement("span", { style: { color: C.cyan } }, s.rr || "—")),
+                            React.createElement("div", null, "TP1: ", React.createElement("span", { style: { color: "#3FD98A" } }, s.tp1 || "—")),
+                            React.createElement("div", null, "TP2: ", React.createElement("span", { style: { color: "#3FD98A" } }, s.tp2 || "—")),
+                            React.createElement("div", null, "Conf: ", React.createElement("span", { style: { color: C.text } }, s.confidence || "—"))
+                        ),
+                        s.result === "pending" && React.createElement("div", { style: { display: "flex", gap: 6 } },
+                            React.createElement("button", { onClick: () => updateResult(s.id, "win"), disabled: updating === s.id, className: "fx-btn", style: { flex: 1, padding: "7px", borderRadius: 8, border: "none", background: "rgba(63,217,138,.15)", color: "#3FD98A", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit", border: "1px solid rgba(63,217,138,.3)" } }, updating === s.id ? "..." : "✅ ກຳໄລ"),
+                            React.createElement("button", { onClick: () => updateResult(s.id, "loss"), disabled: updating === s.id, className: "fx-btn", style: { flex: 1, padding: "7px", borderRadius: 8, border: "none", background: "rgba(255,107,107,.12)", color: "#FF6B6B", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit", border: "1px solid rgba(255,107,107,.3)" } }, updating === s.id ? "..." : "❌ ຂາດທຶນ")
+                        )
+                    ))
+        )
+    );
 }
 
 // ── #5 Trading Chatbot (floating animated bubble) ───────────────
