@@ -4085,21 +4085,21 @@ function ProfilePage({ t, user, lang, setLang, daysLeft, notify, setNotify, onPa
     // No scroll lock - users can scroll freely even when picker is open
     useEffect(() => { return () => {}; }, [picker]);
     const toggleNotify = async () => {
-        if (typeof Notification === "undefined")
-            return;
-        if (notify) {
-            setNotify(false);
-            return;
-        }
-        if (Notification.permission === "granted") {
-            setNotify(true);
-            return;
-        }
-        const p = await Notification.requestPermission();
-        if (p === "granted")
-            setNotify(true);
-        else if (p === "denied")
-            setDenied(true);
+        if (typeof Notification === "undefined") return;
+        if (notify) { setNotify(false); return; }
+        // Request permission + init FCM
+        try {
+            const p = Notification.permission === "granted"
+                ? "granted"
+                : await Notification.requestPermission();
+            if (p === "granted") {
+                setNotify(true);
+                // Init FCM to get push token
+                initFCM(user?.email || "").catch(()=>{});
+            } else if (p === "denied") {
+                setDenied(true);
+            }
+        } catch(e) {}
     };
     const Section = ({ icon, title, children }) => (React.createElement("div", { style: { marginTop: 16 } },
         React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } },
@@ -4134,6 +4134,17 @@ function ProfilePage({ t, user, lang, setLang, daysLeft, notify, setNotify, onPa
                 React.createElement("button", { onClick: () => { setEditName(user.name||""); setEditPhone(user.phone||""); setEditAvatar(user.avatar||null); setPicker("editProfile"); }, className: "fx-btn", style: { padding: "8px 16px", borderRadius: 11, border: `1px solid ${C.line}`, background: C.bg2, color: C.mut, fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit" } }, "✏️ ແກ້ໄຂໂປຣໄຟລ໌"),
                 !isAdmin && React.createElement("button", { onClick: onPay, className: "fx-btn", style: { padding: "8px 16px", borderRadius: 11, border: "none", background: `linear-gradient(95deg,${C.blue},${C.blueLt})`, color: "#04101F", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" } }, t("payNow")))),
         React.createElement(WalletReferral, { t: t, user: user }),
+        // FCM Permission Banner — show if not yet granted
+        typeof Notification !== "undefined" && Notification.permission === "default" && !notify && (
+            React.createElement("div", { style: { marginTop: 14, borderRadius: 14, border: "1px solid rgba(38,130,255,.4)", background: "rgba(38,130,255,.08)", padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 } },
+                React.createElement("span", { style: { fontSize: 24 } }, "🔔"),
+                React.createElement("div", { style: { flex: 1 } },
+                    React.createElement("div", { style: { fontWeight: 700, fontSize: 13.5, color: C.text, marginBottom: 3 } }, "ເປີດການແຈ້ງເຕືອນ Signal"),
+                    React.createElement("div", { style: { fontSize: 12, color: C.mut, lineHeight: 1.5 } }, "ຮັບ signal ທຸກໆ device ທັນທີ ເຖິງວ່າ app ຈະປິດ")
+                ),
+                React.createElement("button", { onClick: toggleNotify, className: "fx-btn", style: { padding: "9px 16px", borderRadius: 10, border: "none", background: `linear-gradient(95deg,${C.blue},${C.blueLt})`, color: "#04101F", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" } }, "Allow 🔔")
+            )
+        ),
         React.createElement(Section, { icon: "\u2699\uFE0F", title: t("secSettings") },
             React.createElement(SelectRow, { icon: "\uD83C\uDF10", label: t("secLanguage"), onClick: () => setPicker("lang"), value: React.createElement(React.Fragment, null,
                     React.createElement(Flag, { code: curLang ? curLang.flag : "lo", size: 16 }),
