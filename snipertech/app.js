@@ -4734,27 +4734,35 @@ function AdminPushPanel({ t, isAdmin }) {
         setSending(true);
         try {
             // Get all FCM tokens from Supabase
-            const r = await sbFetch("/rest/v1/fcm_tokens?select=token");
-            const tokens = await r.json();
-            if (!Array.isArray(tokens) || tokens.length === 0) {
-                alert("ບໍ່ມີ device ທີ່ລົງທະບຽນ notification");
+            const r = await sbFetch("/rest/v1/fcm_tokens?select=token,email");
+            const rows = await r.json();
+            if (!Array.isArray(rows) || rows.length === 0) {
+                alert("ບໍ່ມີ device ທີ່ລົງທະບຽນ — user ຕ້ອງ Allow Notification ກ່ອນ");
                 setSending(false);
                 return;
             }
-            // Send via Firebase HTTP v1 API through Cloudflare proxy
-            // For now: save to Supabase as broadcast + show in-app
-            await sbFetch("/rest/v1/broadcasts", {
+            const tokens = rows.map(r => r.token).filter(Boolean);
+            // Send via Cloudflare Worker /push route
+            const pushResp = await fetch(CLAUDE_ENDPOINT.replace(/\/$/, "") + "/../push", {
                 method: "POST",
-                body: JSON.stringify({ title: title.trim(), body: body.trim(), created_at: new Date().toISOString(), sent_to: tokens.length })
-            }).catch(()=>{});
-            // Trigger browser notification for admin preview
-            if (Notification.permission === "granted") {
-                new Notification("📡 " + title.trim(), { body: body.trim(), icon: "./logo.png", tag: "admin-push" });
-            }
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ tokens, title: title.trim(), body: body.trim(), data: { type: "signal" } })
+            }).catch(() => null);
+            // Fallback: use the correct worker URL directly
+            const workerBase = CLAUDE_ENDPOINT.replace(/\/+$/, "").replace(/\/(openai|gemini|push)?$/, "");
+            const pushResp2 = pushResp || await fetch(workerBase + "/push", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ tokens, title: title.trim(), body: body.trim(), data: { type: "signal" } })
+            });
+            const result = await pushResp2.json().catch(() => ({}));
             setSent(true);
             setTitle(""); setBody("");
+            alert("✅ ສົ່ງສຳເລັດ! " + (result.sent || tokens.length) + "/" + tokens.length + " devices");
             setTimeout(() => setSent(false), 3000);
-        } catch(e) {}
+        } catch(e) {
+            alert("❌ Error: " + e.message);
+        }
         setSending(false);
     };
 
