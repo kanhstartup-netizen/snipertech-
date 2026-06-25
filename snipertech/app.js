@@ -2417,7 +2417,8 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
             nav === "news" && (React.createElement("div", { className: "fx-rise" },
                 React.createElement(NewsRoom, { t: t, notify: notify, setNotify: setNotify, isAdmin: isAdmin }))),
             nav === "profile" && (React.createElement("div", { className: "fx-rise" },
-                React.createElement(ProfilePage, { t: t, user: user, lang: lang, setLang: setLang, daysLeft: daysLeft, notify: notify, setNotify: setNotify, onPay: () => setShowPay(true), onLogout: () => { setUser(null); try { localStorage.removeItem("sniper_user"); } catch(e) {} }, waLink: waLink, isAdmin: isAdmin, setIsAdmin: setIsAdmin, theme: theme, setTheme: setTheme, onUpdateUser: (u) => setUser(u) }))),
+                React.createElement(ProfileErrorBoundary, null,
+                    React.createElement(ProfilePage, { t: t, user: user, lang: lang, setLang: setLang, daysLeft: daysLeft, notify: notify, setNotify: setNotify, onPay: () => setShowPay(true), onLogout: () => { setUser(null); try { localStorage.removeItem("sniper_user"); } catch(e) {} }, waLink: waLink, isAdmin: isAdmin, setIsAdmin: setIsAdmin, theme: theme, setTheme: setTheme, onUpdateUser: (u) => setUser(u) })))),
             React.createElement("footer", { style: { marginTop: 36, paddingTop: 18, borderTop: `1px solid ${C.line}`, color: C.mut, fontSize: 11.5, lineHeight: 1.8, textAlign: "center" } }, t("footer"))),
         React.createElement("nav", { style: { position: "fixed", left: "50%", bottom: 0, transform: "translateX(-50%)", width: "100%", maxWidth: 720, zIndex: 50, padding: "0 12px 12px" } },
             React.createElement("div", { style: { display: "flex", justifyContent: "space-around", alignItems: "center", gap: 4, padding: "8px 6px", borderRadius: 20, border: `1px solid ${C.line}`, background: "rgba(16,20,30,.82)", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)", boxShadow: "0 -8px 30px -12px rgba(0,0,0,.7)" } }, [
@@ -3778,6 +3779,22 @@ function VipCodeGenerator({ t }) {
     );
 }
 
+// ── Profile Error Boundary — prevents crash from wiping whole page ──
+class ProfileErrorBoundary extends React.Component {
+    constructor(props) { super(props); this.state = { error: null }; }
+    static getDerivedStateFromError(e) { return { error: e }; }
+    render() {
+        if (this.state.error) {
+            return React.createElement("div", { style: { padding: "32px 20px", textAlign: "center", color: C.mut } },
+                React.createElement("div", { style: { fontSize: 32 } }, "⚠️"),
+                React.createElement("div", { style: { fontWeight: 700, fontSize: 15, color: C.text, marginTop: 10 } }, "ໂປຣໄຟລ໌ load ບໍ່ໄດ້"),
+                React.createElement("div", { style: { fontSize: 12, marginTop: 6, color: C.mut } }, this.state.error.message),
+                React.createElement("button", { onClick: () => this.setState({ error: null }), style: { marginTop: 16, padding: "10px 24px", borderRadius: 10, border: "none", background: C.blue, color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" } }, "ລອງໃໝ່")
+            );
+        }
+        return this.props.children;
+    }
+}
 function ProfilePage({ t, user, lang, setLang, daysLeft, notify, setNotify, onPay, onLogout, waLink, isAdmin, setIsAdmin, theme, setTheme, onUpdateUser }) {
     const [adminPass, setAdminPass] = useState("");
     const [showAdminInput, setShowAdminInput] = useState(false);
@@ -3789,20 +3806,25 @@ function ProfilePage({ t, user, lang, setLang, daysLeft, notify, setNotify, onPa
     const [editAvatar, setEditAvatar] = useState(user?.avatar || null);
     const avatarRef = React.useRef(null);
 
-    // Compress image to small JPEG (max 200x200, quality 0.7) before storing
+    // Compress image safely — fallback to original if canvas fails
     const compressImage = (dataUrl, cb) => {
-        const img = new Image();
-        img.onload = () => {
-            const MAX = 200;
-            const scale = Math.min(MAX / img.width, MAX / img.height, 1);
-            const w = Math.round(img.width * scale);
-            const h = Math.round(img.height * scale);
-            const canvas = document.createElement("canvas");
-            canvas.width = w; canvas.height = h;
-            canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-            cb(canvas.toDataURL("image/jpeg", 0.72));
-        };
-        img.src = dataUrl;
+        try {
+            const img = new Image();
+            img.onload = () => {
+                try {
+                    const MAX = 180;
+                    const scale = Math.min(MAX / img.width, MAX / img.height, 1);
+                    const w = Math.round(img.width * scale);
+                    const h = Math.round(img.height * scale);
+                    const canvas = document.createElement("canvas");
+                    canvas.width = w; canvas.height = h;
+                    canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+                    cb(canvas.toDataURL("image/jpeg", 0.7));
+                } catch(e) { cb(dataUrl); } // fallback: use original
+            };
+            img.onerror = () => cb(dataUrl);
+            img.src = dataUrl;
+        } catch(e) { cb(dataUrl); }
     };
 
     const saveProfile = () => {
@@ -3822,11 +3844,18 @@ function ProfilePage({ t, user, lang, setLang, daysLeft, notify, setNotify, onPa
         r.onload = e => compressImage(e.target.result, compressed => setEditAvatar(compressed));
         r.readAsDataURL(f);
     };
-    // Lock body scroll when picker is open
+    // Lock body scroll when picker open (iOS-safe)
     useEffect(() => {
-        if (picker) { document.body.style.overflow = "hidden"; document.body.style.position = "fixed"; document.body.style.width = "100%"; }
-        else { document.body.style.overflow = ""; document.body.style.position = ""; document.body.style.width = ""; }
-        return () => { document.body.style.overflow = ""; document.body.style.position = ""; document.body.style.width = ""; };
+        if (picker) {
+            const y = window.scrollY;
+            document.body.dataset.scrollY = y;
+            document.body.style.overflow = "hidden";
+        } else {
+            document.body.style.overflow = "";
+            const y = parseInt(document.body.dataset.scrollY || "0");
+            if (y) window.scrollTo(0, y);
+        }
+        return () => { document.body.style.overflow = ""; };
     }, [picker]);
     const toggleNotify = async () => {
         if (typeof Notification === "undefined")
