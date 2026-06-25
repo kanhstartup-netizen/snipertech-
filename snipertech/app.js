@@ -2058,6 +2058,18 @@ STEP 3 — ADVANCED CONFIRMATIONS (apply when the chart clearly shows them; do N
 - HARMONIC PATTERNS: spot Gartley, Bat, Butterfly, Crab, or Shark if the swing ratios fit; give the potential reversal zone (PRZ). Only if ratios actually align.
 - ICT KILLZONES (timing): note which session/killzone is active or upcoming (Asian range, London Open 07:00-10:00 UK, New York Open / AM session 08:00-11:00 ET, London close). Gold often runs liquidity during London & NY opens — factor timing into the entry.
 - EXPECTED RANGE / IMPLIED VOLATILITY: if the uploaded image is an options/volatility tool (e.g. CME QuikStrike Vol2Vol, expected move, IV chart), READ the expected range / standard-deviation levels and use them as TP/SL guides and to gauge how far price can travel. If no IV data is in the image, you MAY use the web_search result for gold expected-move/IV context if found; otherwise note expected range was not available.
+- ICT POWER OF 3 (AMD): look for Accumulation (range/consolidation), Manipulation (fake breakout / liquidity grab), then Distribution (real move begins). Identify which phase is active and whether the manipulation candle (stop hunt) has already completed.
+- ICT SILVER BULLET: identify if price is in a Silver Bullet window (10:00-11:00 ET or 14:00-15:00 ET New York time). A FVG formed during these windows inside a killzone = premium entry. Flag if visible.
+- ICT OPTIMAL TRADE ENTRY (OTE): the highest-probability entry sits in the 0.618-0.786 Fibonacci retracement of the last confirmed swing (AFTER a BOS/CHoCH). If price has retraced into the 62-79% zone overlapping an OB or FVG, flag as OTE = true.
+- BREAKER BLOCKS: a prior OB that price broke through decisively becomes a Breaker — it flips polarity (old support → resistance, old resistance → support). Identify any visible Breaker on the chart.
+- MITIGATION BLOCKS: if price returned to partially fill an OB (50-100% fill) before moving, that OB may be "mitigated" and weaker. Mark only fresh/untested OBs as high-quality.
+- PROPULSION BLOCKS: the last candle BEFORE a strong displacement move (often a small doji/inside bar right before the explosive candle). This is the sharpest entry inside the OB.
+- ICT CONSEQUENT ENCROACHMENT (CE): midpoint of a FVG — price often reacts exactly at the 50% of a FVG before continuing. Use as fine-entry inside a FVG.
+- TURTLE SOUP / STOP HUNT REVERSAL: equal highs/lows being swept = retail stop hunt by institutions. After sweep + displacement candle reversing = sniper entry. Check for this pattern.
+- JUDAS SWING: early-session fake move opposite to the real direction (common London open 08:00-09:00 UK). If price spikes one way then violently reverses during killzone — that reversal is the real move.
+- MARKET MAKER MODEL: institutions accumulate → mark up → distribute → mark down. Identify which phase the current structure suggests and trade WITH the market maker, not against.
+- SMC MONTHLY/WEEKLY/DAILY BIAS: always frame the D1/W1 bias first. Daily candles closing as displacement = bias confirmed. HTF bias overrules LTF setups — never trade a LTF Buy into a D1/W1 premium resistance.
+- VOLUME IMBALANCE / SINGLE PRINT: thin areas on volume profile (single prints) act like FVGs — price is magnetically drawn back to fill them. If visible on chart, mark as high-priority target.
 
 Summarize whatever of STEP 3 is genuinely present in "advanced_read" (one short line each that applies; omit what's not visible).
 
@@ -2069,6 +2081,22 @@ D) SESSIONS / KILLZONES: the cleanest institutional moves happen in the London o
 E) TAKE-PROFIT METHOD (how funded desks bank gold): set TPs at the NEXT real liquidity pools / opposing OB / session high-low — NOT round guesses. Use TIERED partials: TP1 = nearest liquidity (bank ~⅓-½, then move SL to break-even), TP2 = mid pool, TP3 = far pool, and leave a small runner trailed behind structure (don't trail too tight — gold's noise will stop you out). Always ensure TP1 alone gives at least 1:2 R, with overall 1:3+ available. A funded trader needs only ~40% win rate at 1:3 to be profitable, so quality > frequency.
 F) PROP-FIRM RISK DISCIPLINE (bake this into the risk_reminder and confidence): risk only 0.5-1% per trade; never average down / martingale; one A+ confluence setup beats many mediocre ones; respect daily loss limits (stop after 2-3 losses); the stop must be a price the trader can accept BEFORE entry. "Not being wrong for long" matters more than being right.
 G) CONFLUENCE STACKING decides the grade: HTF bias + premium/discount alignment + liquidity sweep + OB/FVG + BOS/displacement + session timing + DXY agreeing. 5+ aligned = high grade; 2-3 = medium; <2 = wait. Never inflate.
+H) ICT SMART MONEY CONCEPTS — ELITE LAYER (from ICT Mentorship 2022-2024 & Inner Circle Trader public teachings):
+   • INDUCEMENT (IDM): before a real move, institutions deliberately create a fake level to lure retail entries and grab their stops. Look for a small swing high/low that forms inside consolidation pointing the WRONG direction — that is the inducement. After price sweeps IDM and reverses = sniper entry.
+   • DEALING RANGE REFINEMENT: the best ICT entries use a nested discount-within-discount (for buys) or premium-within-premium (for sells). When price is already in the daily discount, find the H1 sub-range and enter in the H1 discount too. Double-layered alignment = highest quality.
+   • UNICORN MODEL (ICT 2022): BOS on H1 → price drops into H1 FVG that overlaps with M15 OB → entry. This is one of ICT's cleanest published models. Flag if this structure is visible.
+   • SILVER BULLET ENTRY DRILL: the 3-candle FVG during the 10:00 or 14:00 ET Silver Bullet window, aligned with the daily bias, is high probability. Enter on a retest of that FVG if price has not already left the window.
+   • DAILY PROFILES: ICT teaches 4 daily price delivery models — Classic Bullish (HTF buy day: manipulate down AM, distribute up PM), Classic Bearish (HTF sell day: pump AM, dump PM), Consolidation, and Trending. Identify which profile best fits the current daily candle action.
+   • TIME & PRICE THEORY: institutional algorithms target SPECIFIC price levels at SPECIFIC times (e.g. prior day high at London open, prior week high at NY open). Combine price levels with killzone timing for highest precision.
+   • ASIA RANGE BOX: mark the Asian session high/low (22:00-07:00 UK). London often breaks one side (fake) then reverses to take the other. NY then continues the true direction. Note if Asian range is defined and which side was breached.
+   • QUARTERLY SHIFTS (ICT): every quarter (Jan, Apr, Jul, Oct) institutions rebalance. The first 2 weeks of a new quarter often establish the quarterly bias (bullish or bearish). If near a quarterly shift, note higher institutional activity.
+I) GLOBAL SNIPER TECHNIQUES (from elite SMC communities worldwide — Stacey Burke, The Trading Fraternity, Phantom Trading):
+   • STACEY BURKE — FIBONACCI FLOW: the 50% retracement of the LAST impulse leg (not just any swing) = the "Fibonacci Flow" level. Price consistently returns to this exact 50% before continuing. If price is AT the 50% of the last impulse = ultra-high confluence entry zone.
+   • MOMENTUM SHIFT ENTRY: after a BOS, wait for price to retrace to the 50-61.8% of the breaking candle itself (not the whole swing) — this micro-entry keeps stops tiny and maximizes RR.
+   • PHANTOM TRADING — KILL CANDLE: the first strong displacement candle of the session (the one that breaks a key level with a full-bodied close). The open of that candle + the FVG it creates = the re-entry zone. Never miss a kill candle retest.
+   • LIQUIDITY VOID FILL: after a fast displacement (gap-like move with no retracement), price MUST return to fill at least 50% of the void before reaching TP. Account for this retrace in the trade plan — it is not a reversal, it is filling before continuation.
+   • MULTI-TIMEFRAME FRACTAL ALIGNMENT: the same OB/FVG structure repeating on D1, H4, H1, and M15 simultaneously = fractal alignment. When 3+ timeframes show the same zone, grade it A+++ regardless of other confluence.
+   • SNIPER ENTRY DRILL (prop-firm standard): after all confluences align, zoom to M1-M5 and wait for a micro-CHoCH (1 swing high/low taken out on M1) pointing in trade direction inside the entry zone. This micro-confirmation reduces false entries by ~40% and tightens SL dramatically.
 
 ANALYZE ONLY what is visible. If an image is unclear or not a price chart, set "readable" false and explain briefly in "note".
 
@@ -2105,6 +2133,8 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
   "order_flow": "in ${outLang} — who has control now (displacement/absorption/BOS/CHoCH), 1 line",
   "order_book": "in ${outLang} — only if DOM/volume profile is visible; otherwise note it isn't shown and you used price/volume (1 line)",
   "advanced_read": "in ${outLang} — short notes on Elliott Wave / Wyckoff / Harmonic / ICT killzone / expected-range IF clearly present; omit what's not visible. Keep to 1-3 short lines total.",
+  "ict_read": "in ${outLang} — ICT-specific observations IF visible: Power of 3 phase (A/M/D), Silver Bullet window active, OTE zone hit, Breaker block, Inducement level, Daily Profile type, Asia range status, Unicorn Model. 1-2 lines max, omit what isn't clearly present.",
+  "sniper_grade": "A+++ | A+ | A | B | C | WAIT — overall ICT/SMC grade: A+++ = fractal alignment 3+ TFs + all confluences; A+ = 5+ confluences; A = 3-4; B = 2-3 partial; C = weak; WAIT = <2 or no sweep yet",
   "zones": [{"type":"resistance|support","label":"in ${outLang}","range":"TIGHT range, e.g. 2348-2352 (max ~10 dollars wide)","why":"in ${outLang}, short — mention OB/FVG/sweep if relevant"}],
   "setups": [{
     "direction":"Buy|Sell","status":"ພ້ອມເຂົ້າ|ລໍຖ້າ","grade":"ສູງ|ກາງ|ຕ່ຳ",
@@ -3865,20 +3895,8 @@ function ProfilePage({ t, user, lang, setLang, daysLeft, notify, setNotify, onPa
         r.onload = e => compressImage(e.target.result, compressed => setEditAvatar(compressed));
         r.readAsDataURL(f);
     };
-    // Lock body scroll when picker open + ensure modal renders on body (not inside scroll container)
-    useEffect(() => {
-        if (picker) {
-            document.documentElement.style.overflow = "hidden";
-            document.body.style.overflow = "hidden";
-        } else {
-            document.documentElement.style.overflow = "";
-            document.body.style.overflow = "";
-        }
-        return () => {
-            document.documentElement.style.overflow = "";
-            document.body.style.overflow = "";
-        };
-    }, [picker]);
+    // No scroll lock - users can scroll freely even when picker is open
+    useEffect(() => { return () => {}; }, [picker]);
     const toggleNotify = async () => {
         if (typeof Notification === "undefined")
             return;
