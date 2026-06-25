@@ -185,6 +185,8 @@ const ADMIN_PASS = "academy2026"; // (deprecated — not used for unlocking anym
 const ADMIN_EMAILS = ["admin@startupfx.app", "kanh.startup@gmail.com"];
 // Backend endpoint that proxies to Claude (keeps the API key server-side).
 // Relative path works automatically on the same Cloudflare Pages site.
+// ── Push Notification endpoint (Cloudflare Pages Function) ──────
+const PUSH_ENDPOINT = "https://kanhstartup-netizen.github.io/snipertech-/snipertech/api/push";
 const CLAUDE_ENDPOINT = "https://sniper-proxy.kanh-startup-602.workers.dev";
 const OPENAI_ENDPOINT = "https://sniper-proxy.kanh-startup-602.workers.dev/openai";
 const GEMINI_ENDPOINT = "https://sniper-proxy.kanh-startup-602.workers.dev/gemini";
@@ -4742,20 +4744,13 @@ function AdminPushPanel({ t, isAdmin }) {
                 return;
             }
             const tokens = rows.map(r => r.token).filter(Boolean);
-            // Send via Cloudflare Worker /push route
-            const pushResp = await fetch(CLAUDE_ENDPOINT.replace(/\/$/, "") + "/../push", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ tokens, title: title.trim(), body: body.trim(), data: { type: "signal" } })
-            }).catch(() => null);
-            // Fallback: use the correct worker URL directly
-            const workerBase = CLAUDE_ENDPOINT.replace(/\/+$/, "").replace(/\/(openai|gemini|push)?$/, "");
-            const pushResp2 = pushResp || await fetch(workerBase + "/push", {
+            // Send via Cloudflare Pages Function /api/push
+            const pushResp = await fetch(PUSH_ENDPOINT, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ tokens, title: title.trim(), body: body.trim(), data: { type: "signal" } })
             });
-            const result = await pushResp2.json().catch(() => ({}));
+            const result = await pushResp.json().catch(() => ({}));
             setSent(true);
             setTitle(""); setBody("");
             alert("✅ ສົ່ງສຳເລັດ! " + (result.sent || tokens.length) + "/" + tokens.length + " devices");
