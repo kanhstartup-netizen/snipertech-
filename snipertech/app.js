@@ -165,7 +165,7 @@ async function callWithFallback(body, signal) {
         console.log("Claude error — trying OpenAI...");
     }
     // Fallback to OpenAI
-    if (!OPENAI_API_KEY || OPENAI_API_KEY === "YOUR_OPENAI_KEY_HERE") throw new Error("no_fallback");
+    if (!OPENAI_ENDPOINT) throw new Error("no_fallback");
     const msgs = (body.messages || []).map(m => {
         if (typeof m.content === "string") return { role: m.role, content: m.content };
         const parts = m.content.map(c => {
@@ -176,9 +176,9 @@ async function callWithFallback(body, signal) {
         return { role: m.role, content: parts };
     });
     if (body.system) msgs.unshift({ role: "system", content: body.system });
-    const oaResp = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + OPENAI_API_KEY },
+    const oaResp = await fetch(OPENAI_ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ model: "gpt-4o", messages: msgs, max_tokens: body.max_tokens || 4096, temperature: body.temperature ?? 0 }),
         signal
     });
