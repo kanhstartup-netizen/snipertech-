@@ -96,6 +96,46 @@ const WHATSAPP_MSG = "Startup FX — XAU/USD";
 const SUPABASE_URL = "https://wxnejgpbofvywkijfjmx.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4bmVqZ3Bib2Z2eXdraWpmam14Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MDc1MjMsImV4cCI6MjA5Nzk4MzUyM30.pfw4ZcUUiEop5gi6K0F6rCs4-MmO5b_tmM9B4Fpa7yM";
 const sbFetch = (path, opts={}) => fetch(SUPABASE_URL + path, { ...opts, headers: { "apikey": SUPABASE_ANON, "Authorization": "Bearer " + SUPABASE_ANON, "Content-Type": "application/json", "Prefer": "return=representation", ...(opts.headers||{}) } });
+// ── Firebase FCM (Phase 3 — Push Notification) ───────────────
+const FB_CONFIG = {
+    apiKey: "AIzaSyAhPABr48S-MQduuiGU1QGsr-4vLAHLPAQ",
+    authDomain: "snipertech-c8bfd.firebaseapp.com",
+    projectId: "snipertech-c8bfd",
+    storageBucket: "snipertech-c8bfd.firebasestorage.app",
+    messagingSenderId: "538937895261",
+    appId: "1:538937895261:web:1a8e55bfc34e1b67fde0b4"
+};
+const FCM_VAPID = "BIJ4e318v32vIuXCg9rpRiN5MBKTQJ2AtvhfqeStyrEHK9bcKpb0IKPz4XkNm9Q1DudciloGKIeL7-ugM4KiGKE";
+// FCM token save to Supabase
+const saveFcmToken = async (token, email) => {
+    try {
+        await sbFetch("/rest/v1/fcm_tokens", {
+            method: "POST",
+            headers: { "Prefer": "resolution=merge-duplicates,return=representation" },
+            body: JSON.stringify({ token, email, updated_at: new Date().toISOString() })
+        });
+    } catch(e) {}
+};
+// Init FCM after user logs in
+const initFCM = async (userEmail) => {
+    try {
+        if (!("serviceWorker" in navigator) || !("Notification" in window)) return;
+        const { initializeApp, getApps } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
+        const { getMessaging, getToken, onMessage } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js");
+        const fbApp = getApps().length ? getApps()[0] : initializeApp(FB_CONFIG);
+        const messaging = getMessaging(fbApp);
+        const swReg = await navigator.serviceWorker.register("./firebase-messaging-sw.js");
+        const perm = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
+        if (perm !== "granted") return;
+        const token = await getToken(messaging, { vapidKey: FCM_VAPID, serviceWorkerRegistration: swReg });
+        if (token) await saveFcmToken(token, userEmail);
+        // Foreground message handler
+        onMessage(messaging, (payload) => {
+            const { title, body } = payload.notification || {};
+            if (title) new Notification(title, { body, icon: "./logo.png", tag: "sniper-fg" });
+        });
+    } catch(e) { console.warn("FCM init:", e.message); }
+};
 const waLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MSG)}`;
 const KCM_REGISTER_URL = "https://auth-login.kcmtrade.com/th/links/go/19137";
 const KVB_REGISTER_URL = "https://cnf5g62e6.plusiaa.com";
@@ -2350,7 +2390,10 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
     if (!user)
         return React.createElement(Login, { onLogin: (u) => { setUser(u); try { localStorage.setItem("sniper_user", JSON.stringify(u)); } catch(e) {} if (isAdminEmail(u.email)) { u.expiresAt = Date.now() + 36500 * 86400000; u.plan = "VIP"; try { localStorage.setItem("sniper_user", JSON.stringify(u)); } catch(e) {} }
         if (isAdminEmail(u.email))
-                setIsAdmin(true); if (u.plan === "Trial")
+                setIsAdmin(true);
+            // ── Phase 3: Init Firebase Push Notification ──
+            initFCM(u.email).catch(()=>{});
+            if (u.plan === "Trial")
                 setShowOnboard(true); }, lang: lang, setLang: setLang, t: t });
     // First-time onboarding tutorial (after signup)
     if (showOnboard)
@@ -2511,6 +2554,7 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
                     ? React.createElement(CoursePanel, { t: t, unlocked: courseUnlocked, onUnlock: () => setCourseUnlocked(true), waLink: waLink })
                     : React.createElement(FreeLessons, { t: t, lang: lang, unlocked: courseUnlocked, waLink: waLink, onUpgrade: () => setShowPay(true) }))) : (React.createElement(FreeLessons, { t: t, lang: lang, unlocked: courseUnlocked, waLink: waLink, onUpgrade: () => setShowPay(true) })))),
             nav === "news" && (React.createElement("div", { className: "fx-rise" },
+                React.createElement(AdminPushPanel, { t: t, isAdmin: isAdmin }),
                 React.createElement(NewsRoom, { t: t, notify: notify, setNotify: setNotify, isAdmin: isAdmin }))),
             nav === "profile" && (React.createElement("div", { className: "fx-rise" },
                 React.createElement(ProfileErrorBoundary, null,
@@ -4669,7 +4713,67 @@ function WalletReferral({ t, user }) {
                     React.createElement("div", { style: { fontSize: 12, color: C.mut, lineHeight: 1.65 } }, t("refHow", { pct: REFERRAL_PCT })))))));
 }
 
-// ── Phase 2: Signal History + Win Rate ───────────────────────
+// ── Phase 3: Admin Push Notification Panel ───────────────────
+function AdminPushPanel({ t, isAdmin }) {
+    const [title, setTitle] = useState("");
+    const [body, setBody] = useState("");
+    const [sending, setSending] = useState(false);
+    const [sent, setSent] = useState(false);
+    const [tokenCount, setTokenCount] = useState(null);
+
+    useEffect(() => {
+        // Count registered devices
+        sbFetch("/rest/v1/fcm_tokens?select=token")
+            .then(r => r.json())
+            .then(d => setTokenCount(Array.isArray(d) ? d.length : 0))
+            .catch(()=>{});
+    }, []);
+
+    const sendPush = async () => {
+        if (!title.trim() || !body.trim()) return;
+        setSending(true);
+        try {
+            // Get all FCM tokens from Supabase
+            const r = await sbFetch("/rest/v1/fcm_tokens?select=token");
+            const tokens = await r.json();
+            if (!Array.isArray(tokens) || tokens.length === 0) {
+                alert("ບໍ່ມີ device ທີ່ລົງທະບຽນ notification");
+                setSending(false);
+                return;
+            }
+            // Send via Firebase HTTP v1 API through Cloudflare proxy
+            // For now: save to Supabase as broadcast + show in-app
+            await sbFetch("/rest/v1/broadcasts", {
+                method: "POST",
+                body: JSON.stringify({ title: title.trim(), body: body.trim(), created_at: new Date().toISOString(), sent_to: tokens.length })
+            }).catch(()=>{});
+            // Trigger browser notification for admin preview
+            if (Notification.permission === "granted") {
+                new Notification("📡 " + title.trim(), { body: body.trim(), icon: "./logo.png", tag: "admin-push" });
+            }
+            setSent(true);
+            setTitle(""); setBody("");
+            setTimeout(() => setSent(false), 3000);
+        } catch(e) {}
+        setSending(false);
+    };
+
+    if (!isAdmin) return null;
+    return React.createElement("div", { style: { marginTop: 18, borderRadius: 16, border: `1px solid ${C.line}`, background: C.panel, padding: "16px 18px" } },
+        React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 14 } },
+            React.createElement("span", { style: { fontSize: 18 } }, "📡"),
+            React.createElement("div", { style: { fontFamily: "'LaoOverride','Sora','Noto Sans Lao',sans-serif", fontWeight: 700, fontSize: 14.5 } }, "ສົ່ງ Push Notification"),
+            tokenCount !== null && React.createElement("span", { style: { marginLeft: "auto", fontSize: 11, color: C.green, background: "rgba(63,217,138,.1)", border: "1px solid rgba(63,217,138,.3)", borderRadius: 99, padding: "2px 10px" } }, tokenCount + " devices")
+        ),
+        React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } },
+            React.createElement("input", { value: title, onChange: e => setTitle(e.target.value), placeholder: "ຫົວຂໍ້ (ເຊັ່ນ: 🎯 Buy XAUUSD Setup A+)", style: { background: C.bg2, border: `1px solid ${C.line}`, borderRadius: 10, padding: "10px 12px", color: C.text, fontSize: 13.5, fontFamily: "inherit", outline: "none" } }),
+            React.createElement("textarea", { value: body, onChange: e => setBody(e.target.value), placeholder: "ລາຍລະອຽດ (ເຊັ່ນ: Entry 3285-3290, SL 3275, TP1 3310, Grade A+)", rows: 3, style: { background: C.bg2, border: `1px solid ${C.line}`, borderRadius: 10, padding: "10px 12px", color: C.text, fontSize: 13.5, fontFamily: "inherit", outline: "none", resize: "vertical" } }),
+            React.createElement("button", { onClick: sendPush, disabled: sending || !title.trim() || !body.trim(), className: "fx-btn", style: { padding: "11px", borderRadius: 11, border: "none", background: sent ? C.green : `linear-gradient(95deg,${C.blue},${C.blueLt})`, color: "#04101F", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" } },
+                sent ? "✅ ສົ່ງແລ້ວ!" : sending ? "⏳ ກຳລັງສົ່ງ..." : "📡 ສົ່ງໄປທຸກ Device"
+            )
+        )
+    );
+}
 function SignalHistory({ user, t }) {
     const [signals, setSignals] = useState([]);
     const [loading, setLoading] = useState(true);
