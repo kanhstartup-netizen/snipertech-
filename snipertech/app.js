@@ -2860,12 +2860,15 @@ function CmeCard({ raw }) {
     const putTier      = txt.match(/put.wall.*tier\s*([123]|🔴|🟡|🟢)/i)?.[1] || null;
     const callTier     = txt.match(/call.wall.*tier\s*([123]|🔴|🟡|🟢)/i)?.[1] || null;
 
-    // ── Infer FOCUS direction from trade implication + dealer ──
-    const focusSell = !!(tradeImpl && tradeImpl.match(/sell|ຂາຍ|bearish|short|ลง|ขาย/i))
-                   || !!(dealerPress && dealerPress.match(/downward|down/i));
-    const focusBuy  = !!(tradeImpl && tradeImpl.match(/buy|ຊື້|bullish|long|ขึ้น|ซื้อ/i))
-                   || !!(dealerPress && dealerPress.match(/upward|up/i));
-    const focusDir  = focusSell && !focusBuy ? "SELL" : focusBuy && !focusSell ? "BUY" : null;
+    // ── Infer FOCUS direction: trade implication = PRIMARY, dealer = fallback only ──
+    const implSell = !!(tradeImpl && tradeImpl.match(/sell|ຂາຍ|bearish|short|ลง|ขาย/i));
+    const implBuy  = !!(tradeImpl && tradeImpl.match(/buy|ຊື້|bullish|long|ขึ้น|ซื้อ/i));
+    // Only use dealer as fallback when tradeImpl has no clear direction signal
+    const dealerSell = !implSell && !implBuy && !!(dealerPress && dealerPress.match(/downward|down/i));
+    const dealerBuy  = !implSell && !implBuy && !!(dealerPress && dealerPress.match(/upward|up/i));
+    const focusSell  = implSell || dealerSell;
+    const focusBuy   = implBuy  || dealerBuy;
+    const focusDir   = focusSell && !focusBuy ? "SELL" : focusBuy && !focusSell ? "BUY" : null;
 
     // ── Infer intraday magnet price (max pain = gravitational center) ──
     // SELL → TP target = Put Wall (below); BUY → TP target = Call Wall (above)
