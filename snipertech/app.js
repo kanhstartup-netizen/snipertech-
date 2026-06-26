@@ -3771,22 +3771,26 @@ function LiveChartPanel({ t, lang }) {
     useEffect(() => {
         if (!chartRef.current) return;
         chartRef.current.innerHTML = "";
-        const container = document.createElement("div");
-        container.className = "tradingview-widget-container__widget";
-        chartRef.current.appendChild(container);
+        const tvSymbol = symbol === "XAUUSD" ? "OANDA:XAUUSD" : symbol === "USINDEX" ? "TVC:DXY" : "TVC:USOIL";
         const s = document.createElement("script");
         s.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
         s.async = true;
-        const tvSymbol = symbol === "XAUUSD" ? "OANDA:XAUUSD" : symbol === "USINDEX" ? "TVC:DXY" : "TVC:USOIL";
         s.innerHTML = JSON.stringify({
-            autosize: true, symbol: tvSymbol,
-            interval: interval, timezone: "Asia/Bangkok",
-            theme: "dark", style: "1",
-            locale: "en", backgroundColor: C.panel,
+            autosize: true,
+            symbol: tvSymbol,
+            interval: interval,
+            timezone: "Asia/Bangkok",
+            theme: "dark",
+            style: "1",
+            locale: "en",
+            backgroundColor: "#0F1422",
             gridColor: "rgba(38,130,255,0.06)",
-            hide_top_toolbar: false, hide_legend: false,
-            allow_symbol_change: true, save_image: false,
-            calendar: false, hide_volume: false,
+            hide_top_toolbar: false,
+            hide_legend: false,
+            allow_symbol_change: true,
+            save_image: false,
+            calendar: false,
+            hide_volume: false,
             support_host: "https://www.tradingview.com",
             studies: ["STD;Bollinger_Bands", "STD;RSI", "STD;MACD"],
         });
@@ -3807,9 +3811,22 @@ function LiveChartPanel({ t, lang }) {
             )
         ),
 
-        // Chart container
-        React.createElement("div", { style: { borderRadius: 16, overflow: "hidden", border: `1px solid ${C.line}`, background: C.panel, position: "relative" } },
-            React.createElement("div", { ref: chartRef, className: "tradingview-widget-container", style: { height: "calc(100vh - 280px)", minHeight: 420, width: "100%" } })
+        // Chart container — fills its own frame
+        React.createElement("div", {
+            style: {
+                borderRadius: 16, overflow: "hidden",
+                border: `1px solid ${C.line}`,
+                background: "#0F1422",
+                width: "100%",
+                aspectRatio: "16/10",
+                position: "relative",
+            }
+        },
+            React.createElement("div", {
+                ref: chartRef,
+                className: "tradingview-widget-container",
+                style: { position: "absolute", inset: 0, width: "100%", height: "100%" }
+            })
         ),
 
         // Hint
