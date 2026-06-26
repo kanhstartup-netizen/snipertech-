@@ -2324,6 +2324,7 @@ OUTPUT: respond ONLY with valid JSON (no markdown, no extra text). Be concise �
         @keyframes botWiggle{ 0%,88%,100%{ transform:rotate(0deg);} 90%{ transform:rotate(-10deg);} 94%{ transform:rotate(10deg);} 96%{ transform:rotate(-6deg);} 98%{ transform:rotate(6deg);} }
         @keyframes botDot{ 0%,100%{ transform:scale(1); opacity:1;} 50%{ transform:scale(1.35); opacity:.7;} }
         @keyframes popIn{ 0%{ opacity:0; transform:scale(.88) translateY(18px);} 60%{ transform:scale(1.03) translateY(-3px);} 100%{ opacity:1; transform:scale(1) translateY(0);} }
+        @keyframes spin{ 0%{ transform:rotate(0deg);} 100%{ transform:rotate(360deg);} }
         #root { transform: none !important; -webkit-transform: none !important; }
         #root > * { transform: none !important; -webkit-transform: none !important; }
         html, body { overscroll-behavior: none; }
@@ -2433,6 +2434,12 @@ OUTPUT: respond ONLY with valid JSON (no markdown, no extra text). Be concise �
                                 stage || t("analyzing")) : t("makeSignal")),
                             React.createElement("button", { className: "fx-btn", onClick: reset, disabled: loading, style: ghostBtn }, t("clearAll")))),
                         err && React.createElement("div", { style: { marginTop: 16, padding: "12px 16px", borderRadius: 10, background: "rgba(255,107,107,.08)", border: `1px solid ${C.red}`, color: "#FFC4C4", fontSize: 14, lineHeight: 1.6 } }, err)),
+                    // Fixed loading overlay — prevents black screen during analysis
+                    loading && React.createElement("div", { style: { position: "fixed", inset: 0, zIndex: 9800, background: "rgba(5,7,13,.92)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20 } },
+                        React.createElement("div", { style: { width: 64, height: 64, borderRadius: "50%", border: `4px solid ${C.line}`, borderTopColor: C.blue, animation: "spin 1s linear infinite" } }),
+                        React.createElement("div", { style: { fontFamily: "'LaoOverride','Sora','Noto Sans Lao',sans-serif", fontWeight: 700, fontSize: 16, color: C.text, textAlign: "center" } }, stage || "ກຳລັງວິເຄາະ..."),
+                        React.createElement("div", { style: { fontSize: 12, color: C.mut, textAlign: "center", maxWidth: 240, lineHeight: 1.6 } }, "Claude + GPT + Gemini ກຳລັງທຳງານ\nໄວຂຶ້ນ ~45-60 ວິ")
+                    ),
                     result && React.createElement(Result, { data: result, t: t, engines: aiEngines, isAdmin: isAdmin }))),
                 tab === "news" && React.createElement(NewsPanel, { t: t, lang: lang, isVip: isVip, onUpgrade: () => setShowPay(true) }))),
             nav === "learn" && (React.createElement("div", { className: "fx-rise" }, isAdmin ? (React.createElement(React.Fragment, null,
@@ -3645,36 +3652,40 @@ function LiveChartPanel({ t, lang }) {
         tickerRef.current.appendChild(s);
     }, []);
 
-    // Inject TradingView chart via iframe
+    // Inject TradingView Advanced Chart via script (official method)
     useEffect(() => {
         if (!chartRef.current) return;
         chartRef.current.innerHTML = "";
         const tvSymbol = symbol === "XAUUSD" ? "OANDA:XAUUSD" : symbol === "USINDEX" ? "TVC:DXY" : "TVC:USOIL";
-        const params = new URLSearchParams({
+        // Create widget container div (required by TradingView)
+        const widgetDiv = document.createElement("div");
+        widgetDiv.className = "tradingview-widget-container__widget";
+        widgetDiv.style.height = "100%";
+        widgetDiv.style.width = "100%";
+        chartRef.current.appendChild(widgetDiv);
+        // Inject script
+        const script = document.createElement("script");
+        script.type = "text/javascript";
+        script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
+        script.async = true;
+        script.innerHTML = JSON.stringify({
+            autosize: true,
             symbol: tvSymbol,
             interval: interval,
+            timezone: "Asia/Bangkok",
             theme: "dark",
             style: "1",
-            timezone: "Asia/Bangkok",
             locale: "en",
             backgroundColor: "rgba(15,20,34,1)",
-            hide_top_toolbar: "false",
-            hide_legend: "false",
-            allow_symbol_change: "true",
-            save_image: "false",
-            studies: JSON.stringify(["STD;Bollinger_Bands","STD;RSI","STD;MACD"]),
+            gridColor: "rgba(38,130,255,0.06)",
+            hide_top_toolbar: false,
+            hide_legend: false,
+            allow_symbol_change: false,
+            save_image: false,
+            hide_volume: false,
+            support_host: "https://www.tradingview.com",
         });
-        const iframe = document.createElement("iframe");
-        iframe.src = `https://www.tradingview.com/widgetbar-chart/?${params.toString()}`;
-        iframe.width = "100%";
-        iframe.height = "100%";
-        iframe.frameBorder = "0";
-        iframe.allowFullscreen = true;
-        iframe.scrolling = "no";
-        iframe.title = "TradingView";
-        iframe.style.display = "block";
-        iframe.style.border = "none";
-        chartRef.current.appendChild(iframe);
+        chartRef.current.appendChild(script);
     }, [symbol, interval]);
 
     return React.createElement("div", { style: { marginTop: 14, display: "flex", flexDirection: "column", gap: 10 } },
