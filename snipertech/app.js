@@ -2332,6 +2332,12 @@ OUTPUT: respond ONLY with valid JSON (no markdown, no extra text). Be concise �
         React.createElement(ChartBackdrop, { tint: "#C9A24B" }),
         React.createElement(Watermark, null),
         React.createElement(TradingChatbot, { t: t, lang: lang, user: user }),
+        // Analysis loading overlay — root level so it never gets stuck
+        loading && React.createElement("div", { style: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 9800, background: "rgba(5,7,13,.94)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20 } },
+            React.createElement("div", { style: { width: 60, height: 60, borderRadius: "50%", border: `4px solid ${C.line}`, borderTopColor: C.blue, animation: "spin 1s linear infinite" } }),
+            React.createElement("div", { style: { fontFamily: "'LaoOverride','Sora','Noto Sans Lao',sans-serif", fontWeight: 700, fontSize: 16, color: C.text, textAlign: "center", padding: "0 24px" } }, stage || "ກຳລັງວິເຄາະ..."),
+            React.createElement("div", { style: { fontSize: 12, color: C.mut, textAlign: "center", lineHeight: 1.7, padding: "0 32px" } }, "Claude + GPT + Gemini ກຳລັງທຳງານ\nປົກກະຕິໃຊ້ເວລາ 20-45 ວິ")
+        ),
         React.createElement("div", { "aria-hidden": true, style: { position: "absolute", inset: 0, backgroundImage: `linear-gradient(${C.line} 1px, transparent 1px), linear-gradient(90deg, ${C.line} 1px, transparent 1px)`, backgroundSize: "48px 48px", opacity: 0.12, animation: "fxGrid 6s linear infinite", maskImage: "radial-gradient(120% 80% at 50% 0%, #000 35%, transparent 80%)", WebkitMaskImage: "radial-gradient(120% 80% at 50% 0%, #000 35%, transparent 80%)" } }),
         React.createElement("div", { "aria-hidden": true, style: { position: "absolute", top: -160, left: "50%", transform: "translateX(-50%)", width: 620, height: 360, background: `radial-gradient(closest-side, ${C.glow}, transparent)`, filter: "blur(20px)", animation: "fxGlowPulse 5s ease-in-out infinite", pointerEvents: "none" } }),
         React.createElement("div", { style: { maxWidth: 720, margin: "0 auto", padding: "14px 16px 96px", position: "relative", zIndex: 1 } },
@@ -2428,18 +2434,11 @@ OUTPUT: respond ONLY with valid JSON (no markdown, no extra text). Be concise �
                             charts.length < MAX_CHARTS && (React.createElement("button", { className: "fx-btn", onClick: () => { var _a; return (_a = fileRef.current) === null || _a === void 0 ? void 0 : _a.click(); }, style: { minHeight: 110, borderRadius: 12, border: `1.5px dashed ${C.line}`, background: "transparent", color: C.mut, cursor: "pointer", fontSize: 13, fontFamily: "inherit" } }, t("addImg"))))),
                         React.createElement("input", { ref: fileRef, type: "file", accept: "image/*", multiple: true, style: { display: "none" }, onChange: (e) => addFiles(e.target.files) }),
                         charts.length > 0 && (React.createElement("div", { style: { display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" } },
-                            React.createElement("button", { className: "fx-btn", onClick: analyze, disabled: loading, style: primaryBtn(loading) }, loading ? React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 8 } },
-                                React.createElement(Spinner, null),
-                                " ",
-                                stage || t("analyzing")) : t("makeSignal")),
+                            React.createElement("button", { className: "fx-btn", onClick: analyze, disabled: loading, style: primaryBtn(loading) }, loading
+                                ? React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 8 } }, React.createElement(Spinner, null), " ", stage || t("analyzing"))
+                                : t("makeSignal")),
                             React.createElement("button", { className: "fx-btn", onClick: reset, disabled: loading, style: ghostBtn }, t("clearAll")))),
                         err && React.createElement("div", { style: { marginTop: 16, padding: "12px 16px", borderRadius: 10, background: "rgba(255,107,107,.08)", border: `1px solid ${C.red}`, color: "#FFC4C4", fontSize: 14, lineHeight: 1.6 } }, err)),
-                    // Fixed loading overlay — prevents black screen during analysis
-                    loading && React.createElement("div", { style: { position: "fixed", inset: 0, zIndex: 9800, background: "rgba(5,7,13,.92)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20 } },
-                        React.createElement("div", { style: { width: 64, height: 64, borderRadius: "50%", border: `4px solid ${C.line}`, borderTopColor: C.blue, animation: "spin 1s linear infinite" } }),
-                        React.createElement("div", { style: { fontFamily: "'LaoOverride','Sora','Noto Sans Lao',sans-serif", fontWeight: 700, fontSize: 16, color: C.text, textAlign: "center" } }, stage || "ກຳລັງວິເຄາະ..."),
-                        React.createElement("div", { style: { fontSize: 12, color: C.mut, textAlign: "center", maxWidth: 240, lineHeight: 1.6 } }, "Claude + GPT + Gemini ກຳລັງທຳງານ\nໄວຂຶ້ນ ~45-60 ວິ")
-                    ),
                     result && React.createElement(Result, { data: result, t: t, engines: aiEngines, isAdmin: isAdmin }))),
                 tab === "news" && React.createElement(NewsPanel, { t: t, lang: lang, isVip: isVip, onUpgrade: () => setShowPay(true) }))),
             nav === "learn" && (React.createElement("div", { className: "fx-rise" }, isAdmin ? (React.createElement(React.Fragment, null,
