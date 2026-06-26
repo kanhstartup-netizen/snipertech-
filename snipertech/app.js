@@ -2867,8 +2867,12 @@ function CmeCard({ raw }) {
                    || !!(dealerPress && dealerPress.match(/upward|up/i));
     const focusDir  = focusSell && !focusBuy ? "SELL" : focusBuy && !focusSell ? "BUY" : null;
 
-    // ── Infer intraday magnet price (max pain closest target) ──
-    const magnetPrice = maxPainSpot || putWallSpot || callWallSpot;
+    // ── Infer intraday magnet price (max pain = gravitational center) ──
+    // SELL → TP target = Put Wall (below); BUY → TP target = Call Wall (above)
+    const magnetPrice = maxPainSpot;
+    const targetPrice = focusDir === "SELL" ? (putWallSpot || maxPainSpot)
+                      : focusDir === "BUY"  ? (callWallSpot || maxPainSpot)
+                      : maxPainSpot;
 
     // ── Simple S/R description from the 3 walls ──
     // Put Wall = support floor, Call Wall = resistance ceiling, Max Pain = magnet
@@ -2937,10 +2941,15 @@ function CmeCard({ raw }) {
                             textShadow: `0 0 24px ${focusDir === "SELL" ? "rgba(255,107,107,.5)" : "rgba(63,217,138,.5)"}`
                         } },
                             focusDir === "SELL" ? "▼ FOCUS SELL" : "▲ FOCUS BUY")),
-                    magnetPrice && React.createElement("div", { style: { textAlign: "right" } },
-                        React.createElement("div", { style: { fontSize: 10.5, color: C.mut, fontWeight: 700 } }, "🧲 INTRADAY TARGET"),
-                        React.createElement("div", { style: { fontSize: 22, fontWeight: 800, color: "#FFB800", fontFamily: "'Sora',sans-serif" } }, `$${magnetPrice}`),
-                        React.createElement("div", { style: { fontSize: 10.5, color: C.mut, marginTop: 2 } }, "ລາຄາດຶງດູດ (Max Pain)"))),
+                    (targetPrice || magnetPrice) && React.createElement("div", { style: { textAlign: "right" } },
+                        React.createElement("div", { style: { fontSize: 10.5, color: C.mut, fontWeight: 700 } },
+                            focusDir === "SELL" ? "🎯 TP TARGET (Put Wall)" : focusDir === "BUY" ? "🎯 TP TARGET (Call Wall)" : "🧲 INTRADAY MAGNET"),
+                        React.createElement("div", { style: { fontSize: 22, fontWeight: 800, color: C.green, fontFamily: "'Sora',sans-serif" } },
+                            `$${targetPrice || magnetPrice}`),
+                        React.createElement("div", { style: { fontSize: 10.5, color: C.mut, marginTop: 2 } },
+                            focusDir === "SELL" ? "ແນວຮັບ = TP ຫຼັກ" : focusDir === "BUY" ? "ແນວຕ້ານ = TP ຫຼັກ" : "ລາຄາດຶງດູດ"),
+                        magnetPrice && focusDir && targetPrice !== magnetPrice && React.createElement("div", { style: { fontSize: 10, color: "#FFB800", marginTop: 3, opacity: .8 } },
+                            `🧲 Max Pain $${magnetPrice}`))),
 
                 // Price map bar: PUT WALL ←→ MAX PAIN ←→ CALL WALL
                 (numP && numC) && React.createElement("div", { style: { padding: "0 18px 14px" } },
