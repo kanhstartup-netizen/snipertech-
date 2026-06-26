@@ -2103,23 +2103,72 @@ STEP 3 — ADVANCED CONFIRMATIONS (apply when the chart clearly shows them; do N
 - WYCKOFF: identify accumulation/distribution schematics if present — spring, upthrust (UTAD), sign of strength/weakness, the phase (A-E). Note which phase price seems to be in.
 - HARMONIC PATTERNS: spot Gartley, Bat, Butterfly, Crab, or Shark if the swing ratios fit; give the potential reversal zone (PRZ). Only if ratios actually align.
 - ICT KILLZONES (timing): note which session/killzone is active or upcoming (Asian range, London Open 07:00-10:00 UK, New York Open / AM session 08:00-11:00 ET, London close). Gold often runs liquidity during London & NY opens — factor timing into the entry.
-- EXPECTED RANGE / IMPLIED VOLATILITY (CME QuikStrike Vol2Vol): if the uploaded image is a CME QuikStrike Vol2Vol Expected Range chart (OG|GC options), read it as follows:
-  • RANGES BAR (top of chart): the colored range boxes show 1σ/2σ/3σ standard-deviation expected move from current futures price. The tightest center boxes = highest-probability range for the expiration. Read the dollar values and use them as TP/SL outer limits.
-  • INTRADAY VOLUME chart: orange bars = PUT volume by strike, blue bars = CALL volume by strike. Heavy PUT volume at a strike = strong SUPPORT / institutional hedge floor. Heavy CALL volume at a strike = strong RESISTANCE / distribution ceiling. A strike where BOTH put and call volume spike = max pain / pin risk zone — price gravitates there at expiration.
-  • OPEN INTEREST (OI) chart: same color coding but shows CUMULATIVE open contracts, not just today's volume. High PUT OI strike = dealers are long gamma / short delta there = acts as magnetic support. High CALL OI strike = dealers are short gamma / long delta = acts as magnetic resistance. The strike with the LARGEST total OI (put+call) = MAX PAIN price — institutions often pin price near max pain into expiration.
-  • VOLATILITY SMILE (red dashed line): the U-shaped volatility curve. Where the smile is LOWEST = ATM implied volatility. Where it rises steeply on put side = fear premium. A skewed smile (puts much higher vol than calls) = market fears downside; flat or call-skewed smile = bullish flow. Read the ATM vol level and note direction of skew.
-  • VOL CHG field: if shown (e.g. "Vol Chg: -5.68"), negative = IV dropping = market calming / directional move expected soon; positive = IV rising = uncertainty / big move coming.
-  • DELTA MARKERS (dashed vertical lines labeled 5ΔP, 15ΔP, 25ΔP, 35ΔP, 45ΔP, 45ΔC, 35ΔC, 25ΔC, 15ΔC, 5ΔC): these show where options with those delta values are struck. The 25ΔP and 25ΔC lines bracket the "expected 1σ move" range. Any price action OUTSIDE the 25Δ lines is statistically in the tail (< 25% probability).
-  • DTE (Days To Expiration): shown in title (e.g. "0.89 DTE"). < 1 DTE = same-day or next-day expiry = gamma extremely high = price moves are violent and pinned near max pain or major OI strikes.
-  • FUTURE CHG: current futures price change vs prior settle. Combine with where price sits relative to max pain strike — if price is below max pain, dealers are buying futures to hedge (upward pressure); if above max pain, dealers are selling (downward pressure).
-  HOW TO TRADE FROM THIS:
-  1. Find the MAX PAIN strike (largest total OI) → this is the gravitational center for intraday price.
-  2. Find the highest PUT OI strike BELOW current price → this is the floor / strong support.
-  3. Find the highest CALL OI strike ABOVE current price → this is the ceiling / strong resistance.
-  4. Combine with 25ΔP/25ΔC range → entries inside this range are in the "expected move" zone; entries near the edges are mean-reversion trades.
-  5. If Vol Chg is sharply negative AND DTE < 1 → expect a pinning move toward max pain → fade breakouts, trade range.
-  6. If Vol Chg is rising AND large directional volume (one side dominant) → expect a breakout toward that side.
-  Report findings in "options_flow" field with: max_pain_strike, put_wall, call_wall, expected_range_1sigma, iv_atm, vol_skew_direction, trade_implication (1-2 lines).
+- EXPECTED RANGE / IMPLIED VOLATILITY (CME QuikStrike Vol2Vol) — COMPREHENSIVE ANALYSIS:
+  If the uploaded image is a CME QuikStrike Vol2Vol Expected Range chart (GC Gold Futures options), apply ALL of the following rules:
+
+  ══ FEATURE 1 — FUTURES → SPOT CONVERSION (MANDATORY) ══
+  CME GC futures trade at a PREMIUM above XAU/USD Spot. The basis (spread) is approximately:
+    Front-month (nearest expiry): Futures ≈ Spot + $3 to $8
+    Next-month: Futures ≈ Spot + $8 to $15
+    2+ months out: Futures ≈ Spot + $15 to $25
+  RULE: ALL price levels read from the CME chart (max pain, put wall, call wall, expected range boundaries, Vol Settle, delta strike prices) MUST be converted to XAU/USD SPOT price by subtracting the estimated basis before reporting. State the basis used (e.g. "basis ~$6 → Futures 3320 = Spot ~3314"). NEVER report raw futures prices as if they equal Spot — this causes confusion.
+  Conversion formula: Spot ≈ Futures_Strike − Basis_Estimate
+  Report BOTH the original futures price AND the converted spot price for every key level (e.g. "Put wall: GC $3300 → Spot $3294").
+
+  ══ FEATURE 2 — PSYCHOLOGICAL S/R LEVELS (ROUND NUMBER HIERARCHY) ══
+  After converting all key levels to Spot, classify each by its round-number importance:
+    🔴 TIER 1 — ends in 00 (e.g. 3300, 3400): STRONGEST psychological support/resistance. Institutions watch these closely. Expect high-volume reactions, pin risk at options expiry, and stop clusters just above/below.
+    🟡 TIER 2 — ends in 50 (e.g. 3250, 3350): STRONG mid-level. Second most watched. Acts as interim target and S/R especially on H1-H4.
+    🟢 TIER 3 — ends in 25 or 75 (e.g. 3225, 3275, 3325, 3375): MODERATE. Quarter-handles used as entry/TP refinement zones on M15-M30.
+  For each converted Spot level identified (max pain, put wall, call wall, 1σ boundary, Vol Settle), state its tier and what it means practically (e.g. "Spot $3300 = Tier 1 🔴 → extremely strong pin magnet, hard ceiling, TP here not above").
+  When multiple Tier 1 levels exist in the expected range, the one closest to max pain has highest gravity.
+
+  ══ FEATURE 3 — VOL SETTLE & VOLATILITY RISK FILTER ══
+  • VOL SETTLE line: the previous session's implied volatility settle level (shown as a horizontal reference line on the vol smile chart, or the "Settle" value in the header). Compare current IV to the Vol Settle:
+    − Current IV ABOVE Vol Settle: IV is EXPANDING → expect larger-than-normal intraday moves. WIDEN SL by 10-20%, reduce position size, extend TP targets.
+    − Current IV BELOW Vol Settle (IV compression): market is calming. Expect mean-reversion / range-bound price action. TIGHTEN SL, TP at nearer round levels, fade breakouts.
+    − IV NEAR Vol Settle (±0.5%): neutral. Use standard risk parameters.
+  • DAILY EXPECTED MOVE (DEM) from Vol Settle: DEM (in dollars) ≈ (Spot_Price × Vol_Settle% × √(1/252)). For example, if Spot = $3300 and Vol Settle = 15% annual → DEM ≈ $3300 × 0.15 / √252 ≈ $31/day. This is the ±1σ DAILY expected move. If current price is already near ±1 DEM from the open, probability of further extension is <16% → strong mean-reversion zone.
+  • VOL CHG SIGNAL: if Vol Chg shown (e.g. "Vol Chg: -5.68"), classify as:
+    − Negative (IV falling): directional squeeze → breakout likely soon. Trade with trend, momentum entries.
+    − Positive (IV rising): uncertainty / event risk → fade extremes, widen SL, expect whipsaws.
+    − Near zero: stable environment. Normal risk parameters.
+  State the volatility regime in the output: "HIGH_VOL / NORMAL / LOW_VOL / COMPRESSING" and adjust the SL/TP recommendations accordingly.
+
+  ══ FEATURE 4 — CME CHART ELEMENTS (FULL READ) ══
+  • RANGES BAR: 1σ/2σ/3σ expected move boxes from current futures price. Convert boundaries to Spot. The 1σ box = ~68% probability price stays inside by expiry. The 2σ = ~95%. Use 1σ boundaries as TP1/TP2 limits (after Spot conversion).
+  • INTRADAY VOLUME: orange bars = PUT volume (support floors), blue bars = CALL volume (resistance ceilings). Dominant-side volume = expected directional flow. Strike with BOTH high put+call volume = max pain / pin zone.
+  • OPEN INTEREST: put OI below price = gamma support floor (dealers buy futures to hedge). Call OI above price = gamma resistance ceiling (dealers sell futures to hedge). Largest OI strike = MAX PAIN → gravitational center, convert to Spot.
+  • VOLATILITY SMILE: U-shaped IV curve. Lowest point = ATM IV. If put-side IV much higher than call-side = fear premium = bearish skew = watch for downside spike. Call-skewed = bullish sentiment. Symmetric = neutral.
+  • DELTA MARKERS (25ΔP / 25ΔC): bracket the institutional "expected 1σ move" range. Convert to Spot. Price OUTSIDE this range = statistically unusual, high mean-reversion probability.
+  • DTE: < 1 DTE = gamma explosion = violent pinning moves. > 5 DTE = slower, trend-following works. > 20 DTE = standard technical analysis dominates.
+  • FUTURE CHG vs MAX PAIN: if current futures price BELOW max pain → dealer delta-hedging creates upward pressure. ABOVE max pain → downward pressure. This is the "dealer pinning" effect.
+
+  HOW TO TRADE — COMPLETE WORKFLOW (apply in order):
+  1. Read all futures price levels → convert ALL to XAU/USD Spot (subtract basis, state estimate).
+  2. Classify each Spot level by psychological tier (Tier 1 ends-00, Tier 2 ends-50, Tier 3 ends-25/75).
+  3. Identify max pain (Spot), put wall (Spot), call wall (Spot) and their tiers.
+  4. Check Vol Settle vs current IV → determine volatility regime (HIGH/NORMAL/LOW/COMPRESSING).
+  5. Calculate DEM → check if price is near ±1 DEM from session open → mean-reversion alert if so.
+  6. If Vol Chg negative + DTE < 1 → expect pinning toward max pain (Spot) → fade breakouts, trade range.
+  7. If Vol Chg positive + one-sided volume dominant → expect breakout toward dominant side → trade with flow.
+  8. Use 1σ boundaries (Spot) as hard TP ceiling/floor. Use Tier 1 round numbers inside the range as primary TP targets. Use Tier 2 as secondary TP.
+  9. Set SL OUTSIDE nearest put/call wall (Spot) + round-number buffer (~$3-5 beyond Tier 1/2 level).
+
+  Report ALL findings in "options_flow" field with these sub-fields:
+    futures_basis_used (e.g. "~$6, front-month estimate")
+    max_pain_futures + max_pain_spot + max_pain_tier (e.g. "Tier 1 🔴")
+    put_wall_futures + put_wall_spot + put_wall_tier
+    call_wall_futures + call_wall_spot + call_wall_tier
+    expected_range_1sigma_futures + expected_range_1sigma_spot
+    iv_atm_level + vol_settle_level + vol_regime (HIGH_VOL/NORMAL/LOW_VOL/COMPRESSING)
+    vol_chg_signal (directional/uncertainty/stable)
+    daily_expected_move_spot (dollar amount)
+    vol_skew_direction (put-skewed/call-skewed/neutral)
+    dte_note
+    psychological_levels (list each key Spot level with tier label)
+    dealer_pressure (upward/downward/neutral — based on price vs max pain)
+    trade_implication (2-3 lines: recommended bias, key Spot S/R to watch, SL/TP adjustment based on vol regime)
 - ICT POWER OF 3 (AMD): look for Accumulation (range/consolidation), Manipulation (fake breakout / liquidity grab), then Distribution (real move begins). Identify which phase is active and whether the manipulation candle (stop hunt) has already completed.
 - ICT SILVER BULLET: identify if price is in a Silver Bullet window (10:00-11:00 ET or 14:00-15:00 ET New York time). A FVG formed during these windows inside a killzone = premium entry. Flag if visible.
 - ICT OPTIMAL TRADE ENTRY (OTE): the highest-probability entry sits in the 0.618-0.786 Fibonacci retracement of the last confirmed swing (AFTER a BOS/CHoCH). If price has retraced into the 62-79% zone overlapping an OB or FVG, flag as OTE = true.
@@ -2196,9 +2245,9 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
   "order_book": "in ${outLang} — only if DOM/volume profile is visible; otherwise note it isn't shown and you used price/volume (1 line)",
   "advanced_read": "in ${outLang} — short notes on Elliott Wave / Wyckoff / Harmonic / ICT killzone / expected-range IF clearly present; omit what's not visible. Keep to 1-3 short lines total.",
   "ict_read": "in ${outLang} — ICT-specific observations IF visible: Power of 3 phase (A/M/D), Silver Bullet window active, OTE zone hit, Breaker block, Inducement level, Daily Profile type, Asia range status, Unicorn Model. 1-2 lines max, omit what isn't clearly present.",
-  "options_flow": "in ${outLang} — ONLY if a CME QuikStrike Vol2Vol / OI / Intraday Volume chart is uploaded. Include: max_pain_strike, put_wall (highest put OI strike), call_wall (highest call OI strike), expected_1sigma_range, iv_atm_level, vol_skew (put-skewed/call-skewed/neutral), vol_chg_signal, dte_note, trade_implication. If no options chart uploaded, set to 'ບໍ່ມີ options chart'.",
+  "options_flow": "in ${outLang} — ONLY if a CME QuikStrike Vol2Vol / OI / Intraday Volume chart is uploaded. Apply ALL 4 features: (1) SPOT CONVERSION — state basis estimate, then report EVERY key level as BOTH GC Futures price AND converted XAU/USD Spot price (e.g. 'Put wall: GC $3300 → Spot ~$3294 [basis $6]'); (2) PSYCHOLOGICAL TIERS — classify each Spot level: Tier 1 🔴 (ends-00 = strongest), Tier 2 🟡 (ends-50 = strong), Tier 3 🟢 (ends-25/75 = moderate); (3) VOL SETTLE REGIME — compare current IV vs Vol Settle → label HIGH_VOL/NORMAL/LOW_VOL/COMPRESSING → state daily expected move in dollars → adjust SL/TP recommendation accordingly; (4) FULL CME READ — max_pain(futures+spot+tier), put_wall(futures+spot+tier), call_wall(futures+spot+tier), 1σ_range(futures+spot), iv_atm, vol_settle, vol_chg_signal, dte_note, dealer_pressure(up/down/neutral), trade_implication(2-3 lines with Spot levels + vol-adjusted SL/TP). If no options chart uploaded, set to 'ບໍ່ມີ CME chart'.",
   "sniper_grade": "A+++ | A+ | A | B | C | WAIT — overall ICT/SMC grade: A+++ = fractal alignment 3+ TFs + all confluences; A+ = 5+ confluences; A = 3-4; B = 2-3 partial; C = weak; WAIT = <2 or no sweep yet",
-  "zones": [{"type":"resistance|support","label":"in ${outLang}","range":"TIGHT range, e.g. 2348-2352 (max ~10 dollars wide)","why":"in ${outLang}, short — mention OB/FVG/sweep if relevant"}],
+  "zones": [{"type":"resistance|support","label":"in ${outLang} — include psychological tier if applicable: Tier1🔴(ends-00) Tier2🟡(ends-50) Tier3🟢(ends-25/75)","range":"TIGHT Spot price range, e.g. 3298-3302 (max ~10 dollars wide)","why":"in ${outLang}, short — mention OB/FVG/sweep/round-number/options-wall if relevant"}],
   "setups": [{
     "direction":"Buy|Sell","status":"ພ້ອມເຂົ້າ|ລໍຖ້າ","grade":"ສູງ|ກາງ|ຕ່ຳ",
     "confluence_factors":["in ${outLang}, short — e.g. liquidity sweep, discount zone, order block, BOS, DXY agrees"],
@@ -2500,10 +2549,9 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
                         React.createElement("a", { className: "fx-link", href: b.url, target: "_blank", rel: "noopener noreferrer", style: { display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", background: `linear-gradient(95deg,${C.blue},${C.blueLt})`, color: "#04101F", fontWeight: 700, fontSize: 13.5, padding: "11px 16px", borderRadius: 11, whiteSpace: "nowrap" } },
                             b.cta, " \u2192"))))))),
             nav === "tools" && (React.createElement("div", { className: "fx-rise" },
-                React.createElement("div", { style: { display: "flex", gap: 6, background: C.bg2, border: `1px solid ${C.line}`, borderRadius: 14, padding: 5, maxWidth: 560, margin: "0 auto" } }, [["live", "📡 " + t("navLive") || "📡 Live"], ["chart", "📊 " + t("analyzeChart")], ["news", "📰 " + t("analyzeNews")]].map(([id, label]) => (React.createElement("button", { key: id, className: "fx-btn", onClick: () => setTab(id), style: { flex: 1, padding: "10px 8px", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600,
+                React.createElement("div", { style: { display: "flex", gap: 6, background: C.bg2, border: `1px solid ${C.line}`, borderRadius: 14, padding: 5, maxWidth: 560, margin: "0 auto" } }, [["chart", "📊 " + t("analyzeChart")], ["news", "📰 " + t("analyzeNews")]].map(([id, label]) => (React.createElement("button", { key: id, className: "fx-btn", onClick: () => setTab(id), style: { flex: 1, padding: "10px 8px", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600,
                         background: tab === id ? `linear-gradient(95deg,${C.blue},${C.blueLt})` : "transparent",
                         color: tab === id ? "#04101F" : C.mut, transition: "all .15s" } }, label)))),
-                tab === "live" && React.createElement(LiveChartPanel, { t: t, lang: lang }),
                 tab === "chart" && (React.createElement(React.Fragment, null,
                     React.createElement(AIEnginePanel, { t: t, engines: aiEngines, setEngines: setAiEngines }),
                     React.createElement("section", { style: { marginTop: 14, background: C.panel, border: `1px solid ${C.line}`, borderRadius: 18, padding: "20px 18px", position: "relative", overflow: "hidden" } },
@@ -3718,96 +3766,6 @@ function CoursePanel({ t, unlocked, onUnlock, waLink }) {
                 React.createElement("span", { style: { flex: 1, fontSize: 13.5, color: C.text } }, l.title),
                 React.createElement("span", { style: { fontSize: 11, color: C.mut } }, l.dur),
                 React.createElement("span", { style: { fontSize: 12, color: C.green, fontWeight: 700 } }, t("courseWatch")))))))));
-}
-// ── Live Chart Panel (TradingView real-time widgets) ─────────────
-function LiveChartPanel({ t, lang }) {
-    const [symbol, setSymbol] = useState("XAUUSD");
-    const [interval, setIntervalVal] = useState("15");
-    const chartRef = useRef(null);
-    const tickerRef = useRef(null);
-
-    const SYMBOLS = [
-        { id: "XAUUSD", label: "XAU/USD 🥇" },
-        { id: "USINDEX", label: "DXY 💵" },
-        { id: "USOIL", label: "Oil 🛢️" },
-    ];
-    const INTERVALS = [
-        { id: "1", label: "M1" }, { id: "5", label: "M5" },
-        { id: "15", label: "M15" }, { id: "60", label: "H1" },
-        { id: "240", label: "H4" }, { id: "D", label: "D1" },
-    ];
-
-    // Inject TradingView ticker tape
-    useEffect(() => {
-        if (!tickerRef.current) return;
-        tickerRef.current.innerHTML = "";
-        const s = document.createElement("script");
-        s.src = "https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js";
-        s.async = true;
-        s.innerHTML = JSON.stringify({
-            symbols: [
-                { proName: "OANDA:XAUUSD", title: "Gold" },
-                { proName: "TVC:DXY", title: "DXY" },
-                { proName: "TVC:USOIL", title: "Oil" },
-                { proName: "BITSTAMP:BTCUSD", title: "BTC" },
-                { proName: "OANDA:EURUSD", title: "EUR/USD" },
-            ],
-            showSymbolLogo: true, colorTheme: "dark", isTransparent: true,
-            displayMode: "adaptive", locale: "en"
-        });
-        tickerRef.current.appendChild(s);
-    }, []);
-
-    // Inject TradingView advanced chart
-    useEffect(() => {
-        if (!chartRef.current) return;
-        chartRef.current.innerHTML = "";
-        const container = document.createElement("div");
-        container.className = "tradingview-widget-container__widget";
-        chartRef.current.appendChild(container);
-        const s = document.createElement("script");
-        s.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
-        s.async = true;
-        const tvSymbol = symbol === "XAUUSD" ? "OANDA:XAUUSD" : symbol === "USINDEX" ? "TVC:DXY" : "TVC:USOIL";
-        s.innerHTML = JSON.stringify({
-            autosize: true, symbol: tvSymbol,
-            interval: interval, timezone: "Asia/Bangkok",
-            theme: "dark", style: "1",
-            locale: "en", backgroundColor: C.panel,
-            gridColor: "rgba(38,130,255,0.06)",
-            hide_top_toolbar: false, hide_legend: false,
-            allow_symbol_change: true, save_image: false,
-            calendar: false, hide_volume: false,
-            support_host: "https://www.tradingview.com",
-            studies: ["STD;Bollinger_Bands", "STD;RSI", "STD;MACD"],
-        });
-        chartRef.current.appendChild(s);
-    }, [symbol, interval]);
-
-    return React.createElement("div", { style: { marginTop: 14 } },
-        // Ticker tape
-        React.createElement("div", { ref: tickerRef, style: { borderRadius: 12, overflow: "hidden", marginBottom: 14, border: `1px solid ${C.line}` } }),
-
-        // Symbol + TF selector
-        React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12, alignItems: "center" } },
-            React.createElement("div", { style: { display: "flex", gap: 6, background: C.bg2, borderRadius: 10, padding: 4, border: `1px solid ${C.line}` } },
-                SYMBOLS.map(sym => React.createElement("button", { key: sym.id, onClick: () => setSymbol(sym.id), className: "fx-btn", style: { padding: "6px 12px", borderRadius: 7, border: "none", fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, cursor: "pointer", background: symbol === sym.id ? `linear-gradient(95deg,${C.blue},${C.blueLt})` : "transparent", color: symbol === sym.id ? "#04101F" : C.mut } }, sym.label))
-            ),
-            React.createElement("div", { style: { display: "flex", gap: 4, background: C.bg2, borderRadius: 10, padding: 4, border: `1px solid ${C.line}` } },
-                INTERVALS.map(iv => React.createElement("button", { key: iv.id, onClick: () => setIntervalVal(iv.id), className: "fx-btn", style: { padding: "6px 9px", borderRadius: 7, border: "none", fontFamily: "inherit", fontSize: 12, fontWeight: 600, cursor: "pointer", background: interval === iv.id ? `linear-gradient(95deg,${C.blue},${C.blueLt})` : "transparent", color: interval === iv.id ? "#04101F" : C.mut } }, iv.label))
-            )
-        ),
-
-        // Chart container
-        React.createElement("div", { style: { borderRadius: 16, overflow: "hidden", border: `1px solid ${C.line}`, background: C.panel } },
-            React.createElement("div", { ref: chartRef, className: "tradingview-widget-container", style: { height: 520, width: "100%" } })
-        ),
-
-        // Hint
-        React.createElement("div", { style: { marginTop: 10, padding: "10px 14px", borderRadius: 10, background: C.bg2, border: `1px solid ${C.line}`, fontSize: 11.5, color: C.mut, lineHeight: 1.6 } },
-            "💡 Screenshot chart ຈາກ Live Chart → ໄປ 📊 ວິເຄາະກຣາຟ → Upload → AI ວິເຄາະ SMC/ICT ໄດ້ທັນທີ"
-        )
-    );
 }
 function NewsRoom({ t, notify: extNotify, setNotify: extSetNotify, isAdmin = false }) {
     const POSTS_KEY = "sniper_news_posts";
