@@ -2312,10 +2312,10 @@ OUTPUT: respond ONLY with valid JSON (no markdown, no extra text). Be concise �
         @keyframes fxspin{ to{ transform:rotate(360deg);} }
         @keyframes fxFloat{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-7px);} }
         @keyframes fxGlowPulse{ 0%,100%{ opacity:.5; } 50%{ opacity:1; } }
-        @keyframes fxRise{ from{ opacity:0; transform:translateY(14px);} to{ opacity:1; transform:translateY(0);} }
+        @keyframes fxRise{ from{ opacity:1; transform:none;} to{ opacity:1; transform:none;} }
         @keyframes fxGrid{ from{ background-position:0 0;} to{ background-position:0 -48px;} }
         @keyframes fxSheen{ 0%{ transform:translateX(-120%);} 60%,100%{ transform:translateX(220%);} }
-        .fx-rise{ animation:fxRise .5s ease both; }
+        .fx-rise{ opacity:1; }
         .fx-card{ transition:transform .18s ease, border-color .18s ease, box-shadow .18s ease; }
         .fx-card:hover{ transform:translateY(-3px); border-color:${C.blue}; box-shadow:0 10px 30px -12px ${C.glow}; }
         .fx-promo:hover .fx-cta{ background:${C.blue}; color:#04101F; }
@@ -2336,13 +2336,6 @@ OUTPUT: respond ONLY with valid JSON (no markdown, no extra text). Be concise �
         React.createElement(ChartBackdrop, { tint: "#C9A24B" }),
         React.createElement(Watermark, null),
         React.createElement(TradingChatbot, { t: t, lang: lang, user: user }),
-        // Analysis loading overlay — root level, with cancel button for APK/WebView
-        loading && React.createElement("div", { style: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 9800, background: "rgba(5,7,13,.96)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20, padding: "24px" } },
-            React.createElement("div", { style: { width: 60, height: 60, borderRadius: "50%", border: `4px solid ${C.line}`, borderTopColor: C.blue, animation: "spin 1s linear infinite" } }),
-            React.createElement("div", { style: { fontFamily: "'LaoOverride','Sora','Noto Sans Lao',sans-serif", fontWeight: 700, fontSize: 16, color: C.text, textAlign: "center" } }, stage || "ກຳລັງວິເຄາະ..."),
-            React.createElement("div", { style: { fontSize: 12, color: C.mut, textAlign: "center", lineHeight: 1.7 } }, "Claude + GPT + Gemini ກຳລັງທຳງານ\nປົກກະຕິ 20-45 ວິ"),
-            React.createElement("button", { onClick: () => { setLoading(false); setStage(""); setErr("ຍົກເລີກການວິເຄາະ"); }, style: { marginTop: 8, padding: "10px 24px", borderRadius: 10, border: `1px solid ${C.line}`, background: "transparent", color: C.mut, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" } }, "✕ ຍົກເລີກ")
-        ),
         React.createElement("div", { "aria-hidden": true, style: { position: "absolute", inset: 0, backgroundImage: `linear-gradient(${C.line} 1px, transparent 1px), linear-gradient(90deg, ${C.line} 1px, transparent 1px)`, backgroundSize: "48px 48px", opacity: 0.12, animation: "fxGrid 6s linear infinite", maskImage: "radial-gradient(120% 80% at 50% 0%, #000 35%, transparent 80%)", WebkitMaskImage: "radial-gradient(120% 80% at 50% 0%, #000 35%, transparent 80%)" } }),
         React.createElement("div", { "aria-hidden": true, style: { position: "absolute", top: -160, left: "50%", transform: "translateX(-50%)", width: 620, height: 360, background: `radial-gradient(closest-side, ${C.glow}, transparent)`, filter: "blur(20px)", animation: "fxGlowPulse 5s ease-in-out infinite", pointerEvents: "none" } }),
         React.createElement("div", { style: { maxWidth: 720, margin: "0 auto", padding: "14px 16px 96px", position: "relative", zIndex: 1 } },
