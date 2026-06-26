@@ -2754,9 +2754,7 @@ function Result({ data, t, engines, isAdmin }) {
                         React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 7 } },
                             React.createElement("span", { style: { fontSize: 15, fontWeight: 800, color: dirColor, letterSpacing: ".03em" } }, buy ? "▲ BUY" : "▼ SELL"),
                             s.status && React.createElement("span", { style: { fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 99, color: "#04101F", background: ready ? dirColor : C.blueLt } }, ready ? t("rReady") : t("rWait")))),
-                    data.instrument_guess && React.createElement("div", { style: { marginTop: 6, fontSize: 12.5, color: C.mut } },
-                        data.instrument_guess,
-                        data.detected_timeframes ? ` · ${data.detected_timeframes}` : "")),
+                    data.instrument_guess && React.createElement("div", { style: { marginTop: 6, fontSize: 12.5, color: C.mut } }, data.instrument_guess)),
                 ((_a = data.timeframe_breakdown) === null || _a === void 0 ? void 0 : _a.length) > 0 && (React.createElement("div", { style: { padding: "12px 18px", borderBottom: `1px solid ${C.line}`, display: "flex", flexDirection: "column", gap: 7 } },
                     data.timeframe_breakdown.map((tf, j) => (React.createElement("div", { key: j, style: { display: "flex", gap: 10, alignItems: "baseline" } },
                         React.createElement("span", { style: { flexShrink: 0, width: 38, fontSize: 11, fontWeight: 800, color: C.blueLt, fontFamily: "'Sora',sans-serif" } }, tf.tf),
@@ -2789,13 +2787,6 @@ function Result({ data, t, engines, isAdmin }) {
                         "RR ",
                         React.createElement("b", { style: { color: C.green } }, s.rr))),
                 React.createElement(WinGauge, { confidence: s.confidence, grade: s.grade, factors: ((_b = s.confluence_factors) === null || _b === void 0 ? void 0 : _b.length) || 0, t: t, gradeColor: gradeColor }),
-                ((_c = s.confluence_factors) === null || _c === void 0 ? void 0 : _c.length) > 0 && (React.createElement("div", { style: { padding: "14px 18px", borderTop: `1px solid ${C.line}` } },
-                    React.createElement("div", { style: { fontSize: 11, fontWeight: 700, letterSpacing: ".04em", color: C.blueLt, marginBottom: 9 } },
-                        "\u2705 ",
-                        t("rReasons")),
-                    React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 7 } }, s.confluence_factors.map((f, j) => (React.createElement("div", { key: j, style: { display: "flex", gap: 8, alignItems: "flex-start" } },
-                        React.createElement("span", { style: { flexShrink: 0, color: C.green, fontWeight: 700, fontSize: 13 } }, "\u2714\uFE0F"),
-                        React.createElement("span", { style: { color: C.text, fontSize: 13, lineHeight: 1.5 } }, f))))))),
                 (s.rationale || s.invalidation) && (React.createElement("div", { style: { padding: "0 18px 16px" } },
                     s.rationale && React.createElement("div", { style: { color: C.text, fontSize: 13, lineHeight: 1.6 } }, s.rationale),
                     s.invalidation && React.createElement("div", { style: { marginTop: 8, color: "#FFB4B4", fontSize: 12.5, lineHeight: 1.55 } },
@@ -2842,11 +2833,133 @@ function Result({ data, t, engines, isAdmin }) {
                 data.order_book && React.createElement(SmcRow, { icon: "\uD83D\uDCD6", k: t("rOrderBook"), v: data.order_book, color: C.mut }),
                 data.advanced_read && React.createElement(SmcRow, { icon: "\uD83E\uDDEC", k: t("rAdvanced"), v: data.advanced_read, color: C.amber }),
                 data.ict_read && React.createElement(SmcRow, { icon: "\uD83C\uDFAF", k: "ICT Read", v: data.ict_read, color: C.cyan }),
-                data.sniper_grade && data.sniper_grade !== "WAIT" && React.createElement(SmcRow, { icon: "\u2B50", k: "Sniper Grade", v: data.sniper_grade, color: data.sniper_grade.startsWith("A+++") ? C.green : data.sniper_grade.startsWith("A+") ? C.blueLt : C.amber }),
-                data.options_flow && data.options_flow !== "ບໍ່ມີ options chart" && React.createElement("div", { style: { marginTop: 6, padding: "12px 14px", borderRadius: 12, background: "rgba(255,180,0,.07)", border: "1px solid rgba(255,180,0,.3)" } },
-                    React.createElement("div", { style: { fontWeight: 700, fontSize: 12, color: "#FFB800", marginBottom: 6 } }, "\uD83D\uDCC8 CME Options Flow (QuikStrike)"),
-                    React.createElement("div", { style: { fontSize: 12.5, color: C.text, lineHeight: 1.7, whiteSpace: "pre-wrap" } }, data.options_flow)
-                ))))));
+                data.sniper_grade && data.sniper_grade !== "WAIT" && React.createElement(SmcRow, { icon: "\u2B50", k: "Sniper Grade", v: data.sniper_grade, color: data.sniper_grade.startsWith("A+++") ? C.green : data.sniper_grade.startsWith("A+") ? C.blueLt : C.amber })))),
+        data.options_flow && data.options_flow !== "ບໍ່ມີ CME chart" && data.options_flow !== "ບໍ່ມີ options chart" && React.createElement(CmeCard, { raw: data.options_flow })));
+}
+
+// ── CME QuikStrike Card — beginner-friendly highlight panel ──
+function CmeCard({ raw }) {
+    // Parse key values from the AI's options_flow text using regex helpers
+    const pick = (patterns, text) => {
+        for (const p of patterns) {
+            const m = text.match(p);
+            if (m) return m[1] ? m[1].trim() : m[0].trim();
+        }
+        return null;
+    };
+    const txt = String(raw || "");
+
+    // --- extract structured values ---
+    const maxPainSpot  = pick([/max.pain.spot[^$\d]*\$?([\d,]+)/i, /max.pain[^$\d]*spot[^$\d]*\$?([\d,]+)/i, /max_pain_spot[^\d]*\$?([\d,]+)/i], txt);
+    const putWallSpot  = pick([/put.wall[^$\d]*spot[^$\d]*\$?([\d,]+)/i, /put_wall_spot[^\d]*\$?([\d,]+)/i], txt);
+    const callWallSpot = pick([/call.wall[^$\d]*spot[^$\d]*\$?([\d,]+)/i, /call_wall_spot[^\d]*\$?([\d,]+)/i], txt);
+    const range1s      = pick([/1.?sigma[^$\d]*spot[^$\d]*\$?([\d,]+)[^$\d]*[-–][^$\d]*\$?([\d,]+)/i, /expected.range.*spot[^$\d]*\$?([\d,]+)/i], txt);
+    const volRegime    = pick([/(HIGH_VOL|LOW_VOL|COMPRESSING|NORMAL)/i], txt);
+    const dem          = pick([/daily.expected.move[^$\d]*\$?([\d.]+)/i, /DEM[^$\d]*\$?([\d.]+)/i], txt);
+    const dealerPress  = pick([/dealer.pressure[^\w]*(upward|downward|neutral)/i, /dealer[^\w]*(up|down|neutral)/i], txt);
+    const volSkew      = pick([/vol.skew[^\w]*(put.skewed|call.skewed|neutral|bearish|bullish)/i, /skew[^\w]*(put|call|neutral)/i], txt);
+    const basis        = pick([/basis[^$\d]*~?\$?([\d]+)/i], txt);
+    const tradeImpl    = (() => {
+        const m = txt.match(/trade.implication[s]?[:\s"]*([^"]{10,300})/i);
+        return m ? m[1].replace(/["\]},]/g, "").trim() : null;
+    })();
+    const maxPainTier  = txt.match(/max.pain.*tier\s*([123]|🔴|🟡|🟢)/i)?.[1] || null;
+    const putTier      = txt.match(/put.wall.*tier\s*([123]|🔴|🟡|🟢)/i)?.[1] || null;
+    const callTier     = txt.match(/call.wall.*tier\s*([123]|🔴|🟡|🟢)/i)?.[1] || null;
+
+    const tierBadge = (tier) => {
+        if (!tier) return null;
+        const t1 = tier.includes("1") || tier.includes("🔴");
+        const t2 = tier.includes("2") || tier.includes("🟡");
+        const label = t1 ? "🔴 ສຳຄັນສູງສຸດ" : t2 ? "🟡 ສຳຄັນ" : "🟢 ກາງ";
+        const bg    = t1 ? "rgba(255,107,107,.15)" : t2 ? "rgba(255,194,75,.15)" : "rgba(63,217,138,.15)";
+        const col   = t1 ? C.red : t2 ? C.amber : C.green;
+        return React.createElement("span", { style: { fontSize: 10, fontWeight: 700, color: col, background: bg, borderRadius: 99, padding: "1px 7px", marginLeft: 5 } }, label);
+    };
+
+    const volColor = volRegime === "HIGH_VOL" ? C.red : volRegime === "COMPRESSING" || volRegime === "LOW_VOL" ? C.green : C.amber;
+    const volLabel = volRegime === "HIGH_VOL" ? "⚡ ຜັນຜວນສູງ — SL ກວ້າງຂຶ້ນ" :
+                     volRegime === "COMPRESSING" ? "🔕 IV ກຳລັງແຄບ — Breakout ໃກ້ແລ້ວ" :
+                     volRegime === "LOW_VOL" ? "😴 ຜັນຜວນຕ່ຳ — Fade ສຸດຂອບ" : "🌊 ຜັນຜວນປົກກະຕິ";
+    const dealerColor = dealerPress && dealerPress.match(/upward|up/i) ? C.green : dealerPress && dealerPress.match(/downward|down/i) ? C.red : C.amber;
+    const dealerLabel = dealerPress && dealerPress.match(/upward|up/i) ? "📈 ຊຸກ UP — dealer hedge ຊື້ futures" :
+                        dealerPress && dealerPress.match(/downward|down/i) ? "📉 ກົດ DOWN — dealer hedge ຂາຍ futures" : "⚖️ Neutral";
+
+    const CmeRow = ({ icon, label, hint, value, tier, valueColor }) =>
+        React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 3, padding: "11px 14px", borderRadius: 12, background: C.bg2, border: `1px solid ${C.line}` } },
+            React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6 } },
+                React.createElement("span", { style: { fontSize: 15 } }, icon),
+                React.createElement("span", { style: { fontSize: 11, fontWeight: 700, color: C.mut, letterSpacing: ".03em" } }, label),
+                tier && tierBadge(tier)),
+            value && React.createElement("div", { style: { fontSize: 16, fontWeight: 800, color: valueColor || C.cyan, fontFamily: "'Sora',sans-serif" } }, value),
+            hint && React.createElement("div", { style: { fontSize: 11.5, color: C.mut, lineHeight: 1.55, marginTop: 1 } }, hint));
+
+    return React.createElement("div", { className: "fx-rise", style: { borderRadius: 18, border: "1px solid rgba(255,180,0,.45)", background: "linear-gradient(135deg,rgba(255,180,0,.07) 0%,rgba(14,18,34,0) 60%)", overflow: "hidden" } },
+        // Header
+        React.createElement("div", { style: { padding: "13px 18px", background: "rgba(255,180,0,.10)", borderBottom: "1px solid rgba(255,180,0,.2)", display: "flex", alignItems: "center", gap: 10 } },
+            React.createElement("span", { style: { fontSize: 20 } }, "🏛️"),
+            React.createElement("div", { style: { flex: 1 } },
+                React.createElement("div", { style: { fontWeight: 800, fontSize: 15, color: "#FFB800" } }, "CME QuikStrike · Options Flow"),
+                React.createElement("div", { style: { fontSize: 11, color: C.mut, marginTop: 1 } },
+                    "ຂໍ້ມູນ Options ຈາກ CME · ",
+                    basis ? `Basis ~$${basis} (Futures → Spot)` : "ລາຄາ Spot ທີ່ convert ແລ້ວ")),
+            React.createElement("span", { style: { fontSize: 10, fontWeight: 700, color: "#FFB800", background: "rgba(255,180,0,.15)", border: "1px solid rgba(255,180,0,.3)", borderRadius: 99, padding: "3px 10px" } }, "SPOT")),
+
+        React.createElement("div", { style: { padding: "14px 14px", display: "flex", flexDirection: "column", gap: 10 } },
+
+            // === Zone 1: ລາຄາ ===
+            React.createElement("div", { style: { fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", color: "#FFB800", opacity: .7, marginBottom: 2 } }, "📍 ໂຊນລາຄາ (Spot XAU/USD)"),
+            React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 } },
+                React.createElement(CmeRow, { icon: "🎯", label: "MAX PAIN", hint: "ລາຄາທີ່ສະຖາບັນ 'pin' ໃກ້ທີ່ສຸດ — ແຮງດຶງດູດສູງສຸດ", value: maxPainSpot ? `$${maxPainSpot}` : "—", tier: maxPainTier, valueColor: "#FFB800" }),
+                React.createElement(CmeRow, { icon: "🛡️", label: "PUT WALL", hint: "ແນວຮັບ! ສະຖາບັນ hedge ຊື້ໄວ້ — ລາຄາຍາກລົງຜ່ານ", value: putWallSpot ? `$${putWallSpot}` : "—", tier: putTier, valueColor: C.green }),
+                React.createElement(CmeRow, { icon: "🧱", label: "CALL WALL", hint: "ແນວຕ້ານ! ສະຖາບັນ hedge ຂາຍໄວ້ — ລາຄາຍາກຂຶ້ນຜ່ານ", value: callWallSpot ? `$${callWallSpot}` : "—", tier: callTier, valueColor: C.red })),
+
+            // === Zone 2: ໄລຍະ 1σ ===
+            React.createElement("div", { style: { fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", color: "#FFB800", opacity: .7, marginTop: 4 } }, "📏 ໄລຍະ Expected Range"),
+            React.createElement("div", { style: { padding: "12px 14px", borderRadius: 12, background: C.bg2, border: `1px solid ${C.line}` } },
+                React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 } },
+                    React.createElement("div", null,
+                        React.createElement("div", { style: { fontSize: 10.5, color: C.mut, fontWeight: 700 } }, "1σ RANGE (Spot) · 68% probability"),
+                        React.createElement("div", { style: { fontSize: 15, fontWeight: 800, color: C.cyan, marginTop: 3, fontFamily: "'Sora',sans-serif" } }, range1s || txt.match(/\$([\d,]+)[^$]*[-–][^$]*\$([\d,]+)/)?.[0] || "ອ່ານຈາກ raw ຂ້າງລຸ່ມ")),
+                    dem && React.createElement("div", { style: { textAlign: "right" } },
+                        React.createElement("div", { style: { fontSize: 10.5, color: C.mut, fontWeight: 700 } }, "DAILY MOVE (±1σ)"),
+                        React.createElement("div", { style: { fontSize: 15, fontWeight: 800, color: C.amber, fontFamily: "'Sora',sans-serif" } }, `~$${dem}/ວັນ`)))),
+
+            // === Zone 3: Vol + Dealer ===
+            React.createElement("div", { style: { fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", color: "#FFB800", opacity: .7, marginTop: 4 } }, "📊 ຄວາມຜັນຜວນ & ແຮງກົດ"),
+            React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 } },
+                React.createElement("div", { style: { padding: "11px 14px", borderRadius: 12, background: C.bg2, border: `1px solid ${C.line}` } },
+                    React.createElement("div", { style: { fontSize: 10.5, color: C.mut, fontWeight: 700, marginBottom: 5 } }, "⚡ VOLATILITY REGIME"),
+                    React.createElement("div", { style: { fontSize: 12.5, fontWeight: 700, color: volColor } }, volLabel || "ອ່ານ raw"),
+                    volSkew && React.createElement("div", { style: { marginTop: 6, fontSize: 11, color: C.mut } },
+                        "Skew: ",
+                        React.createElement("b", { style: { color: volSkew.match(/put/i) ? C.red : volSkew.match(/call/i) ? C.green : C.amber } },
+                            volSkew.match(/put/i) ? "Put-skewed 🐻 ກ້ວຈາກຂາລົງ" :
+                            volSkew.match(/call/i) ? "Call-skewed 🐂 ກ້ວຈາກຂາຂຶ້ນ" : "Neutral ⚖️"))),
+                React.createElement("div", { style: { padding: "11px 14px", borderRadius: 12, background: C.bg2, border: `1px solid ${C.line}` } },
+                    React.createElement("div", { style: { fontSize: 10.5, color: C.mut, fontWeight: 700, marginBottom: 5 } }, "🏦 DEALER PRESSURE"),
+                    React.createElement("div", { style: { fontSize: 12.5, fontWeight: 700, color: dealerColor } }, dealerLabel || "ຕ້ອງ upload CME chart"))),
+
+            // === Zone 4: Trade Implication ===
+            tradeImpl && React.createElement(React.Fragment, null,
+                React.createElement("div", { style: { fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", color: "#FFB800", opacity: .7, marginTop: 4 } }, "💡 ຄຳແນະນຳການເທຣດ (AI)"),
+                React.createElement("div", { style: { padding: "12px 14px", borderRadius: 12, background: "rgba(255,180,0,.07)", border: "1px solid rgba(255,180,0,.25)", fontSize: 13, color: C.text, lineHeight: 1.7 } }, tradeImpl)),
+
+            // === Legend ===
+            React.createElement("div", { style: { marginTop: 4, padding: "10px 12px", borderRadius: 10, background: C.panel2, border: `1px solid ${C.line}` } },
+                React.createElement("div", { style: { fontSize: 10.5, fontWeight: 700, color: C.mut, marginBottom: 6 } }, "📖 ຄຳອະທິບາຍ (ສຳລັບມືໃໝ່)"),
+                React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 5 } },
+                    [
+                        ["🎯 Max Pain", "ລາຄາທີ່ options ໝົດອາຍຸແລ້ວ ສ່ວນຫຼາຍຈະ expire ໄຮ້ຄ່າ — ສະຖາບັນ 'ດຶງ' ລາຄາໄປໃກ້ຈຸດນີ້"],
+                        ["🛡️ Put Wall", "ຈຸດທີ່ສະຖາບັນ ຊື້ Put options ໄວ້ຫຼາຍ = ແນວຮັບ ເພາະ dealer ຕ້ອງ hedge ໂດຍ ຊື້ futures"],
+                        ["🧱 Call Wall", "ຈຸດທີ່ສະຖາບັນ ຊື້ Call options ໄວ້ຫຼາຍ = ແນວຕ້ານ ເພາະ dealer ຕ້ອງ hedge ໂດຍ ຂາຍ futures"],
+                        ["🔴 Tier 1 (ends-00)", "ລາຄາລົງທ້າຍ 00 ເຊັ່ນ $3300 — ສຳຄັນຫຼາຍ ຕ້ານ/ຮັບແຮງທີ່ສຸດ"],
+                        ["🟡 Tier 2 (ends-50)", "ລາຄາລົງທ້າຍ 50 ເຊັ່ນ $3350 — ສຳຄັນຮອງ TP ດີ"],
+                        ["⚡ HIGH_VOL", "ຜັນຜວນສູງ = ຍ່າງ SL ໃຫ້ກວ້າງຂຶ້ນ 10-20% ປ້ອງກັນຖືກ stop"],
+                        ["🔕 COMPRESSING", "IV ກຳລັງແຄບ = Breakout ກຳລັງຈະມາ ລໍຖ້າທິດ"],
+                    ].map(([k, v], i) => React.createElement("div", { key: i, style: { display: "flex", gap: 7, fontSize: 11, lineHeight: 1.5 } },
+                        React.createElement("span", { style: { flexShrink: 0, fontWeight: 700, color: C.blueLt, minWidth: 130 } }, k),
+                        React.createElement("span", { style: { color: C.mut } }, v)))))));
 }
 // ── small components ──────────────────────────────────────
 function Dropzone({ onDrop, onClick, t }) {
