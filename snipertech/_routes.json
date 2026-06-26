@@ -1,5 +1,0 @@
-{
-  "version": 1,
-  "include": ["/api/*"],
-  "exclude": ["/icon-*", "/manifest.json", "/version.txt", "/clear-cache.html"]
-}
