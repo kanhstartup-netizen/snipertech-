@@ -3645,20 +3645,35 @@ function LiveChartPanel({ t, lang }) {
         tickerRef.current.appendChild(s);
     }, []);
 
-    // Inject TradingView chart via iframe (most reliable on Android/iOS)
+    // Inject TradingView chart via iframe
     useEffect(() => {
         if (!chartRef.current) return;
         chartRef.current.innerHTML = "";
         const tvSymbol = symbol === "XAUUSD" ? "OANDA:XAUUSD" : symbol === "USINDEX" ? "TVC:DXY" : "TVC:USOIL";
-        const src = `https://www.tradingview.com/widgetbar-chart/?symbol=${tvSymbol}&interval=${interval}&theme=dark&style=1&timezone=Asia%2FBangkok&locale=en&backgroundColor=%230F1422&gridColor=rgba(38,130,255,0.06)&hide_top_toolbar=0&hide_legend=0&save_image=0&studies=STD%3ABollinger_Bands%1FSTD%3ARSI%1FSTD%3AMACD`;
+        const params = new URLSearchParams({
+            symbol: tvSymbol,
+            interval: interval,
+            theme: "dark",
+            style: "1",
+            timezone: "Asia/Bangkok",
+            locale: "en",
+            backgroundColor: "rgba(15,20,34,1)",
+            hide_top_toolbar: "false",
+            hide_legend: "false",
+            allow_symbol_change: "true",
+            save_image: "false",
+            studies: JSON.stringify(["STD;Bollinger_Bands","STD;RSI","STD;MACD"]),
+        });
         const iframe = document.createElement("iframe");
-        iframe.src = src;
-        iframe.style.width = "100%";
-        iframe.style.height = "100%";
-        iframe.style.border = "none";
-        iframe.style.display = "block";
+        iframe.src = `https://www.tradingview.com/widgetbar-chart/?${params.toString()}`;
+        iframe.width = "100%";
+        iframe.height = "100%";
+        iframe.frameBorder = "0";
         iframe.allowFullscreen = true;
-        iframe.title = "TradingView Chart";
+        iframe.scrolling = "no";
+        iframe.title = "TradingView";
+        iframe.style.display = "block";
+        iframe.style.border = "none";
         chartRef.current.appendChild(iframe);
     }, [symbol, interval]);
 
