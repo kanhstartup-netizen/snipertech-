@@ -1997,7 +1997,14 @@ function SniperTechX() {
     const t = (k, vars) => tr(lang, k, vars);
     // ── Auth + membership (UI demo — connect to your backend for real verification) ──
     const [user, setUser] = useState(() => {
-        try { const s = localStorage.getItem("sniper_user"); return s ? JSON.parse(s) : null; } catch(e) { return null; }
+        try {
+            const s = localStorage.getItem("sniper_user");
+            if (!s) return null;
+            const u = JSON.parse(s);
+            // Restore avatar from sessionStorage if localStorage quota exceeded
+            if (!u.avatar) { try { const bak = sessionStorage.getItem("sniper_avatar_bak"); if (bak) u.avatar = bak; } catch(e) {} }
+            return u;
+        } catch(e) { return null; }
     }); // {name, email, plan, expiresAt}
     const [showPay, setShowPay] = useState(false);
     const [nav, setNav] = useState("home"); // home | tools | learn | news | profile
@@ -2072,144 +2079,22 @@ function SniperTechX() {
         // No web search — analyze instantly. The model uses its own knowledge to give a
         // GENERAL news/DXY caution (no live lookup), which keeps analysis fast.
         const searchBlock = `STEP 1 — Do NOT use any tool or web search. Work only from the uploaded chart(s) and your own general knowledge. For "news_alert", "dxy_signal" and "oil_signal": give a SHORT general caution from what you already know (e.g. "If near a Fed/FOMC, NFP, CPI or PCE window, expect volatility — confirm the calendar yourself", and the usual DXY↔gold inverse relationship). Do NOT claim live/current prices or today's exact DXY level — keep these as general guidance, and if you have no specific basis, keep them brief or note the trader should check the live calendar.`;
-        const scalpRules = "SCALPING — Strict rules: Use H1+M15+M5 only. Entry ONLY after liquidity sweep on M5/M15. M15 OB/FVG must be fresh. M5 must close body beyond OB/FVG + BOS/CHoCH confirmed. SL below OB max 20 pip. TP1 15-20 pip, TP2 30-40 pip, TP3 60 pip max. Skip if fewer than 4/5 conditions align. Confidence<60% = output wait. Flag false-signal risk (low/medium/high).";
-        const sys = `You are an elite XAU/USD (gold) ${isScalp ? "SCALPING" : "intraday"} analyst giving a SHORT, ready-to-use trade signal. Bias preference: ${biasEn}. Trading style: ${isScalp ? scalpRules : "SWING INTRADAY — standard SL 30-120 pip, standard TP levels"}. The user uploaded ${charts.length} chart screenshot(s) without timeframe labels.
+        const scalpRules = "SCALPING: H1+M15+M5 only. Entry ONLY after liquidity sweep. M15 OB/FVG must be fresh. M5 body close beyond OB/FVG + BOS/CHoCH. SL below OB max 20 pip. TP1 15-20p, TP2 30-40p, TP3 60p max. <4/5 conditions = wait. Confidence<60% = wait. Flag false-signal risk.";
+        const sys = `Elite XAU/USD ${isScalp?"SCALPING":"intraday"} analyst. Bias: ${biasEn}. Style: ${isScalp?scalpRules:"SWING INTRADAY SL 30-120pip"}. ${charts.length} chart(s) uploaded.
+RULES (apply all, be concise):
+0. Detect TF from chart labels/candles. Report in detected_timeframes.
+1. NO web search. Use chart + own knowledge. News/DXY = general caution only.
+2. DXY up=gold down, DXY down=gold up. Note in dxy_signal (1 line).
+3. Premium(above 50% fib)=sell zone, Discount(below 50%)=buy zone. State in premium_discount.
+4. Liquidity: find equal H/L, sweep/stop-hunt zones. Describe in liquidity.
+5. Order flow: displacement candles, BOS, CHoCH. Summarize in order_flow.
+6. OB/FVG: identify order blocks and fair value gaps. List in order_book.
+${isScalp?`7. SCALP STRICT: H1 bias + M15 OB/FVG + M5 sweep + M5 BOS + premium/discount. All 5 = A+. <4 = wait.`:`7. SWING: HTF bias + OB/FVG + session confluence.`}
+8. Advanced (only if clearly visible): Elliott Wave, Wyckoff, Harmonics, ICT killzone, Power of 3, Silver Bullet, OTE 0.62-0.79, Breaker, Inducement, Asia range.
+9. ICT: Power of 3 phase, Silver Bullet window, OTE hit, Unicorn Model, Daily Profile type.
+10. CME QuikStrike (if options chart uploaded): read Put/Call volume, OI, max pain, Vol Settle, delta markers, 1σ range. Convert GC futures strikes to Spot (subtract carry ~3-8$ by DTE). Psychological levels: ×00=strongest, ×50=2nd, ×25/×75=3rd. Flag Vol Settle vs current IV (expanding=big move, contracting=pin).
+OUTPUT: respond ONLY with valid JSON (no markdown, no extra text). Be concise — short values only.`;
 
-STEP 0 — DETECT each image's TIMEFRAME yourself from the chart's labels (e.g. "M5","15","1H","H4","D"), axis spacing and candle granularity. Report in "detected_timeframes" (in ${outLang}). Use higher TFs for trend/bias, lower TFs for entry.
-
-${searchBlock}
-
-INTERMARKET RULE (very important — USD drives gold inversely):
-- DXY UP → gold pressured DOWN; DXY DOWN → gold supported UP. Factor the DXY direction you found into your bias and state it in "dxy_signal".
-- Crude Oil can hint at inflation/risk sentiment; note any meaningful read in "oil_signal" (keep short, secondary).
-- If a high-impact news event is imminent, WARN in "news_alert" (one short line: what + when + caution). If nothing major, set "news_alert" to a short "no major news" note.
-
-STEP 2 — Read the chart like an institutional/Smart-Money analyst. Work top-down and require multiple of these to AGREE before trusting a setup:
-
-A) PREMIUM / DISCOUNT (very important for entry quality): Take the most relevant swing (recent impulse leg). Mark its 50% (equilibrium) using Fibonacci. Price BELOW 50% = DISCOUNT zone → favor BUYS there. Price ABOVE 50% = PREMIUM zone → favor SELLS there. State clearly which zone price is in now in "premium_discount". Premium/discount must MATCH the trade direction (don't buy in deep premium or sell in deep discount unless there is a strong reason).
-
-B) LIQUIDITY: Identify obvious liquidity pools — equal highs/lows, prior day/session high-low, trendline liquidity (where stops cluster). A LIQUIDITY SWEEP / GRAB = price spikes through that level then snaps back (stop hunt). A sweep that reverses INTO a discount/premium zone with displacement is a high-quality signal. Describe the key sweep in "liquidity".
-
-C) ORDER FLOW: Read momentum from candle behavior — displacement (strong impulsive candles = institutional intent), absorption (large opposing candles that fail to follow through), break of structure (BOS) confirming direction, change of character (CHoCH) warning of reversal. Summarize the current order-flow read in "order_flow" (which side has control right now).
-
-D) ORDER BLOCKS & FVG: Mark the last opposing candle before a displacement move (order block) and any Fair Value Gap / imbalance left behind. These are high-probability re-entry zones. Fold into the zones/setup.
-
-E) ORDER BOOK / DOM: Only comment on order book / depth-of-market IF the screenshot actually shows DOM, footprint, or a volume profile. If it does, read it. If it does NOT (a normal candlestick chart), say so honestly in "order_book" (e.g. note that DOM is not visible and you used volume/price action instead) — do NOT fabricate bid/ask depth you cannot see.
-
-Confluence target: the BEST setups stack several of the above (e.g. sweep of liquidity + into discount + order block + BOS + DXY agreeing). The more that align, the higher the grade.
-
-STEP 3 — ADVANCED CONFIRMATIONS (apply when the chart clearly shows them; do NOT force a pattern that isn't there — say "not clear" rather than inventing one):
-- ELLIOTT WAVE: if a clean impulse/correction is visible, state the likely wave count (e.g. "in wave 3 of 5" or "ABC correction") and what it implies next. Keep it simple.
-- WYCKOFF: identify accumulation/distribution schematics if present — spring, upthrust (UTAD), sign of strength/weakness, the phase (A-E). Note which phase price seems to be in.
-- HARMONIC PATTERNS: spot Gartley, Bat, Butterfly, Crab, or Shark if the swing ratios fit; give the potential reversal zone (PRZ). Only if ratios actually align.
-- ICT KILLZONES (timing): note which session/killzone is active or upcoming (Asian range, London Open 07:00-10:00 UK, New York Open / AM session 08:00-11:00 ET, London close). Gold often runs liquidity during London & NY opens — factor timing into the entry.
-- EXPECTED RANGE / IMPLIED VOLATILITY (CME QuikStrike Vol2Vol): if the uploaded image is a CME QuikStrike Vol2Vol Expected Range chart (OG|GC options), read it as follows:
-  • RANGES BAR (top of chart): the colored range boxes show 1σ/2σ/3σ standard-deviation expected move from current futures price. The tightest center boxes = highest-probability range for the expiration. Read the dollar values and use them as TP/SL outer limits.
-  • INTRADAY VOLUME chart: orange bars = PUT volume by strike, blue bars = CALL volume by strike. Heavy PUT volume at a strike = strong SUPPORT / institutional hedge floor. Heavy CALL volume at a strike = strong RESISTANCE / distribution ceiling. A strike where BOTH put and call volume spike = max pain / pin risk zone — price gravitates there at expiration.
-  • OPEN INTEREST (OI) chart: same color coding but shows CUMULATIVE open contracts, not just today's volume. High PUT OI strike = dealers are long gamma / short delta there = acts as magnetic support. High CALL OI strike = dealers are short gamma / long delta = acts as magnetic resistance. The strike with the LARGEST total OI (put+call) = MAX PAIN price — institutions often pin price near max pain into expiration.
-  • VOLATILITY SMILE (red dashed line): the U-shaped volatility curve. Where the smile is LOWEST = ATM implied volatility. Where it rises steeply on put side = fear premium. A skewed smile (puts much higher vol than calls) = market fears downside; flat or call-skewed smile = bullish flow. Read the ATM vol level and note direction of skew.
-  • VOL CHG field: if shown (e.g. "Vol Chg: -5.68"), negative = IV dropping = market calming / directional move expected soon; positive = IV rising = uncertainty / big move coming.
-  • DELTA MARKERS (dashed vertical lines labeled 5ΔP, 15ΔP, 25ΔP, 35ΔP, 45ΔP, 45ΔC, 35ΔC, 25ΔC, 15ΔC, 5ΔC): these show where options with those delta values are struck. The 25ΔP and 25ΔC lines bracket the "expected 1σ move" range. Any price action OUTSIDE the 25Δ lines is statistically in the tail (< 25% probability).
-  • DTE (Days To Expiration): shown in title (e.g. "0.89 DTE"). < 1 DTE = same-day or next-day expiry = gamma extremely high = price moves are violent and pinned near max pain or major OI strikes.
-  • FUTURE CHG: current futures price change vs prior settle. Combine with where price sits relative to max pain strike — if price is below max pain, dealers are buying futures to hedge (upward pressure); if above max pain, dealers are selling (downward pressure).
-  HOW TO TRADE FROM THIS:
-  1. Find the MAX PAIN strike (largest total OI) → this is the gravitational center for intraday price.
-  2. Find the highest PUT OI strike BELOW current price → this is the floor / strong support.
-  3. Find the highest CALL OI strike ABOVE current price → this is the ceiling / strong resistance.
-  4. Combine with 25ΔP/25ΔC range → entries inside this range are in the "expected move" zone; entries near the edges are mean-reversion trades.
-  5. If Vol Chg is sharply negative AND DTE < 1 → expect a pinning move toward max pain → fade breakouts, trade range.
-  6. If Vol Chg is rising AND large directional volume (one side dominant) → expect a breakout toward that side.
-  Report findings in "options_flow" field with: max_pain_strike, put_wall, call_wall, expected_range_1sigma, iv_atm, vol_skew_direction, trade_implication (1-2 lines).
-- ICT POWER OF 3 (AMD): look for Accumulation (range/consolidation), Manipulation (fake breakout / liquidity grab), then Distribution (real move begins). Identify which phase is active and whether the manipulation candle (stop hunt) has already completed.
-- ICT SILVER BULLET: identify if price is in a Silver Bullet window (10:00-11:00 ET or 14:00-15:00 ET New York time). A FVG formed during these windows inside a killzone = premium entry. Flag if visible.
-- ICT OPTIMAL TRADE ENTRY (OTE): the highest-probability entry sits in the 0.618-0.786 Fibonacci retracement of the last confirmed swing (AFTER a BOS/CHoCH). If price has retraced into the 62-79% zone overlapping an OB or FVG, flag as OTE = true.
-- BREAKER BLOCKS: a prior OB that price broke through decisively becomes a Breaker — it flips polarity (old support → resistance, old resistance → support). Identify any visible Breaker on the chart.
-- MITIGATION BLOCKS: if price returned to partially fill an OB (50-100% fill) before moving, that OB may be "mitigated" and weaker. Mark only fresh/untested OBs as high-quality.
-- PROPULSION BLOCKS: the last candle BEFORE a strong displacement move (often a small doji/inside bar right before the explosive candle). This is the sharpest entry inside the OB.
-- ICT CONSEQUENT ENCROACHMENT (CE): midpoint of a FVG — price often reacts exactly at the 50% of a FVG before continuing. Use as fine-entry inside a FVG.
-- TURTLE SOUP / STOP HUNT REVERSAL: equal highs/lows being swept = retail stop hunt by institutions. After sweep + displacement candle reversing = sniper entry. Check for this pattern.
-- JUDAS SWING: early-session fake move opposite to the real direction (common London open 08:00-09:00 UK). If price spikes one way then violently reverses during killzone — that reversal is the real move.
-- MARKET MAKER MODEL: institutions accumulate → mark up → distribute → mark down. Identify which phase the current structure suggests and trade WITH the market maker, not against.
-- SMC MONTHLY/WEEKLY/DAILY BIAS: always frame the D1/W1 bias first. Daily candles closing as displacement = bias confirmed. HTF bias overrules LTF setups — never trade a LTF Buy into a D1/W1 premium resistance.
-- VOLUME IMBALANCE / SINGLE PRINT: thin areas on volume profile (single prints) act like FVGs — price is magnetically drawn back to fill them. If visible on chart, mark as high-priority target.
-
-Summarize whatever of STEP 3 is genuinely present in "advanced_read" (one short line each that applies; omit what's not visible).
-
-PROFESSIONAL PLAYBOOK — apply this institutional + prop-firm-funded knowledge to raise accuracy (distilled from how funded/institutional gold traders actually operate):
-A) CORE SEQUENCE (the institutional gold routine): (1) mark untapped HTF levels (prior day/session high-low, HTF order block, FVG, equal highs/lows); (2) WAIT for price to reach the level — never predict; (3) wait for a liquidity SWEEP of that level (stop-hunt that traps retail); (4) confirm DISPLACEMENT / BOS / MSS on a lower timeframe (M5/M1) showing intent; (5) enter on the resulting FVG/OB refinement; (6) target the NEXT opposing liquidity pool. If any step is missing, grade lower or set status "wait".
-B) GOLD'S PERSONALITY: XAU/USD moves far faster than FX, hunts stops aggressively, and prints long misleading wicks. Demand a candle-BODY close beyond a level (not just a wick) to confirm BOS/CHoCH. Gold needs WIDER stops than FX but the ENTRY must be refined on a lower timeframe so the stop stays tight in dollar terms.
-C) PREMIUM/DISCOUNT IS NON-NEGOTIABLE: use the dealing-range 50% (equilibrium). Only SELL from premium (above EQ), only BUY from discount (below EQ). Best entries sit in the 0.62-0.79 OTE zone overlapping an OB/FVG.
-D) SESSIONS / KILLZONES: the cleanest institutional moves happen in the London open and New York open killzones. An Asian-range breakout is only trustworthy when confirmed by a killzone. Flag low-volume chop (late NY / Asian mid-range) as lower-confidence.
-E) TAKE-PROFIT METHOD (how funded desks bank gold): set TPs at the NEXT real liquidity pools / opposing OB / session high-low — NOT round guesses. Use TIERED partials: TP1 = nearest liquidity (bank ~⅓-½, then move SL to break-even), TP2 = mid pool, TP3 = far pool, and leave a small runner trailed behind structure (don't trail too tight — gold's noise will stop you out). Always ensure TP1 alone gives at least 1:2 R, with overall 1:3+ available. A funded trader needs only ~40% win rate at 1:3 to be profitable, so quality > frequency.
-F) PROP-FIRM RISK DISCIPLINE (bake this into the risk_reminder and confidence): risk only 0.5-1% per trade; never average down / martingale; one A+ confluence setup beats many mediocre ones; respect daily loss limits (stop after 2-3 losses); the stop must be a price the trader can accept BEFORE entry. "Not being wrong for long" matters more than being right.
-G) CONFLUENCE STACKING decides the grade: HTF bias + premium/discount alignment + liquidity sweep + OB/FVG + BOS/displacement + session timing + DXY agreeing. 5+ aligned = high grade; 2-3 = medium; <2 = wait. Never inflate.
-H) ICT SMART MONEY CONCEPTS — ELITE LAYER (from ICT Mentorship 2022-2024 & Inner Circle Trader public teachings):
-   • INDUCEMENT (IDM): before a real move, institutions deliberately create a fake level to lure retail entries and grab their stops. Look for a small swing high/low that forms inside consolidation pointing the WRONG direction — that is the inducement. After price sweeps IDM and reverses = sniper entry.
-   • DEALING RANGE REFINEMENT: the best ICT entries use a nested discount-within-discount (for buys) or premium-within-premium (for sells). When price is already in the daily discount, find the H1 sub-range and enter in the H1 discount too. Double-layered alignment = highest quality.
-   • UNICORN MODEL (ICT 2022): BOS on H1 → price drops into H1 FVG that overlaps with M15 OB → entry. This is one of ICT's cleanest published models. Flag if this structure is visible.
-   • SILVER BULLET ENTRY DRILL: the 3-candle FVG during the 10:00 or 14:00 ET Silver Bullet window, aligned with the daily bias, is high probability. Enter on a retest of that FVG if price has not already left the window.
-   • DAILY PROFILES: ICT teaches 4 daily price delivery models — Classic Bullish (HTF buy day: manipulate down AM, distribute up PM), Classic Bearish (HTF sell day: pump AM, dump PM), Consolidation, and Trending. Identify which profile best fits the current daily candle action.
-   • TIME & PRICE THEORY: institutional algorithms target SPECIFIC price levels at SPECIFIC times (e.g. prior day high at London open, prior week high at NY open). Combine price levels with killzone timing for highest precision.
-   • ASIA RANGE BOX: mark the Asian session high/low (22:00-07:00 UK). London often breaks one side (fake) then reverses to take the other. NY then continues the true direction. Note if Asian range is defined and which side was breached.
-   • QUARTERLY SHIFTS (ICT): every quarter (Jan, Apr, Jul, Oct) institutions rebalance. The first 2 weeks of a new quarter often establish the quarterly bias (bullish or bearish). If near a quarterly shift, note higher institutional activity.
-I) GLOBAL SNIPER TECHNIQUES (from elite SMC communities worldwide — Stacey Burke, The Trading Fraternity, Phantom Trading):
-   • STACEY BURKE — FIBONACCI FLOW: the 50% retracement of the LAST impulse leg (not just any swing) = the "Fibonacci Flow" level. Price consistently returns to this exact 50% before continuing. If price is AT the 50% of the last impulse = ultra-high confluence entry zone.
-   • MOMENTUM SHIFT ENTRY: after a BOS, wait for price to retrace to the 50-61.8% of the breaking candle itself (not the whole swing) — this micro-entry keeps stops tiny and maximizes RR.
-   • PHANTOM TRADING — KILL CANDLE: the first strong displacement candle of the session (the one that breaks a key level with a full-bodied close). The open of that candle + the FVG it creates = the re-entry zone. Never miss a kill candle retest.
-   • LIQUIDITY VOID FILL: after a fast displacement (gap-like move with no retracement), price MUST return to fill at least 50% of the void before reaching TP. Account for this retrace in the trade plan — it is not a reversal, it is filling before continuation.
-   • MULTI-TIMEFRAME FRACTAL ALIGNMENT: the same OB/FVG structure repeating on D1, H4, H1, and M15 simultaneously = fractal alignment. When 3+ timeframes show the same zone, grade it A+++ regardless of other confluence.
-   • SNIPER ENTRY DRILL (prop-firm standard): after all confluences align, zoom to M1-M5 and wait for a micro-CHoCH (1 swing high/low taken out on M1) pointing in trade direction inside the entry zone. This micro-confirmation reduces false entries by ~40% and tightens SL dramatically.
-
-ANALYZE ONLY what is visible. If an image is unclear or not a price chart, set "readable" false and explain briefly in "note".
-
-HARD RULES (protect the trader):
-- SNIPER PRECISION (critical): this is a SNIPER signal, not a wide swing zone. The "entry_zone" MUST be TIGHT — for gold (XAU/USD) keep it roughly 3-8 dollars wide (≈ 30-80 pip), and NEVER wider than 10 dollars (100 pip). A wide zone like 4200-4225 (25 dollars) is WRONG — narrow it to the single best refined zone (e.g. an M5/M15 order block or FVG inside the larger area), e.g. 4200-4206. Pick the most precise entry, not the whole range.
-- STOP LOSS at a structurally valid level just beyond the OB/swing that invalidates the idea — but keep it REALISTIC and CONTROLLED: target about 30-120 pip (≈ 3-12 dollars) on gold. NEVER report an SL more than 150 pip (15 dollars) away — if structure seems to require more than that, the entry zone is wrong, so refine to a lower-timeframe entry closer to invalidation instead of widening the stop. Report distance in "sl_pips". Also avoid tiny forced stops (an 8-pip stop on gold gets hunted) — the sweet spot is a tight but breathable 30-120 pip.
-- The distance from entry to the FINAL target (TP3) should be reasonable for an intraday move — do NOT stretch the whole entry→SL→TP span across hundreds of dollars. If your levels imply a ~2500-pip span, they are far too wide: tighten them.
-- TP1/TP2/TP3 at real targets; report honest "rr". Don't invent targets to fake 1:3.
-- "confidence" realistic: clean setups ≈60-75%, ordinary 45-65%. A textbook A+ setup (all confluences aligned) may reach up to 80%, but NEVER above 80%, and NEVER claim 90%+. Use a range like "70-78%".
-- Grade "ສູງ"/"ກາງ"/"ຕ່ຳ" by genuine confluence (more factors agree, NOT guaranteed win).
-- If price hasn't reached a quality zone, set status "ລໍຖ້າ".
-- Use "Buy" / "Sell" for direction (NEVER "Long"/"Short").
-- For Elliott/Wyckoff/Harmonic: be honest — only name a pattern if the structure truly fits. "not clear" is a valid, respected answer (in the output language).
-
-KEEP IT TIGHT — each text field 1 short sentence (the SMC reads above are 1 line each). Max 2 zones, 1 primary setup + at most 1 alternative, up to 5 confluence factors. Output ONLY the JSON.
-
-Write ALL text values in ${outLang} (keep "status"/"grade" keys in Lao as shown). Numbers, prices, TFs, pips, ratios, % stay as digits.
-
-Respond with ONLY a valid JSON object — no markdown, no backticks. Write every text value in ${outLang} (but keep the "status" and "grade" keys in Lao exactly as shown):
-{
-  "readable": true,
-  "note": "in ${outLang}, only if needed",
-  "detected_timeframes": "in ${outLang} — e.g. 1 = H4, 2 = M15",
-  "news_alert": "in ${outLang} — high-impact news happening now/soon + caution, or a short 'no major news' note",
-  "dxy_signal": "in ${outLang} — DXY direction today + what it means for gold (1 line)",
-  "oil_signal": "in ${outLang} — crude oil direction + brief note (1 line, secondary)",
-  "instrument_guess": "e.g. XAU/USD",
-  "trend": "in ${outLang} — main trend + bias (1 short line)",
-  "timeframe_breakdown": [{"tf":"H4|H1|M15|M5","read":"in ${outLang} — ONE very short phrase, e.g. 'Sideway on supply', 'Sweep high then stall'"}],
-  "bias": "Buy|Sell|Wait — single word direction bias from the multi-TF read",
-  "structure": "in ${outLang}, 1-2 short sentences max",
-  "premium_discount": "in ${outLang} — is price in DISCOUNT (below 50%, favor Buy) or PREMIUM (above 50%, favor Sell) now? 1 line",
-  "liquidity": "in ${outLang} — key liquidity pool + any sweep/grab seen (1 line)",
-  "order_flow": "in ${outLang} — who has control now (displacement/absorption/BOS/CHoCH), 1 line",
-  "order_book": "in ${outLang} — only if DOM/volume profile is visible; otherwise note it isn't shown and you used price/volume (1 line)",
-  "advanced_read": "in ${outLang} — short notes on Elliott Wave / Wyckoff / Harmonic / ICT killzone / expected-range IF clearly present; omit what's not visible. Keep to 1-3 short lines total.",
-  "ict_read": "in ${outLang} — ICT-specific observations IF visible: Power of 3 phase (A/M/D), Silver Bullet window active, OTE zone hit, Breaker block, Inducement level, Daily Profile type, Asia range status, Unicorn Model. 1-2 lines max, omit what isn't clearly present.",
-  "options_flow": "in ${outLang} — ONLY if a CME QuikStrike Vol2Vol / OI / Intraday Volume chart is uploaded. Include: max_pain_strike, put_wall (highest put OI strike), call_wall (highest call OI strike), expected_1sigma_range, iv_atm_level, vol_skew (put-skewed/call-skewed/neutral), vol_chg_signal, dte_note, trade_implication. If no options chart uploaded, set to 'ບໍ່ມີ options chart'.",
-  "sniper_grade": "A+++ | A+ | A | B | C | WAIT — overall ICT/SMC grade: A+++ = fractal alignment 3+ TFs + all confluences; A+ = 5+ confluences; A = 3-4; B = 2-3 partial; C = weak; WAIT = <2 or no sweep yet",
-  "zones": [{"type":"resistance|support","label":"in ${outLang}","range":"TIGHT range, e.g. 2348-2352 (max ~10 dollars wide)","why":"in ${outLang}, short — mention OB/FVG/sweep if relevant"}],
-  "setups": [{
-    "direction":"Buy|Sell","status":"ພ້ອມເຂົ້າ|ລໍຖ້າ","grade":"ສູງ|ກາງ|ຕ່ຳ",
-    "confluence_factors":["in ${outLang}, short — e.g. liquidity sweep, discount zone, order block, BOS, DXY agrees"],
-    "entry_zone":"TIGHT price range — 3-8 dollars wide, NEVER >10 (e.g. 4200-4206, not 4200-4225)","stop":"price","sl_pips":"30-120 pip typical, NEVER >150 pip",
-    "targets":["TP1 price","TP2 price","TP3 price"],"rr":"e.g. 1:3","confidence":"e.g. 60-65%",
-    "rationale":"in ${outLang}, 1 short line","invalidation":"in ${outLang}, short"
-  }],
-  "next_move": "in ${outLang} — ONE short backup line: what to do if price goes the other way / breaks the level (e.g. 'If breaks 4800: wait BOS up + retest 4785 then Buy')",
-  "quick_map":"in ${outLang} — ONE-LINE plan",
-  "risk_reminder":"in ${outLang}, short"
-}`;
         const content = [];
         charts.forEach((c, i) => {
             content.push({ type: "text", text: `Chart ${i + 1} (timeframe not labelled — detect it):` });
@@ -2219,19 +2104,16 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
         // One attempt. Returns parsed result, or throws an Error with a Lao-friendly .reason
         const attempt = async (withNews) => {
             var _a;
-            // Give the model enough room to finish the JSON. More charts → more to describe.
-            // Base 3200 + 600 per chart, capped at 5200. (Advanced SMC fields add length.)
-            const maxTok = Math.min(3200 + charts.length * 600, 5200);
+            // ⚡ Speed optimization: cap tokens tighter — AI answers shorter = faster
+            const maxTok = Math.min(2000 + charts.length * 400, 3200);
             const reqBody = {
                 model: "claude-sonnet-4-6",
                 temperature: 0,
                 max_tokens: maxTok,
                 messages: [{ role: "user", content }],
-                // No tools — analysis runs from the chart + model knowledge only (fast, no web lookup).
             };
-            // 55s timeout guard (no web search now, so analysis is faster)
             const ctrl = new AbortController();
-            const timer = setTimeout(() => ctrl.abort(), 90000);
+            const timer = setTimeout(() => ctrl.abort(), 60000); // 60s max (was 90s)
             let response;
             try {
                 response = await callWithFallback(reqBody, ctrl.signal);
@@ -2308,33 +2190,42 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
                     throw firstErr;
                 }
             }
-            // ── Multi-AI Consensus ──────────────────────────────────
+            // ── ⚡ PARALLEL Multi-AI: run all engines at same time ──────
             const activeEngines = Object.keys(aiEngines).filter(k => aiEngines[k]);
             if (activeEngines.length <= 1) {
                 setResult({ ...parsed, consensus: null });
+                setLoading(false); // ✅ ປົດ overlay ທັນທີ
+                setStage("");
             } else {
-                setStage("🤝 ກຳລັງລວມມັດຕິຈາກ AI ທຸກຕົວ...");
+                // Show Claude result + remove overlay IMMEDIATELY
+                setResult({ ...parsed, consensus: { votes: [{ engine: "claude", bias: parsed.bias, direction: parsed.setups?.[0]?.direction }], agree: null, majority: parsed.setups?.[0]?.direction, summary: "⏳ ກຳລັງລວບລວມ GPT + Gemini..." } });
+                setLoading(false); // ✅ ປົດ overlay ທັນທີ ບໍ່ລໍ GPT/Gemini
+                setStage("");
+                // Run GPT + Gemini in BACKGROUND (not blocking)
                 const otherEngines = activeEngines.filter(e => e !== "claude");
-                const maxTok2 = Math.min(3200 + charts.length * 600, 5200);
-                const otherResults = await Promise.allSettled(otherEngines.map(async (engine) => {
+                const maxTok2 = 1200;
+                Promise.allSettled(otherEngines.map(async (engine) => {
                     try {
                         const ctrl2 = new AbortController();
-                        setTimeout(() => ctrl2.abort(), 90000);
-                        const rb = { model: engine === "gpt" ? "gpt-4o" : "gemini-1.5-flash", temperature: 0, max_tokens: maxTok2, messages: [{ role: "user", content }] };
+                        setTimeout(() => ctrl2.abort(), 45000);
+                        const rb = engine === "gpt"
+                            ? { model: "gpt-4o", temperature: 0, max_tokens: maxTok2, messages: [{ role: "system", content: sys }, { role: "user", content }] }
+                            : { model: "gemini-1.5-flash", temperature: 0, max_tokens: maxTok2, system: sys, messages: [{ role: "user", content }] };
                         const r2 = await callAI(engine, rb, ctrl2.signal);
                         if (!r2.ok) return { engine, result: null };
                         const d2 = await r2.json();
                         const txt2 = (d2.content || []).map(i => i.type === "text" ? i.text : "").join("").trim();
                         return { engine, result: extractJson(txt2) };
                     } catch(e2) { return { engine, result: null }; }
-                }));
-                const votes = [{ engine: "claude", bias: parsed.bias, direction: parsed.setups?.[0]?.direction, confidence: parsed.setups?.[0]?.confidence }];
-                otherResults.forEach(r => { if (r.status === "fulfilled" && r.value?.result) { const res = r.value.result; votes.push({ engine: r.value.engine, bias: res.bias, direction: res.setups?.[0]?.direction, confidence: res.setups?.[0]?.confidence }); } });
-                const validVotes = votes.filter(v => v.direction);
-                const agree = validVotes.length > 1 && validVotes.every(v => v.direction === validVotes[0].direction);
-                const majority = validVotes.length > 0 ? validVotes[0].direction : parsed.setups?.[0]?.direction;
-                const consensus = { votes, agree, majority, summary: agree ? "✅ AI ທັງໝົດເຫັນດີ — " + majority : validVotes.length < 2 ? "⚠️ AI ບາງຕົວຕອບບໍ່ສຳເລັດ" : "⚠️ AI ບໍ່ຕົກລົງ — ລໍຖ້າ signal" };
-                setResult({ ...parsed, consensus });
+                })).then(otherResults => {
+                    const votes = [{ engine: "claude", bias: parsed.bias, direction: parsed.setups?.[0]?.direction, confidence: parsed.setups?.[0]?.confidence }];
+                    otherResults.forEach(r => { if (r.status === "fulfilled" && r.value?.result) { const res = r.value.result; votes.push({ engine: r.value.engine, bias: res.bias, direction: res.setups?.[0]?.direction, confidence: res.setups?.[0]?.confidence }); } });
+                    const validVotes = votes.filter(v => v.direction);
+                    const agree = validVotes.length > 1 && validVotes.every(v => v.direction === validVotes[0].direction);
+                    const majority = validVotes.length > 0 ? validVotes[0].direction : parsed.setups?.[0]?.direction;
+                    const consensus = { votes, agree, majority, summary: agree ? "✅ AI ທັງໝົດເຫັນດີ — " + majority : validVotes.length < 2 ? "⚠️ AI ບາງຕົວຕອບບໍ່ສຳເລັດ" : "⚠️ AI ບໍ່ຕົກລົງ — ລໍຖ້າ signal" };
+                    setResult(prev => prev ? { ...prev, consensus } : prev);
+                });
             }
             try { localStorage.setItem("sniper_result", JSON.stringify(parsed)); } catch(e) {}
             // ── Phase 2: Save signal to Supabase ──────────────────
@@ -2363,8 +2254,6 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
         }
         catch (e) {
             setErr(e.reason || "ການວິເຄາະລົ້ມເຫຼວ. ລອງໃໝ່ອີກເທື່ອ.");
-        }
-        finally {
             setLoading(false);
             setStage("");
         }
@@ -2437,6 +2326,7 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
         @keyframes botWiggle{ 0%,88%,100%{ transform:rotate(0deg);} 90%{ transform:rotate(-10deg);} 94%{ transform:rotate(10deg);} 96%{ transform:rotate(-6deg);} 98%{ transform:rotate(6deg);} }
         @keyframes botDot{ 0%,100%{ transform:scale(1); opacity:1;} 50%{ transform:scale(1.35); opacity:.7;} }
         @keyframes popIn{ 0%{ opacity:0; transform:scale(.88) translateY(18px);} 60%{ transform:scale(1.03) translateY(-3px);} 100%{ opacity:1; transform:scale(1) translateY(0);} }
+        @keyframes spin{ 0%{ transform:rotate(0deg);} 100%{ transform:rotate(360deg);} }
         #root { transform: none !important; -webkit-transform: none !important; }
         #root > * { transform: none !important; -webkit-transform: none !important; }
         html, body { overscroll-behavior: none; }
@@ -2444,6 +2334,12 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
         React.createElement(ChartBackdrop, { tint: "#C9A24B" }),
         React.createElement(Watermark, null),
         React.createElement(TradingChatbot, { t: t, lang: lang, user: user }),
+        // Analysis loading overlay — root level so it never gets stuck
+        loading && React.createElement("div", { style: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 9800, background: "rgba(5,7,13,.94)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20 } },
+            React.createElement("div", { style: { width: 60, height: 60, borderRadius: "50%", border: `4px solid ${C.line}`, borderTopColor: C.blue, animation: "spin 1s linear infinite" } }),
+            React.createElement("div", { style: { fontFamily: "'LaoOverride','Sora','Noto Sans Lao',sans-serif", fontWeight: 700, fontSize: 16, color: C.text, textAlign: "center", padding: "0 24px" } }, stage || "ກຳລັງວິເຄາະ..."),
+            React.createElement("div", { style: { fontSize: 12, color: C.mut, textAlign: "center", lineHeight: 1.7, padding: "0 32px" } }, "Claude + GPT + Gemini ກຳລັງທຳງານ\nປົກກະຕິໃຊ້ເວລາ 20-45 ວິ")
+        ),
         React.createElement("div", { "aria-hidden": true, style: { position: "absolute", inset: 0, backgroundImage: `linear-gradient(${C.line} 1px, transparent 1px), linear-gradient(90deg, ${C.line} 1px, transparent 1px)`, backgroundSize: "48px 48px", opacity: 0.12, animation: "fxGrid 6s linear infinite", maskImage: "radial-gradient(120% 80% at 50% 0%, #000 35%, transparent 80%)", WebkitMaskImage: "radial-gradient(120% 80% at 50% 0%, #000 35%, transparent 80%)" } }),
         React.createElement("div", { "aria-hidden": true, style: { position: "absolute", top: -160, left: "50%", transform: "translateX(-50%)", width: 620, height: 360, background: `radial-gradient(closest-side, ${C.glow}, transparent)`, filter: "blur(20px)", animation: "fxGlowPulse 5s ease-in-out infinite", pointerEvents: "none" } }),
         React.createElement("div", { style: { maxWidth: 720, margin: "0 auto", padding: "14px 16px 96px", position: "relative", zIndex: 1 } },
@@ -2500,10 +2396,9 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
                         React.createElement("a", { className: "fx-link", href: b.url, target: "_blank", rel: "noopener noreferrer", style: { display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", background: `linear-gradient(95deg,${C.blue},${C.blueLt})`, color: "#04101F", fontWeight: 700, fontSize: 13.5, padding: "11px 16px", borderRadius: 11, whiteSpace: "nowrap" } },
                             b.cta, " \u2192"))))))),
             nav === "tools" && (React.createElement("div", { className: "fx-rise" },
-                React.createElement("div", { style: { display: "flex", gap: 6, background: C.bg2, border: `1px solid ${C.line}`, borderRadius: 14, padding: 5, maxWidth: 560, margin: "0 auto" } }, [["live", "📡 " + t("navLive") || "📡 Live"], ["chart", "📊 " + t("analyzeChart")], ["news", "📰 " + t("analyzeNews")]].map(([id, label]) => (React.createElement("button", { key: id, className: "fx-btn", onClick: () => setTab(id), style: { flex: 1, padding: "10px 8px", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600,
+                React.createElement("div", { style: { display: "flex", gap: 6, background: C.bg2, border: `1px solid ${C.line}`, borderRadius: 14, padding: 5, maxWidth: 420, margin: "0 auto" } }, [["chart", "📊 " + t("analyzeChart")], ["news", "📰 " + t("analyzeNews")]].map(([id, label]) => (React.createElement("button", { key: id, className: "fx-btn", onClick: () => setTab(id), style: { flex: 1, padding: "10px 12px", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13.5, fontWeight: 600,
                         background: tab === id ? `linear-gradient(95deg,${C.blue},${C.blueLt})` : "transparent",
                         color: tab === id ? "#04101F" : C.mut, transition: "all .15s" } }, label)))),
-                tab === "live" && React.createElement(LiveChartPanel, { t: t, lang: lang }),
                 tab === "chart" && (React.createElement(React.Fragment, null,
                     React.createElement(AIEnginePanel, { t: t, engines: aiEngines, setEngines: setAiEngines }),
                     React.createElement("section", { style: { marginTop: 14, background: C.panel, border: `1px solid ${C.line}`, borderRadius: 18, padding: "20px 18px", position: "relative", overflow: "hidden" } },
@@ -2540,10 +2435,9 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
                             charts.length < MAX_CHARTS && (React.createElement("button", { className: "fx-btn", onClick: () => { var _a; return (_a = fileRef.current) === null || _a === void 0 ? void 0 : _a.click(); }, style: { minHeight: 110, borderRadius: 12, border: `1.5px dashed ${C.line}`, background: "transparent", color: C.mut, cursor: "pointer", fontSize: 13, fontFamily: "inherit" } }, t("addImg"))))),
                         React.createElement("input", { ref: fileRef, type: "file", accept: "image/*", multiple: true, style: { display: "none" }, onChange: (e) => addFiles(e.target.files) }),
                         charts.length > 0 && (React.createElement("div", { style: { display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" } },
-                            React.createElement("button", { className: "fx-btn", onClick: analyze, disabled: loading, style: primaryBtn(loading) }, loading ? React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 8 } },
-                                React.createElement(Spinner, null),
-                                " ",
-                                stage || t("analyzing")) : t("makeSignal")),
+                            React.createElement("button", { className: "fx-btn", onClick: analyze, disabled: loading, style: primaryBtn(loading) }, loading
+                                ? React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 8 } }, React.createElement(Spinner, null), " ", stage || t("analyzing"))
+                                : t("makeSignal")),
                             React.createElement("button", { className: "fx-btn", onClick: reset, disabled: loading, style: ghostBtn }, t("clearAll")))),
                         err && React.createElement("div", { style: { marginTop: 16, padding: "12px 16px", borderRadius: 10, background: "rgba(255,107,107,.08)", border: `1px solid ${C.red}`, color: "#FFC4C4", fontSize: 14, lineHeight: 1.6 } }, err)),
                     result && React.createElement(Result, { data: result, t: t, engines: aiEngines, isAdmin: isAdmin }))),
@@ -3758,38 +3652,37 @@ function LiveChartPanel({ t, lang }) {
         tickerRef.current.appendChild(s);
     }, []);
 
-    // Inject TradingView advanced chart
+    // Chart — GitHub Pages blocks TradingView CSP, use deep-link instead
     useEffect(() => {
         if (!chartRef.current) return;
         chartRef.current.innerHTML = "";
-        const container = document.createElement("div");
-        container.className = "tradingview-widget-container__widget";
-        chartRef.current.appendChild(container);
-        const s = document.createElement("script");
-        s.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
-        s.async = true;
         const tvSymbol = symbol === "XAUUSD" ? "OANDA:XAUUSD" : symbol === "USINDEX" ? "TVC:DXY" : "TVC:USOIL";
-        s.innerHTML = JSON.stringify({
-            autosize: true, symbol: tvSymbol,
-            interval: interval, timezone: "Asia/Bangkok",
-            theme: "dark", style: "1",
-            locale: "en", backgroundColor: C.panel,
-            gridColor: "rgba(38,130,255,0.06)",
-            hide_top_toolbar: false, hide_legend: false,
-            allow_symbol_change: true, save_image: false,
-            calendar: false, hide_volume: false,
-            support_host: "https://www.tradingview.com",
-            studies: ["STD;Bollinger_Bands", "STD;RSI", "STD;MACD"],
-        });
-        chartRef.current.appendChild(s);
+        const tvUrl = `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(tvSymbol)}&interval=${interval}&theme=dark&style=1&timezone=Asia%2FBangkok`;
+        chartRef.current.innerHTML = `
+            <div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px;text-align:center;background:rgba(15,20,34,1);border-radius:12px;">
+                <div style="font-size:40px;">📊</div>
+                <div>
+                    <div style="font-size:16px;font-weight:700;color:#E0E6F0;margin-bottom:6px;">${symbol === "XAUUSD" ? "XAU/USD 🥇" : symbol === "USINDEX" ? "DXY 💵" : "Oil 🛢️"} · ${interval === "D" ? "Daily" : interval + "min"}</div>
+                    <div style="font-size:12px;color:#556;line-height:1.6;">GitHub Pages ບໍ່ support TradingView widget<br>ກົດປຸ່ມລຸ່ມ → chart ເປີດໃນ tab ໃໝ່</div>
+                </div>
+                <a href="${tvUrl}" target="_blank" rel="noopener"
+                   style="display:inline-flex;align-items:center;gap:10px;padding:13px 26px;border-radius:12px;background:linear-gradient(95deg,#2682FF,#68B2FF);color:#04101F;font-weight:700;font-size:15px;text-decoration:none;font-family:inherit;">
+                   🌐 ເປີດ TradingView
+                </a>
+                <div style="font-size:11px;color:#445;line-height:1.8;">
+                    1. ເປີດ chart ໃນ browser<br>
+                    2. Screenshot ໜ້າຈໍ<br>
+                    3. Upload ໃນ 📊 ວິເຄາະກຣາຟ → AI ວິເຄາະທັນທີ
+                </div>
+            </div>`;
     }, [symbol, interval]);
 
-    return React.createElement("div", { style: { marginTop: 14 } },
+    return React.createElement("div", { style: { marginTop: 14, display: "flex", flexDirection: "column", gap: 10 } },
         // Ticker tape
-        React.createElement("div", { ref: tickerRef, style: { borderRadius: 12, overflow: "hidden", marginBottom: 14, border: `1px solid ${C.line}` } }),
+        React.createElement("div", { ref: tickerRef, style: { borderRadius: 12, overflow: "hidden", border: `1px solid ${C.line}` } }),
 
         // Symbol + TF selector
-        React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12, alignItems: "center" } },
+        React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" } },
             React.createElement("div", { style: { display: "flex", gap: 6, background: C.bg2, borderRadius: 10, padding: 4, border: `1px solid ${C.line}` } },
                 SYMBOLS.map(sym => React.createElement("button", { key: sym.id, onClick: () => setSymbol(sym.id), className: "fx-btn", style: { padding: "6px 12px", borderRadius: 7, border: "none", fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, cursor: "pointer", background: symbol === sym.id ? `linear-gradient(95deg,${C.blue},${C.blueLt})` : "transparent", color: symbol === sym.id ? "#04101F" : C.mut } }, sym.label))
             ),
@@ -3798,13 +3691,31 @@ function LiveChartPanel({ t, lang }) {
             )
         ),
 
-        // Chart container
-        React.createElement("div", { style: { borderRadius: 16, overflow: "hidden", border: `1px solid ${C.line}`, background: C.panel } },
-            React.createElement("div", { ref: chartRef, className: "tradingview-widget-container", style: { height: 520, width: "100%" } })
+        // Chart — explicit height so TradingView widget fills correctly
+        React.createElement("div", {
+            style: {
+                borderRadius: 16,
+                overflow: "hidden",
+                border: `1px solid ${C.line}`,
+                background: "#0F1422",
+                width: "100%",
+                height: 460,
+                position: "relative",
+            }
+        },
+            React.createElement("div", {
+                ref: chartRef,
+                style: {
+                    position: "absolute",
+                    top: 0, left: 0,
+                    width: "100%",
+                    height: "100%",
+                }
+            })
         ),
 
         // Hint
-        React.createElement("div", { style: { marginTop: 10, padding: "10px 14px", borderRadius: 10, background: C.bg2, border: `1px solid ${C.line}`, fontSize: 11.5, color: C.mut, lineHeight: 1.6 } },
+        React.createElement("div", { style: { padding: "10px 14px", borderRadius: 10, background: C.bg2, border: `1px solid ${C.line}`, fontSize: 11.5, color: C.mut, lineHeight: 1.6 } },
             "💡 Screenshot chart ຈາກ Live Chart → ໄປ 📊 ວິເຄາະກຣາຟ → Upload → AI ວິເຄາະ SMC/ICT ໄດ້ທັນທີ"
         )
     );
@@ -4068,9 +3979,10 @@ function ProfilePage({ t, user, lang, setLang, daysLeft, notify, setNotify, onPa
     const saveProfile = () => {
         const updated = { ...user, name: editName.trim() || user.name, phone: editPhone.trim(), avatar: editAvatar };
         try { localStorage.setItem("sniper_user", JSON.stringify(updated)); } catch(e) {
-            // If quota exceeded (large avatar) — save without avatar, keep in memory only
             try { localStorage.setItem("sniper_user", JSON.stringify({ ...updated, avatar: null })); } catch(e2) {}
         }
+        // Backup avatar in sessionStorage (persists through reload)
+        try { if (editAvatar) sessionStorage.setItem("sniper_avatar_bak", editAvatar); } catch(e) {}
         if (onUpdateUser) onUpdateUser(updated);
         setPicker(null);
     };
