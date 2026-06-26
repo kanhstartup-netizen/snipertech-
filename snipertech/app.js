@@ -2812,13 +2812,6 @@ function Result({ data, t, engines, isAdmin }) {
                 React.createElement("span", { style: { flexShrink: 0, width: 16, height: 16, borderRadius: 4, border: `1.5px solid ${C.mut}`, display: "inline-block" } }),
                 React.createElement("span", { style: { color: C.text, fontSize: 13, lineHeight: 1.45 } }, c)))))),
         data.risk_reminder && React.createElement("div", { style: { padding: "11px 15px", borderRadius: 10, background: C.panel2, border: `1px solid ${C.line}`, color: C.mut, fontSize: 12.5, lineHeight: 1.6 } }, data.risk_reminder),
-        (data.dxy_signal || data.oil_signal) && (React.createElement("div", { style: { borderRadius: 14, border: `1px solid ${C.line}`, background: C.panel, overflow: "hidden" } },
-            React.createElement("div", { style: { padding: "11px 16px", background: C.panel2, borderBottom: `1px solid ${C.line}`, display: "flex", alignItems: "center", gap: 9 } },
-                React.createElement("span", { style: { fontSize: 15 } }, "\uD83C\uDF10"),
-                React.createElement("span", { style: { fontSize: 13.5, fontWeight: 700, color: C.text } }, t("rIntermarket"))),
-            React.createElement("div", { style: { padding: "6px 16px 12px", display: "flex", flexDirection: "column", gap: 10 } },
-                data.dxy_signal && React.createElement(SmcRow, { icon: "\uD83D\uDCB5", k: t("rDxy"), v: data.dxy_signal, color: C.blueLt }),
-                data.oil_signal && React.createElement(SmcRow, { icon: "\uD83D\uDEE2\uFE0F", k: t("rOil"), v: data.oil_signal, color: C.amber })))),
         isAdmin && (data.premium_discount || data.liquidity || data.order_flow || data.dxy_signal) && (React.createElement("details", { style: { borderRadius: 14, border: `1px solid ${C.line}`, background: C.panel, padding: "12px 16px" } },
             React.createElement("summary", { style: { cursor: "pointer", fontSize: 12, fontWeight: 700, color: C.mut } },
                 "\uD83D\uDD2C ",
@@ -2914,17 +2907,6 @@ function CmeCard({ raw }) {
                 React.createElement(CmeRow, { icon: "🛡️", label: "PUT WALL", hint: "ແນວຮັບ! ສະຖາບັນ hedge ຊື້ໄວ້ — ລາຄາຍາກລົງຜ່ານ", value: putWallSpot ? `$${putWallSpot}` : "—", tier: putTier, valueColor: C.green }),
                 React.createElement(CmeRow, { icon: "🧱", label: "CALL WALL", hint: "ແນວຕ້ານ! ສະຖາບັນ hedge ຂາຍໄວ້ — ລາຄາຍາກຂຶ້ນຜ່ານ", value: callWallSpot ? `$${callWallSpot}` : "—", tier: callTier, valueColor: C.red })),
 
-            // === Zone 2: ໄລຍະ 1σ ===
-            React.createElement("div", { style: { fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", color: "#FFB800", opacity: .7, marginTop: 4 } }, "📏 ໄລຍະ Expected Range"),
-            React.createElement("div", { style: { padding: "12px 14px", borderRadius: 12, background: C.bg2, border: `1px solid ${C.line}` } },
-                React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 } },
-                    React.createElement("div", null,
-                        React.createElement("div", { style: { fontSize: 10.5, color: C.mut, fontWeight: 700 } }, "1σ RANGE (Spot) · 68% probability"),
-                        React.createElement("div", { style: { fontSize: 15, fontWeight: 800, color: C.cyan, marginTop: 3, fontFamily: "'Sora',sans-serif" } }, range1s || txt.match(/\$([\d,]+)[^$]*[-–][^$]*\$([\d,]+)/)?.[0] || "ອ່ານຈາກ raw ຂ້າງລຸ່ມ")),
-                    dem && React.createElement("div", { style: { textAlign: "right" } },
-                        React.createElement("div", { style: { fontSize: 10.5, color: C.mut, fontWeight: 700 } }, "DAILY MOVE (±1σ)"),
-                        React.createElement("div", { style: { fontSize: 15, fontWeight: 800, color: C.amber, fontFamily: "'Sora',sans-serif" } }, `~$${dem}/ວັນ`)))),
-
             // === Zone 3: Vol + Dealer ===
             React.createElement("div", { style: { fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", color: "#FFB800", opacity: .7, marginTop: 4 } }, "📊 ຄວາມຜັນຜວນ & ແຮງກົດ"),
             React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 } },
@@ -2945,21 +2927,8 @@ function CmeCard({ raw }) {
                 React.createElement("div", { style: { fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", color: "#FFB800", opacity: .7, marginTop: 4 } }, "💡 ຄຳແນະນຳການເທຣດ (AI)"),
                 React.createElement("div", { style: { padding: "12px 14px", borderRadius: 12, background: "rgba(255,180,0,.07)", border: "1px solid rgba(255,180,0,.25)", fontSize: 13, color: C.text, lineHeight: 1.7 } }, tradeImpl)),
 
-            // === Legend ===
-            React.createElement("div", { style: { marginTop: 4, padding: "10px 12px", borderRadius: 10, background: C.panel2, border: `1px solid ${C.line}` } },
-                React.createElement("div", { style: { fontSize: 10.5, fontWeight: 700, color: C.mut, marginBottom: 6 } }, "📖 ຄຳອະທິບາຍ (ສຳລັບມືໃໝ່)"),
-                React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 5 } },
-                    [
-                        ["🎯 Max Pain", "ລາຄາທີ່ options ໝົດອາຍຸແລ້ວ ສ່ວນຫຼາຍຈະ expire ໄຮ້ຄ່າ — ສະຖາບັນ 'ດຶງ' ລາຄາໄປໃກ້ຈຸດນີ້"],
-                        ["🛡️ Put Wall", "ຈຸດທີ່ສະຖາບັນ ຊື້ Put options ໄວ້ຫຼາຍ = ແນວຮັບ ເພາະ dealer ຕ້ອງ hedge ໂດຍ ຊື້ futures"],
-                        ["🧱 Call Wall", "ຈຸດທີ່ສະຖາບັນ ຊື້ Call options ໄວ້ຫຼາຍ = ແນວຕ້ານ ເພາະ dealer ຕ້ອງ hedge ໂດຍ ຂາຍ futures"],
-                        ["🔴 Tier 1 (ends-00)", "ລາຄາລົງທ້າຍ 00 ເຊັ່ນ $3300 — ສຳຄັນຫຼາຍ ຕ້ານ/ຮັບແຮງທີ່ສຸດ"],
-                        ["🟡 Tier 2 (ends-50)", "ລາຄາລົງທ້າຍ 50 ເຊັ່ນ $3350 — ສຳຄັນຮອງ TP ດີ"],
-                        ["⚡ HIGH_VOL", "ຜັນຜວນສູງ = ຍ່າງ SL ໃຫ້ກວ້າງຂຶ້ນ 10-20% ປ້ອງກັນຖືກ stop"],
-                        ["🔕 COMPRESSING", "IV ກຳລັງແຄບ = Breakout ກຳລັງຈະມາ ລໍຖ້າທິດ"],
-                    ].map(([k, v], i) => React.createElement("div", { key: i, style: { display: "flex", gap: 7, fontSize: 11, lineHeight: 1.5 } },
-                        React.createElement("span", { style: { flexShrink: 0, fontWeight: 700, color: C.blueLt, minWidth: 130 } }, k),
-                        React.createElement("span", { style: { color: C.mut } }, v)))))));
+        )
+    );
 }
 // ── small components ──────────────────────────────────────
 function Dropzone({ onDrop, onClick, t }) {
