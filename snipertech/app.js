@@ -1997,7 +1997,14 @@ function SniperTechX() {
     const t = (k, vars) => tr(lang, k, vars);
     // ── Auth + membership (UI demo — connect to your backend for real verification) ──
     const [user, setUser] = useState(() => {
-        try { const s = localStorage.getItem("sniper_user"); return s ? JSON.parse(s) : null; } catch(e) { return null; }
+        try {
+            const s = localStorage.getItem("sniper_user");
+            if (!s) return null;
+            const u = JSON.parse(s);
+            // Restore avatar from sessionStorage if localStorage quota exceeded
+            if (!u.avatar) { try { const bak = sessionStorage.getItem("sniper_avatar_bak"); if (bak) u.avatar = bak; } catch(e) {} }
+            return u;
+        } catch(e) { return null; }
     }); // {name, email, plan, expiresAt}
     const [showPay, setShowPay] = useState(false);
     const [nav, setNav] = useState("home"); // home | tools | learn | news | profile
@@ -2196,7 +2203,7 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
   "order_book": "in ${outLang} — only if DOM/volume profile is visible; otherwise note it isn't shown and you used price/volume (1 line)",
   "advanced_read": "in ${outLang} — short notes on Elliott Wave / Wyckoff / Harmonic / ICT killzone / expected-range IF clearly present; omit what's not visible. Keep to 1-3 short lines total.",
   "ict_read": "in ${outLang} — ICT-specific observations IF visible: Power of 3 phase (A/M/D), Silver Bullet window active, OTE zone hit, Breaker block, Inducement level, Daily Profile type, Asia range status, Unicorn Model. 1-2 lines max, omit what isn't clearly present.",
-  "options_flow": "in ${outLang} — ONLY if a CME QuikStrike Vol2Vol / OI / Intraday Volume chart is uploaded. Include: max_pain_strike, put_wall (highest put OI strike), call_wall (highest call OI strike), expected_1sigma_range, iv_atm_level, vol_skew (put-skewed/call-skewed/neutral), vol_chg_signal, dte_note, trade_implication. If no options chart uploaded, set to 'ບໍ່ມີ options chart'.",
+  "options_flow": "in ${outLang} — ONLY if a CME QuikStrike Vol2Vol / OI / Intraday Volume chart is uploaded. Include: max_pain_strike, put_wall (highest put OI strike), call_wall (highest call OI strike), expected_1sigma_range, iv_atm_level, vol_skew (put-skewed/call-skewed/neutral), vol_chg_signal, dte_note, trade_implication.\n\nPSYCHOLOGICAL LEVELS (apply to EVERY options chart):\n• Strikes ending in 00 (e.g. 3900, 4000, 4100) = STRONGEST psychological support/resistance — these are the most defended levels by market makers. High OI here = very strong wall.\n• Strikes ending in 50 (e.g. 3950, 4050) = Second tier — important but less defended.\n• Strikes ending in 25 or 75 (e.g. 3925, 3975, 4025, 4075) = Third tier — minor S/R.\nAlways identify which round-number strikes have the HIGHEST OI concentration and flag them as key levels.\n\nVOL SETTLE LINE (red dashed curve) — CRITICAL reading:\n• The Vol Settle = the closing implied volatility for each strike from prior session.\n• If current market IV is ABOVE Vol Settle → IV expanding → market expects bigger move → widen expected range.\n• If current market IV is BELOW Vol Settle → IV contracting → market calming → price likely pinned near max pain.\n• Shape of the smile vs Vol Settle: if smile flattened vs prior settle → institutions sold premium → directional move imminent.\n• Steepening on put side vs Vol Settle → increased fear / downside hedging added overnight.\n\nFUTURES TO GOLD SPOT CONVERSION:\n• CME Gold options (OG|GC) are priced in FUTURES price (GC). Gold Spot (XAU/USD) trades at a DISCOUNT to futures by approximately the carry cost.\n• Typical Futures-to-Spot spread: GC Futures price MINUS 3-8 dollars = approximate Spot price (varies by DTE and interest rates).\n• For DTE < 5: spread ≈ 1-3$. For DTE 20-40: spread ≈ 5-8$. For DTE > 60: spread ≈ 8-15$.\n• ALWAYS convert CME strikes to Spot equivalent before reporting support/resistance levels to traders.\n• Example: if max pain = 4050 GC Futures and DTE = 0.89 → Spot equivalent ≈ 4047-4049.\n• Report BOTH: futures_level and spot_equivalent for each key level.\n\nHIGHLIGHT FORMAT (use these in your options_flow output):\n🔴 STRONGEST WALL: [strike ending 00] → Spot: [converted]\n🟡 SECOND TIER: [strike ending 50] → Spot: [converted]\n⚪ THIRD TIER: [strikes ending 25/75] → Spot: [converted]\n📊 Vol Settle signal: [expanding/contracting/neutral]\n🎯 Max Pain: [GC strike] → Spot [converted]\n💡 Trade implication: [1-2 lines]\n\nIf no options chart uploaded: set to 'ບໍ່ມີ options chart'.",
   "sniper_grade": "A+++ | A+ | A | B | C | WAIT — overall ICT/SMC grade: A+++ = fractal alignment 3+ TFs + all confluences; A+ = 5+ confluences; A = 3-4; B = 2-3 partial; C = weak; WAIT = <2 or no sweep yet",
   "zones": [{"type":"resistance|support","label":"in ${outLang}","range":"TIGHT range, e.g. 2348-2352 (max ~10 dollars wide)","why":"in ${outLang}, short — mention OB/FVG/sweep if relevant"}],
   "setups": [{
@@ -2320,7 +2327,9 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
                     try {
                         const ctrl2 = new AbortController();
                         setTimeout(() => ctrl2.abort(), 90000);
-                        const rb = { model: engine === "gpt" ? "gpt-4o" : "gemini-1.5-flash", temperature: 0, max_tokens: maxTok2, messages: [{ role: "user", content }] };
+                        const rb = engine === "gpt"
+                            ? { model: "gpt-4o", temperature: 0, max_tokens: maxTok2, messages: [{ role: "system", content: sys }, { role: "user", content }] }
+                            : { model: "gemini-1.5-flash", temperature: 0, max_tokens: maxTok2, system: sys, messages: [{ role: "user", content }] };
                         const r2 = await callAI(engine, rb, ctrl2.signal);
                         if (!r2.ok) return { engine, result: null };
                         const d2 = await r2.json();
@@ -3799,8 +3808,8 @@ function LiveChartPanel({ t, lang }) {
         ),
 
         // Chart container
-        React.createElement("div", { style: { borderRadius: 16, overflow: "hidden", border: `1px solid ${C.line}`, background: C.panel } },
-            React.createElement("div", { ref: chartRef, className: "tradingview-widget-container", style: { height: 520, width: "100%" } })
+        React.createElement("div", { style: { borderRadius: 16, overflow: "hidden", border: `1px solid ${C.line}`, background: C.panel, position: "relative" } },
+            React.createElement("div", { ref: chartRef, className: "tradingview-widget-container", style: { height: "calc(100vh - 280px)", minHeight: 420, width: "100%" } })
         ),
 
         // Hint
@@ -4068,9 +4077,10 @@ function ProfilePage({ t, user, lang, setLang, daysLeft, notify, setNotify, onPa
     const saveProfile = () => {
         const updated = { ...user, name: editName.trim() || user.name, phone: editPhone.trim(), avatar: editAvatar };
         try { localStorage.setItem("sniper_user", JSON.stringify(updated)); } catch(e) {
-            // If quota exceeded (large avatar) — save without avatar, keep in memory only
             try { localStorage.setItem("sniper_user", JSON.stringify({ ...updated, avatar: null })); } catch(e2) {}
         }
+        // Backup avatar in sessionStorage (persists through reload)
+        try { if (editAvatar) sessionStorage.setItem("sniper_avatar_bak", editAvatar); } catch(e) {}
         if (onUpdateUser) onUpdateUser(updated);
         setPicker(null);
     };
