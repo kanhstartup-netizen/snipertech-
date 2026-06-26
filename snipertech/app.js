@@ -2402,6 +2402,10 @@ OUTPUT: respond ONLY with valid JSON (no markdown, no extra text). Be concise �
                 React.createElement("div", { style: { display: "flex", gap: 6, background: C.bg2, border: `1px solid ${C.line}`, borderRadius: 14, padding: 5, maxWidth: 420, margin: "0 auto" } }, [["chart", "📊 " + t("analyzeChart")], ["news", "📰 " + t("analyzeNews")]].map(([id, label]) => (React.createElement("button", { key: id, className: "fx-btn", onClick: () => setTab(id), style: { flex: 1, padding: "10px 12px", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13.5, fontWeight: 600,
                         background: tab === id ? `linear-gradient(95deg,${C.blue},${C.blueLt})` : "transparent",
                         color: tab === id ? "#04101F" : C.mut, transition: "all .15s" } }, label)))),
+                loading && React.createElement("div", { style: { margin: "12px 0", padding: "12px 16px", borderRadius: 12, background: "rgba(255,107,107,.1)", border: "1px solid rgba(255,107,107,.3)", display: "flex", alignItems: "center", gap: 10 } },
+                    React.createElement("span", { style: { fontSize: 13, color: "#FF6B6B", flex: 1 } }, "⚠️ Loading ຄ້າງຢູ່ — " + (stage || "analyzing")),
+                    React.createElement("button", { onClick: () => { setLoading(false); setStage(""); }, style: { padding: "6px 14px", borderRadius: 8, border: "none", background: "#FF6B6B", color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" } }, "Reset")
+                ),
                 tab === "chart" && (React.createElement(React.Fragment, null,
                     React.createElement(AIEnginePanel, { t: t, engines: aiEngines, setEngines: setAiEngines }),
                     React.createElement("section", { style: { marginTop: 14, background: C.panel, border: `1px solid ${C.line}`, borderRadius: 18, padding: "20px 18px", position: "relative", overflow: "hidden" } },
