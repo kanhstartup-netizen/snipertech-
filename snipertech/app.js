@@ -2860,6 +2860,22 @@ function CmeCard({ raw }) {
     const putTier      = txt.match(/put.wall.*tier\s*([123]|🔴|🟡|🟢)/i)?.[1] || null;
     const callTier     = txt.match(/call.wall.*tier\s*([123]|🔴|🟡|🟢)/i)?.[1] || null;
 
+    // ── Infer FOCUS direction from trade implication + dealer ──
+    const focusSell = !!(tradeImpl && tradeImpl.match(/sell|ຂາຍ|bearish|short|ลง|ขาย/i))
+                   || !!(dealerPress && dealerPress.match(/downward|down/i));
+    const focusBuy  = !!(tradeImpl && tradeImpl.match(/buy|ຊື້|bullish|long|ขึ้น|ซื้อ/i))
+                   || !!(dealerPress && dealerPress.match(/upward|up/i));
+    const focusDir  = focusSell && !focusBuy ? "SELL" : focusBuy && !focusSell ? "BUY" : null;
+
+    // ── Infer intraday magnet price (max pain closest target) ──
+    const magnetPrice = maxPainSpot || putWallSpot || callWallSpot;
+
+    // ── Simple S/R description from the 3 walls ──
+    // Put Wall = support floor, Call Wall = resistance ceiling, Max Pain = magnet
+    const numP  = putWallSpot  ? parseInt(putWallSpot.replace(/,/g,""))  : null;
+    const numC  = callWallSpot ? parseInt(callWallSpot.replace(/,/g,"")) : null;
+    const numMP = maxPainSpot  ? parseInt(maxPainSpot.replace(/,/g,""))  : null;
+
     const tierBadge = (tier) => {
         if (!tier) return null;
         const t1 = tier.includes("1") || tier.includes("🔴");
@@ -2899,6 +2915,73 @@ function CmeCard({ raw }) {
             React.createElement("span", { style: { fontSize: 10, fontWeight: 700, color: "#FFB800", background: "rgba(255,180,0,.15)", border: "1px solid rgba(255,180,0,.3)", borderRadius: 99, padding: "3px 10px" } }, "SPOT")),
 
         React.createElement("div", { style: { padding: "14px 14px", display: "flex", flexDirection: "column", gap: 10 } },
+
+            // ══ ZONE 0: FOCUS SIGNAL + PRICE MAP ══
+            focusDir && React.createElement("div", { style: {
+                borderRadius: 14, overflow: "hidden",
+                border: `2px solid ${focusDir === "SELL" ? C.red : C.green}`,
+                background: focusDir === "SELL" ? "rgba(255,107,107,.08)" : "rgba(63,217,138,.08)"
+            } },
+                // Big direction label
+                React.createElement("div", { style: {
+                    padding: "14px 18px 10px",
+                    display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10
+                } },
+                    React.createElement("div", null,
+                        React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.mut, letterSpacing: ".08em", marginBottom: 4 } }, "🎯 CME FOCUS (Intraday)"),
+                        React.createElement("div", { style: {
+                            fontSize: 36, fontWeight: 900, lineHeight: 1,
+                            color: focusDir === "SELL" ? C.red : C.green,
+                            fontFamily: "'Sora',sans-serif",
+                            letterSpacing: ".04em",
+                            textShadow: `0 0 24px ${focusDir === "SELL" ? "rgba(255,107,107,.5)" : "rgba(63,217,138,.5)"}`
+                        } },
+                            focusDir === "SELL" ? "▼ FOCUS SELL" : "▲ FOCUS BUY")),
+                    magnetPrice && React.createElement("div", { style: { textAlign: "right" } },
+                        React.createElement("div", { style: { fontSize: 10.5, color: C.mut, fontWeight: 700 } }, "🧲 INTRADAY TARGET"),
+                        React.createElement("div", { style: { fontSize: 22, fontWeight: 800, color: "#FFB800", fontFamily: "'Sora',sans-serif" } }, `$${magnetPrice}`),
+                        React.createElement("div", { style: { fontSize: 10.5, color: C.mut, marginTop: 2 } }, "ລາຄາດຶງດູດ (Max Pain)"))),
+
+                // Price map bar: PUT WALL ←→ MAX PAIN ←→ CALL WALL
+                (numP && numC) && React.createElement("div", { style: { padding: "0 18px 14px" } },
+                    React.createElement("div", { style: { fontSize: 10.5, color: C.mut, fontWeight: 700, marginBottom: 8 } }, "🗺️ ແຜນທີ່ລາຄາ Intraday"),
+                    React.createElement("div", { style: { position: "relative", height: 36, borderRadius: 8, background: C.bg2, border: `1px solid ${C.line}`, overflow: "hidden" } },
+                        // gradient bar green→amber→red
+                        React.createElement("div", { style: { position: "absolute", inset: 0, background: `linear-gradient(90deg, rgba(63,217,138,.25) 0%, rgba(255,194,75,.2) 50%, rgba(255,107,107,.25) 100%)` } }),
+                        // PUT WALL label left
+                        React.createElement("div", { style: { position: "absolute", left: 8, top: 0, bottom: 0, display: "flex", alignItems: "center" } },
+                            React.createElement("span", { style: { fontSize: 10, fontWeight: 800, color: C.green } }, `🛡️ $${putWallSpot}`)),
+                        // MAX PAIN center
+                        numMP && React.createElement("div", { style: { position: "absolute", left: "50%", top: 0, bottom: 0, transform: "translateX(-50%)", display: "flex", alignItems: "center" } },
+                            React.createElement("span", { style: { fontSize: 10, fontWeight: 800, color: "#FFB800", background: C.panel, borderRadius: 6, padding: "2px 6px", border: "1px solid rgba(255,180,0,.4)" } }, `🎯 $${maxPainSpot}`)),
+                        // CALL WALL label right
+                        React.createElement("div", { style: { position: "absolute", right: 8, top: 0, bottom: 0, display: "flex", alignItems: "center" } },
+                            React.createElement("span", { style: { fontSize: 10, fontWeight: 800, color: C.red } }, `🧱 $${callWallSpot}`))),
+                    // explanation row
+                    React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginTop: 5, fontSize: 10, color: C.mut } },
+                        React.createElement("span", null, "◀ ແນວຮັບ (ຕ້ານລົງ)"),
+                        React.createElement("span", null, "ແຮງດຶງ"),
+                        React.createElement("span", null, "ແນວຕ້ານ (ຕ້ານຂຶ້ນ) ▶")))),
+
+            // ══ ZONE 0b: Simple explanation for beginners ══
+            React.createElement("div", { style: { padding: "12px 14px", borderRadius: 12, background: C.bg2, border: `1px solid ${C.line}` } },
+                React.createElement("div", { style: { fontSize: 10.5, fontWeight: 700, color: C.mut, marginBottom: 8 } }, "📖 3 ກ່ອງໝາຍຄວາມວ່າຫຍັງ?"),
+                React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 7 } },
+                    React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "flex-start" } },
+                        React.createElement("span", { style: { fontSize: 13, flexShrink: 0 } }, "🛡️"),
+                        React.createElement("div", null,
+                            React.createElement("span", { style: { fontWeight: 700, color: C.green, fontSize: 12 } }, "PUT WALL = ແນວຮັບ "),
+                            React.createElement("span", { style: { fontSize: 12, color: C.mut } }, "— ສະຖາບັນ 'ວາງ order ຊື້' ໄວ້ ລາຄາຍາກລົງຜ່ານໄດ້ ຄືກັບ 'ພື້ນ'"))),
+                    React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "flex-start" } },
+                        React.createElement("span", { style: { fontSize: 13, flexShrink: 0 } }, "🧱"),
+                        React.createElement("div", null,
+                            React.createElement("span", { style: { fontWeight: 700, color: C.red, fontSize: 12 } }, "CALL WALL = ແນວຕ້ານ "),
+                            React.createElement("span", { style: { fontSize: 12, color: C.mut } }, "— ສະຖາບັນ 'ວາງ order ຂາຍ' ໄວ້ ລາຄາຍາກຂຶ້ນຜ່ານໄດ້ ຄືກັບ 'ເພດານ'"))),
+                    React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "flex-start" } },
+                        React.createElement("span", { style: { fontSize: 13, flexShrink: 0 } }, "🎯"),
+                        React.createElement("div", null,
+                            React.createElement("span", { style: { fontWeight: 700, color: "#FFB800", fontSize: 12 } }, "MAX PAIN = ເປົ້າດຶງດູດ "),
+                            React.createElement("span", { style: { fontSize: 12, color: C.mut } }, "— ລາຄາທີ່ Intraday ມັກຈະ 'ຄ້ຳ' ໃກ້ທີ່ສຸດ ເໝາະເປັນ TP ຫຼັກ"))))),
 
             // === Zone 1: ລາຄາ ===
             React.createElement("div", { style: { fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", color: "#FFB800", opacity: .7, marginBottom: 2 } }, "📍 ໂຊນລາຄາ (Spot XAU/USD)"),
