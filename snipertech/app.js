@@ -1937,24 +1937,25 @@ function tryRepairJson(text) {
 }
 
 // ── Watermark Component ──────────────────────────────────────
-// Visible on-screen (faint, diagonal, tiled) so any screenshot or screen
-// recording captures the trader's email + brand. Stronger version on print.
+// Hidden during normal use. Appears ONLY on screenshot / print / screen capture
+// (via @media print) so it doesn't clutter the UI but still tags captured images
+// with the trader's email + brand.
 function Watermark({ email }) {
     const brand = "SniperTech AI";
     const who = email ? email : "kanh.startup@gmail.com";
     const text = `${who}  ·  ${brand}`;
     const items = Array.from({ length: 60 }, (_, i) => i);
-    // Inject CSS once: faint on screen, bolder when printing/exporting.
+    // Inject CSS once: hidden on screen, visible only when printing/screenshotting.
     React.useEffect(() => {
         const id = "wm-style";
         if (!document.getElementById(id)) {
             const s = document.createElement("style");
             s.id = id;
             s.textContent = `
-                #wm-layer { display: block !important; }
-                #wm-grid { opacity: 0.10; }
+                #wm-layer { display: none !important; }
                 @media print {
-                    #wm-grid { opacity: 0.28 !important; }
+                    #wm-layer { display: block !important; }
+                    #wm-grid { opacity: 0.22 !important; }
                     #wm-layer * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                 }
             `;
@@ -4408,16 +4409,30 @@ function ProfilePage({ t, user, lang, setLang, daysLeft, notify, setNotify, onPa
                     })))))))));
 }
 // ── Splash / intro screen (on app open) ──────────────────────
-// Splash logo: shows the real app logo image, falls back to a 🎯 emoji if it fails to load.
+// Splash logo: shows the real app logo image inside a dark rounded frame so any
+// white background baked into the file blends into the dark splash. Falls back to 🎯.
 function SplashLogo() {
     const [failed, setFailed] = useState(false);
     if (failed)
         return React.createElement("div", { className: "sp-logo", style: { fontSize: 84, lineHeight: 1, filter: `drop-shadow(0 10px 30px ${C.glow})` } }, "\uD83C\uDFAF");
-    return React.createElement("img", {
-        src: LOGO, alt: "SniperTech AI", className: "sp-logo",
-        onError: () => setFailed(true),
-        style: { width: 132, height: 132, objectFit: "contain", borderRadius: 28, filter: `drop-shadow(0 12px 36px ${C.glow})` }
-    });
+    return React.createElement("div", {
+        className: "sp-logo",
+        style: {
+            width: 148, height: 148, borderRadius: 34,
+            background: C.bg,
+            border: `1px solid ${C.line}`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            overflow: "hidden",
+            boxShadow: `0 12px 40px -8px ${C.glow}, inset 0 0 0 1px rgba(255,255,255,0.03)`,
+        }
+    },
+        React.createElement("img", {
+            src: LOGO, alt: "SniperTech AI",
+            onError: () => setFailed(true),
+            // Slight zoom + mix-blend so a white card edge in the file fades into the dark frame.
+            style: { width: "112%", height: "112%", objectFit: "cover", borderRadius: 30, mixBlendMode: "screen" }
+        })
+    );
 }
 function SplashScreen({ onDone }) {
     return (React.createElement("div", { onClick: onDone, style: { position: "fixed", inset: 0, width: "100vw", height: "100vh", background: C.bg, color: C.text, fontFamily: "'LaoOverride','Noto Sans Lao','Inter',system-ui,sans-serif", overflow: "hidden", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 24, zIndex: 9999 } },
