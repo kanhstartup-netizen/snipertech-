@@ -1141,7 +1141,6 @@ const T = {
         aboutVer: "ເວີຊັນ",
         memberSince: "ສະມາຊິກແຕ່",
         daysRemaining: "ເຫຼືອ {n} ມື້",
-        dayUnit: "ມື້",
         tabCourse: "ຄອສ",
         tabNews2: "ຫ້ອງຂ່າວ",
         courseTitle: "Gold Sniper Masterclass",
@@ -1435,7 +1434,6 @@ const T = {
         aboutVer: "เวอร์ชัน",
         memberSince: "สมาชิกตั้งแต่",
         daysRemaining: "เหลือ {n} วัน",
-        dayUnit: "วัน",
         tabCourse: "คอร์ส",
         tabNews2: "ห้องข่าว",
         courseTitle: "Gold Sniper Masterclass",
@@ -1728,7 +1726,6 @@ const T = {
         aboutVer: "Version",
         memberSince: "Member since",
         daysRemaining: "{n} days left",
-        dayUnit: "d",
         tabCourse: "Course",
         tabNews2: "News room",
         courseTitle: "Gold Sniper Masterclass",
@@ -1937,25 +1934,20 @@ function tryRepairJson(text) {
 }
 
 // ── Watermark Component ──────────────────────────────────────
-// Hidden during normal use. Appears ONLY on screenshot / print / screen capture
-// (via @media print) so it doesn't clutter the UI but still tags captured images
-// with the trader's email + brand.
-function Watermark({ email }) {
-    const brand = "SniperTech AI";
-    const who = email ? email : "kanh.startup@gmail.com";
-    const text = `${who}  ·  ${brand}`;
-    const items = Array.from({ length: 60 }, (_, i) => i);
-    // Inject CSS once: hidden on screen, visible only when printing/screenshotting.
+function Watermark() {
+    const text = "020 7777 7421  |  Startup FX Academy";
+    const items = Array.from({ length: 40 }, (_, i) => i);
+    // Inject print-only CSS once
     React.useEffect(() => {
         const id = "wm-style";
         if (!document.getElementById(id)) {
             const s = document.createElement("style");
             s.id = id;
+            // Hidden on screen, visible only when printing / screenshotting via media print
             s.textContent = `
                 #wm-layer { display: none !important; }
                 @media print {
                     #wm-layer { display: block !important; }
-                    #wm-grid { opacity: 0.22 !important; }
                     #wm-layer * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                 }
             `;
@@ -1972,13 +1964,13 @@ function Watermark({ email }) {
         }
     },
         React.createElement("div", {
-            id: "wm-grid",
             style: {
                 position: "absolute", inset: "-50%",
                 display: "grid",
                 gridTemplateColumns: "repeat(3, 1fr)",
-                gap: "70px 24px",
+                gap: "40px 20px",
                 transform: "rotate(-30deg)",
+                opacity: 0.18,
             }
         },
             items.map(i => React.createElement("div", {
@@ -1990,8 +1982,7 @@ function Watermark({ email }) {
                     whiteSpace: "nowrap",
                     fontFamily: "'Sora','Inter',sans-serif",
                     letterSpacing: "0.05em",
-                    textShadow: "0 1px 2px rgba(0,0,0,0.5)",
-                    padding: "16px 10px",
+                    padding: "20px 10px",
                 }
             }, text))
         )
@@ -2037,6 +2028,52 @@ function SniperTechX() {
         try { const s = localStorage.getItem("sniper_result"); return s ? JSON.parse(s) : null; } catch(e) { return null; }
     });
     const [err, setErr] = useState(null);
+    // ── Watermark: only visible while the screen is being recorded / captured ──
+    // Normal use shows NO watermark. The moment a screen-capture/record stream
+    // starts (or a screenshot key combo is pressed), we flash a bold diagonal
+    // watermark so any capture carries the owner's email.
+    const [capturing, setCapturing] = useState(false);
+    useEffect(() => {
+        let flashTimer = null;
+        const flash = () => {
+            setCapturing(true);
+            if (flashTimer) clearTimeout(flashTimer);
+            flashTimer = setTimeout(() => setCapturing(false), 4000);
+        };
+        let restoreGDM = null;
+        try {
+            const md = navigator.mediaDevices;
+            if (md && md.getDisplayMedia) {
+                const orig = md.getDisplayMedia.bind(md);
+                md.getDisplayMedia = async (...args) => {
+                    const stream = await orig(...args);
+                    setCapturing(true);
+                    try {
+                        stream.getVideoTracks().forEach(tk => {
+                            tk.addEventListener("ended", () => setCapturing(false));
+                        });
+                    } catch(e) {}
+                    return stream;
+                };
+                restoreGDM = () => { md.getDisplayMedia = orig; };
+            }
+        } catch(e) {}
+        const onKey = (e) => {
+            const k = (e.key || "").toLowerCase();
+            if (k === "printscreen" ||
+                ((e.metaKey || e.ctrlKey) && e.shiftKey && ["s","3","4","5"].includes(k))) {
+                flash();
+            }
+        };
+        window.addEventListener("keyup", onKey, true);
+        window.addEventListener("keydown", onKey, true);
+        return () => {
+            if (flashTimer) clearTimeout(flashTimer);
+            if (restoreGDM) restoreGDM();
+            window.removeEventListener("keyup", onKey, true);
+            window.removeEventListener("keydown", onKey, true);
+        };
+    }, []);
     const fileRef = useRef(null);
     const addFiles = useCallback((files) => {
         const list = Array.from(files || []).filter((f) => f.type.startsWith("image/"));
@@ -2081,8 +2118,7 @@ function SniperTechX() {
         // No web search — analyze instantly. The model uses its own knowledge to give a
         // GENERAL news/DXY caution (no live lookup), which keeps analysis fast.
         const searchBlock = `STEP 1 — Do NOT use any tool or web search. Work only from the uploaded chart(s) and your own general knowledge. For "news_alert", "dxy_signal" and "oil_signal": give a SHORT general caution from what you already know (e.g. "If near a Fed/FOMC, NFP, CPI or PCE window, expect volatility — confirm the calendar yourself", and the usual DXY↔gold inverse relationship). Do NOT claim live/current prices or today's exact DXY level — keep these as general guidance, and if you have no specific basis, keep them brief or note the trader should check the live calendar.`;
-        const scalpRules = "SCALPING — Strict rules: Use H1+M15+M5 only. Entry ONLY after liquidity sweep on M5/M15. M15 OB/FVG must be fresh. M5 must close body beyond OB/FVG + BOS/CHoCH confirmed. SL below OB max 20 pip. TP1 15-20 pip, TP2 30-40 pip, TP3 60 pip max. Skip if fewer than 4/5 conditions align. Confidence<60% = output wait. Flag false-signal risk (low/medium/high). "
-            + "M15 WICK-TIP SNIPER MODE (TOP PRIORITY for scalping): The entry MUST be placed at the EXACT TIP of the M15 candle wick (the extreme high of an up-wick for a Sell, or the extreme low of a down-wick for a Buy) where price has just swept liquidity and rejected. The goal is an entry that is IN PROFIT IMMEDIATELY with essentially ZERO adverse excursion — NO drawdown, no 'let it pull back to me'. Read the most recent M15 candles: find the longest rejection wick that swept a liquidity level (equal high/low, session high/low) and snapped back. The entry price = that wick's extreme tip (or within 1-2 pip of it), NOT the candle body, NOT a wide zone. Direction is AGAINST the wick (down-wick that swept lows -> Buy from the wick low; up-wick that swept highs -> Sell from the wick high). SL goes a few pip beyond the wick tip (the sweep invalidation). If the latest M15 wick has not yet swept a clean level and rejected, output status 'ລໍຖ້າ' (wait) and tell the trader the exact M15 wick/level to wait for — do NOT invent an entry mid-candle. The entry_zone for scalping must be ultra-tight (1-4 dollars / 10-40 pip), anchored on the M15 wick tip.";
+        const scalpRules = "SCALPING — Strict rules: Use H1+M15+M5 only. Entry ONLY after liquidity sweep on M5/M15. M15 OB/FVG must be fresh. M5 must close body beyond OB/FVG + BOS/CHoCH confirmed. SL below OB max 20 pip. TP1 15-20 pip, TP2 30-40 pip, TP3 60 pip max. Skip if fewer than 4/5 conditions align. Confidence<60% = output wait. Flag false-signal risk (low/medium/high).";
         const sys = `You are an elite XAU/USD (gold) ${isScalp ? "SCALPING" : "intraday"} analyst giving a SHORT, ready-to-use trade signal. Bias preference: ${biasEn}. Trading style: ${isScalp ? scalpRules : "SWING INTRADAY — standard SL 30-120 pip, standard TP levels"}. The user uploaded ${charts.length} chart screenshot(s) without timeframe labels.
 
 STEP 0 — DETECT each image's TIMEFRAME yourself from the chart's labels (e.g. "M5","15","1H","H4","D"), axis spacing and candle granularity. Report in "detected_timeframes" (in ${outLang}). Use higher TFs for trend/bias, lower TFs for entry.
@@ -2222,7 +2258,12 @@ I) GLOBAL SNIPER TECHNIQUES (from elite SMC communities worldwide — Stacey Bur
 ANALYZE ONLY what is visible. If an image is unclear or not a price chart, set "readable" false and explain briefly in "note".
 
 HARD RULES (protect the trader):
-${isScalp ? `- M15 WICK-TIP ENTRY (HIGHEST PRIORITY this signal is in SCALPING mode): "entry_zone" MUST be anchored on the EXACT tip of the most recent significant M15 rejection wick that swept liquidity — the entry should be IN PROFIT INSTANTLY with no drawdown. Buy from the low of a down-wick that swept lows; Sell from the high of an up-wick that swept highs. Keep the zone 1-4 dollars (10-40 pip) max, hugging the wick tip. If no clean M15 wick-sweep+rejection has formed yet, set the setup status to "ລໍຖ້າ" and state the precise M15 wick/level to wait for. Never place the entry in the candle body or mid-move.\n` : ""}
+- ⭐ M15 WICK-TIP ENTRY (TOP PRIORITY — this app's signature): the entry MUST be placed at the EXTREME TIP of an M15 candle wick (the precise high of a sweep wick for a Sell, or the precise low of a sweep wick for a Buy) — i.e. the exact price where M15 liquidity was grabbed and instantly rejected. The goal is that the order is in PROFIT immediately on fill, with NO adverse excursion (no drawdown, no "drag" up or down before it works). To achieve this:
+  • Find on M15 the most recent liquidity SWEEP wick that pierced a key level and snapped back with rejection (long wick, small body against the move).
+  • Set "entry_zone" at the very tip of that wick (within ~1-3 dollars of the wick extreme), NOT in the candle body and NOT at a mid-range level.
+  • The wick tip must align with HTF bias + premium/discount (Buy only at a discount-side wick low, Sell only at a premium-side wick high). If no clean M15 rejection wick exists at a valid level yet, set setup status to "ລໍຖ້າ" and say price has not printed the wick — do NOT invent an entry.
+  • Report the exact wick the entry is taken from in the new "m15_wick" field (which candle, which level it swept, the tip price).
+  • SL goes just BEYOND that same wick tip (a few dollars past the extreme that already rejected), keeping it tight — see SL rule below.
 - SNIPER PRECISION (critical): this is a SNIPER signal, not a wide swing zone. The "entry_zone" MUST be TIGHT — for gold (XAU/USD) keep it roughly 3-8 dollars wide (≈ 30-80 pip), and NEVER wider than 10 dollars (100 pip). A wide zone like 4200-4225 (25 dollars) is WRONG — narrow it to the single best refined zone (e.g. an M5/M15 order block or FVG inside the larger area), e.g. 4200-4206. Pick the most precise entry, not the whole range.
 - STOP LOSS at a structurally valid level just beyond the OB/swing that invalidates the idea — but keep it REALISTIC and CONTROLLED: target about 30-120 pip (≈ 3-12 dollars) on gold. NEVER report an SL more than 150 pip (15 dollars) away — if structure seems to require more than that, the entry zone is wrong, so refine to a lower-timeframe entry closer to invalidation instead of widening the stop. Report distance in "sl_pips". Also avoid tiny forced stops (an 8-pip stop on gold gets hunted) — the sweet spot is a tight but breathable 30-120 pip.
 - The distance from entry to the FINAL target (TP3) should be reasonable for an intraday move — do NOT stretch the whole entry→SL→TP span across hundreds of dollars. If your levels imply a ~2500-pip span, they are far too wide: tighten them.
@@ -2251,6 +2292,7 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
   "bias": "Buy|Sell|Wait — single word direction bias from the multi-TF read",
   "structure": "in ${outLang}, 1-2 short sentences max",
   "premium_discount": "in ${outLang} — is price in DISCOUNT (below 50%, favor Buy) or PREMIUM (above 50%, favor Sell) now? 1 line",
+  "m15_wick": "in ${outLang} — the exact M15 rejection wick the entry is taken from: which level it swept + the wick-tip price used as entry (1 line). If no valid M15 wick yet, say so and mark setup ລໍຖ້າ.",
   "liquidity": "in ${outLang} — key liquidity pool + any sweep/grab seen (1 line)",
   "order_flow": "in ${outLang} — who has control now (displacement/absorption/BOS/CHoCH), 1 line",
   "order_book": "in ${outLang} — only if DOM/volume profile is visible; otherwise note it isn't shown and you used price/volume (1 line)",
@@ -2262,7 +2304,7 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
   "setups": [{
     "direction":"Buy|Sell","status":"ພ້ອມເຂົ້າ|ລໍຖ້າ","grade":"ສູງ|ກາງ|ຕ່ຳ",
     "confluence_factors":["in ${outLang}, short — e.g. liquidity sweep, discount zone, order block, BOS, DXY agrees"],
-    "entry_zone":"TIGHT price range — 3-8 dollars wide, NEVER >10 (e.g. 4200-4206, not 4200-4225)","stop":"price","sl_pips":"30-120 pip typical, NEVER >150 pip",
+    "entry_zone":"at the M15 wick TIP — ultra-tight, ~1-3 dollars (e.g. 4200-4202), at the exact swept high(Sell)/low(Buy), so the trade is in profit instantly","stop":"price","sl_pips":"30-120 pip typical, NEVER >150 pip",
     "targets":["TP1 price","TP2 price","TP3 price"],"rr":"e.g. 1:3","confidence":"e.g. 60-65%",
     "rationale":"in ${outLang}, 1 short line","invalidation":"in ${outLang}, short"
   }],
@@ -2431,22 +2473,11 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
     };
     const reset = () => { setCharts([]); setResult(null); setErr(null); try { localStorage.removeItem("sniper_result"); } catch(e) {} if (fileRef.current)
         fileRef.current.value = ""; };
-    // Membership status — reactive countdown (ticks every second so it visibly counts down)
+    // Membership status — reactive countdown (updates every minute)
     const [nowMs, setNowMs] = useState(Date.now());
-    useEffect(() => { const id = setInterval(() => setNowMs(Date.now()), 1000); return () => clearInterval(id); }, []);
+    useEffect(() => { const id = setInterval(() => setNowMs(Date.now()), 60000); return () => clearInterval(id); }, []);
     const msLeft = user ? (user.expiresAt - nowMs) : 0;
-    // Granular breakdown so the timer never looks "stuck" on a whole number.
-    const totalSecLeft = Math.max(0, Math.floor(msLeft / 1000));
-    const dPart = Math.floor(totalSecLeft / 86400);
-    const hPart = Math.floor((totalSecLeft % 86400) / 3600);
-    const mPart = Math.floor((totalSecLeft % 3600) / 60);
-    const sPart = totalSecLeft % 60;
-    // Whole days for places that still want a simple number (floor, not ceil — so 2.9 days shows 2).
-    const daysLeft = dPart;
-    // Human countdown string: "2 ມື້ 13:45:09" when >1 day, "13:45:09" within the last day.
-    const countdownStr = dPart > 0
-        ? `${dPart} ${t("dayUnit")} ${String(hPart).padStart(2,"0")}:${String(mPart).padStart(2,"0")}:${String(sPart).padStart(2,"0")}`
-        : `${String(hPart).padStart(2,"0")}:${String(mPart).padStart(2,"0")}:${String(sPart).padStart(2,"0")}`;
+    const daysLeft = Math.max(0, Math.ceil(msLeft / 86400000));
     const isLocked = isAdmin ? false : (user ? msLeft <= 0 : false);
     // VIP = a paid (non-trial) active member, or admin. Used to gate premium AI features.
     const isVip = isAdmin || (!!user && user.plan && user.plan !== "Trial" && !isLocked);
@@ -2476,6 +2507,21 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
         return React.createElement(PaymentScreen, { t: t, lang: lang, setLang: setLang, locked: isLocked, onPaid: onPaid, onBack: () => setShowPay(false), onLogout: () => { setUser(null); try { localStorage.removeItem("sniper_user"); } catch(e) {} } });
     }
     return (React.createElement("div", { style: { minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'LaoOverride','Noto Sans Lao','Inter',system-ui,sans-serif", position: "relative", overflow: "hidden" } },
+        // ── Anti-piracy watermark — only rendered while screen is being captured/recorded ──
+        capturing && React.createElement("div", {
+            "aria-hidden": true,
+            style: {
+                position: "fixed", inset: 0, zIndex: 99999, pointerEvents: "none",
+                display: "flex", flexWrap: "wrap", alignContent: "center", justifyContent: "center",
+                gap: "0px", transform: "rotate(-30deg) scale(1.4)", opacity: 0.18,
+                userSelect: "none"
+            }
+        },
+            Array.from({ length: 60 }).map((_, i) => React.createElement("div", {
+                key: i,
+                style: { width: "33%", textAlign: "center", padding: "26px 0", fontSize: 15, fontWeight: 800, letterSpacing: ".06em", color: C.text, whiteSpace: "nowrap" }
+            }, "SniperTech AI · " + ((user && user.email) ? user.email + " · " : "") + "kanh.startup@gmail.com"))
+        ),
         React.createElement("style", null, `
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@500;600;700&family=Noto+Sans+Lao:wght@400;500;600;700&display=swap');
         /* Kill any white gap: html/body/root always carry the dark app background, full height */
@@ -2513,7 +2559,7 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
         html, body { overscroll-behavior: none; }
       `),
         React.createElement(ChartBackdrop, { tint: "#C9A24B" }),
-        React.createElement(Watermark, { email: user && user.email }),
+        React.createElement(Watermark, null),
         React.createElement(TradingChatbot, { t: t, lang: lang, user: user }),
         React.createElement("div", { "aria-hidden": true, style: { position: "absolute", inset: 0, backgroundImage: `linear-gradient(${C.line} 1px, transparent 1px), linear-gradient(90deg, ${C.line} 1px, transparent 1px)`, backgroundSize: "48px 48px", opacity: 0.12, animation: "fxGrid 6s linear infinite", maskImage: "radial-gradient(120% 80% at 50% 0%, #000 35%, transparent 80%)", WebkitMaskImage: "radial-gradient(120% 80% at 50% 0%, #000 35%, transparent 80%)" } }),
         React.createElement("div", { "aria-hidden": true, style: { position: "absolute", top: -160, left: "50%", transform: "translateX(-50%)", width: 620, height: 360, background: `radial-gradient(closest-side, ${C.glow}, transparent)`, filter: "blur(20px)", animation: "fxGlowPulse 5s ease-in-out infinite", pointerEvents: "none" } }),
@@ -2521,7 +2567,7 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
             React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: 16, padding: "10px 14px", borderRadius: 16, border: `1px solid ${C.line}`, background: "rgba(16,20,30,.55)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" } },
                 !isAdmin && React.createElement("button", { onClick: () => setShowPay(true), className: "fx-btn", style: { display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: 99, border: `1px solid ${daysLeft <= 1 ? C.amber : C.line}`, background: daysLeft <= 1 ? "rgba(255,194,75,.12)" : "transparent", color: daysLeft <= 1 ? C.amber : C.mut, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" } },
                     "\u23F3 ",
-                    msLeft <= 0 ? t("trialEndsToday") : (t("trialLeft", { n: daysLeft }) + " · " + countdownStr)),
+                    daysLeft <= 0 ? t("trialEndsToday") : t("trialLeft", { n: daysLeft })),
                 React.createElement("div", { style: { flex: 1 } }),
                 React.createElement("img", { src: LOGO, alt: "Startup FX", style: { height: 30, objectFit: "contain" } }),
                 React.createElement("button", { onClick: () => setNotify(function(v){return !v;}), className: "fx-btn", style: { position: "relative", width: 36, height: 36, borderRadius: "50%", border: `1px solid ${C.line}`, background: C.panel2, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, cursor: "pointer", flexShrink: 0 } },
@@ -2792,7 +2838,8 @@ function Result({ data, t, engines, isAdmin }) {
                         React.createElement("span", { style: { flexShrink: 0, width: 30, height: 30, borderRadius: 9, background: "rgba(38,130,255,.14)", border: `1px solid ${C.blue}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 } }, "\uD83C\uDFAF"),
                         React.createElement("div", { style: { flex: 1 } },
                             React.createElement("div", { style: { fontSize: 11, color: C.mut } }, t("rEntry")),
-                            React.createElement("div", { style: { fontSize: 17, fontWeight: 800, color: C.cyan, fontFamily: "'Sora',sans-serif" } }, s.entry_zone))),
+                            React.createElement("div", { style: { fontSize: 17, fontWeight: 800, color: C.cyan, fontFamily: "'Sora',sans-serif" } }, s.entry_zone),
+                            data.m15_wick && React.createElement("div", { style: { marginTop: 4, fontSize: 11.5, color: C.blueLt, lineHeight: 1.45 } }, "\uD83D\uDCCC " + data.m15_wick))),
                     React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: 14 } },
                         React.createElement("span", { style: { flexShrink: 0, width: 30, height: 30, borderRadius: 9, background: "rgba(239,92,92,.14)", border: `1px solid ${C.red}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 } }, "\uD83D\uDED1"),
                         React.createElement("div", { style: { flex: 1 } },
@@ -3203,7 +3250,20 @@ function Login({ onLogin, lang, setLang, t }) {
         // Signup: new trial. Login: restore saved expiresAt (don't reset timer!)
         let expiresAt;
         if (mode === "signup") {
-            expiresAt = Date.now() + TRIAL_DAYS * 86400000;
+            // Keep the original trial clock running for a returning email.
+            // Only start a fresh 3-day trial for a genuinely new email — this
+            // is what stops the counter being stuck at 3 on every signup.
+            try {
+                const saved = localStorage.getItem("sniper_user");
+                const savedUser = saved ? JSON.parse(saved) : null;
+                if (savedUser && savedUser.email === email && savedUser.expiresAt) {
+                    expiresAt = savedUser.expiresAt; // resume existing trial
+                } else {
+                    expiresAt = Date.now() + TRIAL_DAYS * 86400000; // brand-new trial
+                }
+            } catch(e) {
+                expiresAt = Date.now() + TRIAL_DAYS * 86400000;
+            }
         } else {
             // Try to restore saved expiresAt from localStorage
             try {
@@ -4409,31 +4469,6 @@ function ProfilePage({ t, user, lang, setLang, daysLeft, notify, setNotify, onPa
                     })))))))));
 }
 // ── Splash / intro screen (on app open) ──────────────────────
-// Splash logo: shows the real app logo image inside a dark rounded frame so any
-// white background baked into the file blends into the dark splash. Falls back to 🎯.
-function SplashLogo() {
-    const [failed, setFailed] = useState(false);
-    if (failed)
-        return React.createElement("div", { className: "sp-logo", style: { fontSize: 84, lineHeight: 1, filter: `drop-shadow(0 10px 30px ${C.glow})` } }, "\uD83C\uDFAF");
-    return React.createElement("div", {
-        className: "sp-logo",
-        style: {
-            width: 148, height: 148, borderRadius: 34,
-            background: C.bg,
-            border: `1px solid ${C.line}`,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            overflow: "hidden",
-            boxShadow: `0 12px 40px -8px ${C.glow}, inset 0 0 0 1px rgba(255,255,255,0.03)`,
-        }
-    },
-        React.createElement("img", {
-            src: LOGO, alt: "SniperTech AI",
-            onError: () => setFailed(true),
-            // Slight zoom + mix-blend so a white card edge in the file fades into the dark frame.
-            style: { width: "112%", height: "112%", objectFit: "cover", borderRadius: 30, mixBlendMode: "screen" }
-        })
-    );
-}
 function SplashScreen({ onDone }) {
     return (React.createElement("div", { onClick: onDone, style: { position: "fixed", inset: 0, width: "100vw", height: "100vh", background: C.bg, color: C.text, fontFamily: "'LaoOverride','Noto Sans Lao','Inter',system-ui,sans-serif", overflow: "hidden", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 24, zIndex: 9999 } },
         React.createElement("style", null, `
@@ -4459,7 +4494,7 @@ function SplashScreen({ onDone }) {
         React.createElement("span", { "aria-hidden": true, style: { position: "absolute", width: 160, height: 160, borderRadius: "50%", border: `2px solid ${C.blue}`, animation: "spRing 1.8s ease-out .3s infinite", pointerEvents: "none" } }),
         React.createElement("span", { "aria-hidden": true, className: "sp-reticle", style: { position: "absolute", width: 240, height: 240, borderRadius: "50%", border: `1px dashed rgba(38,130,255,.35)`, pointerEvents: "none" } }),
         React.createElement("div", { style: { position: "relative", textAlign: "center" } },
-            React.createElement(SplashLogo, null),
+            React.createElement("div", { className: "sp-logo", style: { fontSize: 84, lineHeight: 1, filter: `drop-shadow(0 10px 30px ${C.glow})` } }, "\uD83C\uDFAF"),
             React.createElement("h1", { className: "sp-t1", style: { fontFamily: "'LaoOverride','Sora','Noto Sans Lao',sans-serif", fontSize: "clamp(34px,9vw,52px)", fontWeight: 800, letterSpacing: "-0.02em", margin: "18px 0 0", lineHeight: 1.05, display: "flex", alignItems: "center", justifyContent: "center", gap: 0, flexWrap: "wrap" } },
                 React.createElement("span", { style: { color: "#FFFFFF", fontWeight: 800 } }, "Sniper"),
                 React.createElement("span", { style: { color: "#00FFFF", fontWeight: 900, textShadow: "0 0 24px #00FFFF, 0 0 60px #00BFFF" } }, "Tech"),
