@@ -1136,6 +1136,7 @@ const T = {
         aiUnlockAdmin: "ປົດລັອກໂໝດແອດມິນ",
         dailyUsed: "ໃຊ້ໄປ {n}/{max} ມື້ນີ້",
         dailyLimitHit: "ໃຊ້ຄົບ 5 ຄັ້ງແລ້ວມື້ນີ້ — ອັບເກຣດ VIP ໃຊ້ບໍ່ຈຳກັດ",
+        fundedTab: "ກອງທຶນ",
         aiEngine: "ເຄື່ອງຈັກ AI",
         aiConsensus: "ການລົງມະຕິ AI",
         aiActive: "ໃຊ້ງານ",
@@ -1429,6 +1430,7 @@ const T = {
         aiUnlockAdmin: "ปลดล็อกโหมดแอดมิน",
         dailyUsed: "ใช้ไป {n}/{max} วันนี้",
         dailyLimitHit: "ใช้ครบ 5 ครั้งแล้ววันนี้ — อัปเกรด VIP ใช้ไม่จำกัด",
+        fundedTab: "กองทุน",
         aiEngine: "เครื่องจักร AI",
         aiConsensus: "การลงมติ AI",
         aiActive: "ใช้งาน",
@@ -1721,6 +1723,7 @@ const T = {
         aiUnlockAdmin: "Unlock admin mode",
         dailyUsed: "Used {n}/{max} today",
         dailyLimitHit: "Used all 5 today — upgrade to VIP for unlimited",
+        fundedTab: "Funded",
         aiEngine: "AI Engine",
         aiConsensus: "AI Consensus",
         aiActive: "Active",
@@ -2074,6 +2077,14 @@ function SniperTechX() {
         try { const s = localStorage.getItem("sniper_result"); return s ? JSON.parse(s) : null; } catch(e) { return null; }
     });
     const [err, setErr] = useState(null);
+    // ── Funded / Prop-firm challenge mode ──
+    const [fundedType, setFundedType] = useState("prop");      // prop | futures | funded
+    const [accountSize, setAccountSize] = useState("100000");  // $ challenge size
+    const [profitTarget, setProfitTarget] = useState("8");     // % profit target
+    const [maxDLL, setMaxDLL] = useState("5");                 // % daily loss limit
+    const [maxDD, setMaxDD] = useState("10");                  // % overall max drawdown
+    const [riskPerTrade, setRiskPerTrade] = useState("1");     // % risk per trade
+    const [fundedResult, setFundedResult] = useState(null);
     // ── Watermark: only visible while the screen is being recorded / captured ──
     // Normal use shows NO watermark. The moment a screen-capture/record stream
     // starts (or a screenshot key combo is pressed), we flash a bold diagonal
@@ -2545,6 +2556,97 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
     };
     const reset = () => { setCharts([]); setResult(null); setErr(null); try { localStorage.removeItem("sniper_result"); } catch(e) {} if (fileRef.current)
         fileRef.current.value = ""; };
+
+    // ── Funded / Prop-firm challenge analysis ──
+    // Goal: a conservative, rule-aware plan that passes the challenge WITHOUT
+    // breaching daily loss limit (DLL) or max drawdown. Capital protection first.
+    const analyzeFunded = async () => {
+        if (charts.length === 0) { setErr("ກະລຸນາອັບໂຫຼດ screenshot ກຣາฟກ່ອນ."); return; }
+        setLoading(true); setErr(null); setFundedResult(null);
+        setStage("ກຳລັງວາງແຜນຜ່ານກອງທຶນ…");
+        const outLang = lang === "th" ? "Thai (ภาษาไทย)" : lang === "en" ? "English" : "Lao (ພາສາລາວ)";
+        const size = parseFloat(accountSize) || 100000;
+        const tgtPct = parseFloat(profitTarget) || 8;
+        const dllPct = parseFloat(maxDLL) || 5;
+        const ddPct = parseFloat(maxDD) || 10;
+        const riskPct = Math.max(0.1, parseFloat(riskPerTrade) || 1);
+        const tgtUsd = Math.round(size * tgtPct / 100);
+        const dllUsd = Math.round(size * dllPct / 100);
+        const ddUsd = Math.round(size * ddPct / 100);
+        const riskUsd = Math.round(size * riskPct / 100);
+        const firmName = fundedType === "futures" ? "Futures prop firm (e.g. Apex, TopstepX, Tradeify) — note futures use trailing/EOD drawdown in $, and consistency rules"
+            : fundedType === "funded" ? "Funded/instant-funded account — protect the funded capital, payouts depend on staying within drawdown"
+            : "Prop-firm evaluation (e.g. FTMO, MyFunded, FundedNext) — 2-phase or 1-phase challenge with daily + overall drawdown";
+
+        const sys = `You are a senior PROP-FIRM / FUNDED-ACCOUNT risk coach for XAU/USD (gold). Your #1 job is to help the trader PASS the challenge by NOT breaching the rules — capital protection BEFORE profit. A blown account from greed or an oversized SL is the worst outcome. Be conservative.
+
+ACCOUNT RULES (the trader MUST stay inside these):
+- Firm type: ${firmName}
+- Account size: $${size.toLocaleString()}
+- Profit target: ${tgtPct}% = $${tgtUsd.toLocaleString()}
+- Daily Loss Limit (DLL): ${dllPct}% = $${dllUsd.toLocaleString()} per day (breaching = instant fail)
+- Max overall drawdown: ${ddPct}% = $${ddUsd.toLocaleString()} (breaching = instant fail)
+- Trader's chosen risk per trade: ${riskPct}% = ~$${riskUsd.toLocaleString()}
+
+CORE PRINCIPLES (apply strictly):
+1. CAPITAL PROTECTION FIRST. Never recommend a setup whose SL, if hit, risks more than the per-trade risk above. If a valid SL would be too wide for that risk, REDUCE the suggested lot size (state it) rather than widening risk.
+2. AVOID DLL BREACH. Cap losing trades per day so that even a worst-case run of consecutive SLs in ONE day cannot reach the DLL. Recommend a daily max of trades and a daily stop-loss in $ that sits SAFELY below the DLL (e.g. stop trading for the day at ~50-60% of DLL).
+3. AVOID GETTING SL-HUNTED. Place SL BEYOND the obvious liquidity (past the wick that already swept / past equal highs-lows), not at the tight obvious level where stops cluster — but keep it within the risk budget by sizing down. Entry should be a high-probability reversal zone price will actually reach and turn from (sweep + confirmation), so SL is rarely hit.
+4. REALISTIC PACING. Passing is a marathon: suggest making the profit target over MANY small steady wins (e.g. aim ~0.5-1% gain/day), NOT one big risky trade. State how many good trades at this risk:reward would reach target.
+5. LOT SIZE MATH. Compute the correct gold lot size from the SL distance and the per-trade risk: for XAU/USD, 1.00 lot ≈ $1 per pip (per $0.10 move = $1)… i.e. ~$1 per $0.01? Use the standard: 1.0 lot gold = $1 per $0.10 price move = $10 per $1 move = $100 per $10 move. So risk $ = lots × (SL_distance_in_dollars × 100). Solve lots = risk_$ / (SL_distance_$ × 100). Show the formula and the resulting lot size, rounded DOWN to be safe.
+
+Analyze the uploaded chart(s) the same institutional/SMC way (premium/discount, liquidity sweep, order block, FVG, BOS/CHoCH, DXY inverse) but FILTER every setup through the rules above. If the chart shows no safe high-probability setup right now, say WAIT — do not force a trade.
+
+Respond with ONLY a valid JSON object (no markdown/backticks). Write all text values in ${outLang}; keep digits as digits:
+{
+  "readable": true,
+  "note": "in ${outLang}, only if image unreadable",
+  "challenge_summary": "in ${outLang} — 1 line: size $${size.toLocaleString()}, target $${tgtUsd.toLocaleString()}, DLL $${dllUsd.toLocaleString()}, max DD $${ddUsd.toLocaleString()}",
+  "market_read": "in ${outLang} — short institutional read of the chart (trend, premium/discount, key liquidity, current order flow). 2-3 short lines.",
+  "setup": {
+    "direction": "Buy|Sell|Wait",
+    "status": "ພ້ອມເຂົ້າ|ລໍຖ້າ",
+    "entry_zone": "TIGHT high-probability reversal zone price will actually reach (e.g. 3298-3302). If Wait, say what must print first.",
+    "stop": "SL price — placed BEYOND the swept liquidity so it is hard to hunt",
+    "sl_distance": "SL distance in dollars from entry (e.g. ~6.0)",
+    "targets": ["TP1 price (conservative, bank quickly)","TP2 price"],
+    "rr": "e.g. 1:2 — keep realistic, not greedy",
+    "confidence": "e.g. 65%"
+  },
+  "lot_size": "in ${outLang} — the SAFE lot size for THIS account: show formula lots = risk_$ (${'$'}${riskUsd.toLocaleString()}) ÷ (SL_distance_$ × 100), then the rounded-DOWN lot. State the $ at risk if SL hit.",
+  "daily_plan": "in ${outLang} — daily discipline: max trades/day, the daily stop in $ (keep WELL below the $${dllUsd.toLocaleString()} DLL — e.g. stop at ~$${Math.round(dllUsd*0.55).toLocaleString()}), and stop-after-target rule.",
+  "pass_pace": "in ${outLang} — how to reach $${tgtUsd.toLocaleString()} safely: suggested gain/day, est. number of winning trades at this RR, est. days. Emphasise slow & steady.",
+  "dll_guard": "in ${outLang} — explicit warning: what NOT to do (no revenge trading, no averaging losers, no widening SL, no oversizing). One firm reminder.",
+  "risk_meter": "ປອດໄພ|ກາງ|ສ່ຽງ — overall risk grade of acting on this plan right now",
+  "quick_map": "in ${outLang} — ONE line action plan"
+}`;
+        const content = [];
+        charts.forEach((c, i) => {
+            content.push({ type: "text", text: `Chart ${i + 1} (detect timeframe):` });
+            content.push({ type: "image", source: { type: "base64", media_type: c.mime, data: c.b64 } });
+        });
+        content.push({ type: "text", text: sys });
+        try {
+            const reqBody = { model: "claude-sonnet-4-6", temperature: 0, max_tokens: 2600, messages: [{ role: "user", content }] };
+            const ctrl = new AbortController();
+            const timer = setTimeout(() => ctrl.abort(), 90000);
+            let response;
+            try { response = await callWithFallback(reqBody, ctrl.signal); }
+            catch (netErr) { clearTimeout(timer); throw new Error(netErr.name === "AbortError" ? "ໃຊ້ເວລານານເກີນ — ລອງໃໝ່ ຫຼື ໃຊ້ຮູບໜ້ອຍລົງ." : "ເຊື່ອมຕໍ່ AI ບໍ່ໄດ້ — ກວດ internet."); }
+            clearTimeout(timer);
+            if (!response.ok) throw new Error("AI ຕອບກັບ error (" + response.status + "). ລອງໃໝ່.");
+            const data = await response.json();
+            const text = (data.content || []).map((i) => (i.type === "text" ? i.text : "")).join("").trim();
+            let parsed;
+            try { parsed = extractJson(text); } catch(e) { parsed = tryRepairJson(text); }
+            if (!parsed) throw new Error("ອ່ານຜົນ AI ບໍ່ໄດ້. ລອງໃໝ່ ຫຼື ໃຊ້ຮູບຊັດກວ່າ.");
+            setFundedResult(parsed);
+        } catch (e) {
+            setErr(e.message || "ວິເຄາະບໍ່ສຳເລັດ. ລອງໃໝ່.");
+        } finally {
+            setLoading(false); setStage("");
+        }
+    };
     // Membership status — reactive countdown (updates every minute)
     const [nowMs, setNowMs] = useState(Date.now());
     useEffect(() => { const id = setInterval(() => setNowMs(Date.now()), 60000); return () => clearInterval(id); }, []);
@@ -2694,6 +2796,7 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
                     React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 14 } },
                         React.createElement(HomeCard, { icon: "\uD83D\uDCCA", title: t("analyzeChart"), desc: "AI Intelligence", glowColor: "rgba(38,130,255,.2)", iconBg: "rgba(38,130,255,.15)", onClick: () => { setNav("tools"); setTab("chart"); } }),
                         React.createElement(HomeCard, { icon: "\uD83D\uDCF0", title: t("analyzeNews"), desc: "DXY \u00B7 Fed \u00B7 Oil", glowColor: "rgba(63,217,138,.15)", iconBg: "rgba(63,217,138,.12)", onClick: () => { setNav("tools"); setTab("news"); } }),
+                        React.createElement(HomeCard, { icon: "\uD83C\uDFE6", title: t("fundedTab"), desc: "Prop · Futures · Funded", glowColor: "rgba(38,130,255,.2)", iconBg: "rgba(38,130,255,.12)", onClick: () => { setNav("tools"); setTab("funded"); } }),
                         React.createElement(HomeCard, { icon: "\uD83C\uDF93", title: t("tabCourse"), desc: "Gold Sniper", glowColor: "rgba(255,194,75,.15)", iconBg: "rgba(255,194,75,.12)", onClick: () => setNav("learn") }),
                         React.createElement(HomeCard, { icon: "\uD83D\uDCE2", title: t("tabNews2"), desc: t("homeAnnounce"), glowColor: "rgba(255,107,107,.15)", iconBg: "rgba(255,107,107,.12)", onClick: () => setNav("news") }))),
                 React.createElement("div", { style: { marginTop: 26 } },
@@ -2710,11 +2813,11 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
                         React.createElement("a", { className: "fx-link", href: b.url, target: "_blank", rel: "noopener noreferrer", style: { display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", background: `linear-gradient(95deg,${C.blue},${C.blueLt})`, color: "#04101F", fontWeight: 700, fontSize: 13.5, padding: "11px 16px", borderRadius: 11, whiteSpace: "nowrap" } },
                             b.cta, " \u2192"))))))),
             nav === "tools" && (React.createElement("div", { className: "fx-rise" },
-                React.createElement("div", { style: { display: "flex", gap: 6, background: C.bg2, border: `1px solid ${C.line}`, borderRadius: 14, padding: 5, maxWidth: 560, margin: "0 auto" } }, [["chart", "📊 " + t("analyzeChart")], ["news", "📰 " + t("analyzeNews")]].map(([id, label]) => (React.createElement("button", { key: id, className: "fx-btn", onClick: () => setTab(id), style: { flex: 1, padding: "10px 8px", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600,
+                React.createElement("div", { style: { display: "flex", gap: 6, background: C.bg2, border: `1px solid ${C.line}`, borderRadius: 14, padding: 5, maxWidth: 620, margin: "0 auto" } }, [["chart", "📊 " + t("analyzeChart")], ["news", "📰 " + t("analyzeNews")], ["funded", "🏦 " + t("fundedTab")]].map(([id, label]) => (React.createElement("button", { key: id, className: "fx-btn", onClick: () => setTab(id), style: { flex: 1, padding: "10px 6px", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 600,
                         background: tab === id ? `linear-gradient(95deg,${C.blue},${C.blueLt})` : "transparent",
                         color: tab === id ? "#04101F" : C.mut, transition: "all .15s" } }, label)))),
                 tab === "chart" && (React.createElement(React.Fragment, null,
-                    React.createElement(AIEnginePanel, { t: t, engines: aiEngines, setEngines: setAiEngines }),
+                    isAdmin && React.createElement(AIEnginePanel, { t: t, engines: aiEngines, setEngines: setAiEngines }),
                     React.createElement("section", { style: { marginTop: 14, background: C.panel, border: `1px solid ${C.line}`, borderRadius: 18, padding: "20px 18px", position: "relative", overflow: "hidden" } },
                         React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: 16, flexWrap: "wrap" } },
                             React.createElement(Bars, null),
@@ -2756,7 +2859,15 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
                             React.createElement("button", { className: "fx-btn", onClick: reset, disabled: loading, style: ghostBtn }, t("clearAll")))),
                         err && React.createElement("div", { style: { marginTop: 16, padding: "12px 16px", borderRadius: 10, background: "rgba(255,107,107,.08)", border: `1px solid ${C.red}`, color: "#FFC4C4", fontSize: 14, lineHeight: 1.6 } }, err)),
                     result && React.createElement(Result, { data: result, t: t, engines: aiEngines, isAdmin: isAdmin }))),
-                tab === "news" && React.createElement(NewsPanel, { t: t, lang: lang, isVip: isVip, onUpgrade: () => setShowPay(true) }))),
+                tab === "news" && React.createElement(NewsPanel, { t: t, lang: lang, isVip: isVip, onUpgrade: () => setShowPay(true) }),
+                tab === "funded" && React.createElement(FundedPanel, {
+                    t: t, lang: lang,
+                    fundedType, setFundedType, accountSize, setAccountSize, profitTarget, setProfitTarget,
+                    maxDLL, setMaxDLL, maxDD, setMaxDD, riskPerTrade, setRiskPerTrade,
+                    charts, addFiles, removeChart, onDrop, fileRef,
+                    loading, stage, err, analyzeFunded, fundedResult,
+                    reset: () => { setCharts([]); setFundedResult(null); setErr(null); if (fileRef.current) fileRef.current.value = ""; }
+                }))),
             nav === "learn" && (React.createElement("div", { className: "fx-rise" }, isAdmin ? (React.createElement(React.Fragment, null,
                 React.createElement("div", { style: { display: "flex", gap: 6, background: C.bg2, border: `1px solid ${C.line}`, borderRadius: 14, padding: 5, maxWidth: 460, margin: "0 auto 4px" } }, [["paid", "🎥 " + t("learnTabPaid") + " (admin)"], ["free", "📖 " + t("learnTabFree")]].map(([id, label]) => (React.createElement("button", { key: id, className: "fx-btn", onClick: () => setLearnTab(id), style: { flex: 1, padding: "10px 12px", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13.5, fontWeight: 600,
                         background: learnTab === id ? `linear-gradient(95deg,${C.blue},${C.blueLt})` : "transparent",
@@ -4581,6 +4692,135 @@ function SplashScreen({ onDone }) {
             React.createElement("div", { style: { width: 200, height: 3, borderRadius: 99, background: C.bg2, margin: "30px auto 0", overflow: "hidden" } },
                 React.createElement("div", { className: "sp-bar", style: { height: "100%", borderRadius: 99, background: `linear-gradient(90deg,${C.cyan},${C.blue})` } })))));
 }
+// ── Funded / Prop-firm challenge panel ───────────────────────
+function FundedPanel(props) {
+    const { t, fundedType, setFundedType, accountSize, setAccountSize, profitTarget, setProfitTarget,
+        maxDLL, setMaxDLL, maxDD, setMaxDD, riskPerTrade, setRiskPerTrade,
+        charts, addFiles, removeChart, onDrop, fileRef, loading, stage, err, analyzeFunded, fundedResult, reset } = props;
+    const size = parseFloat(accountSize) || 0;
+    const usd = (pct) => Math.round(size * (parseFloat(pct) || 0) / 100);
+    const fmt = (n) => "$" + (n || 0).toLocaleString();
+    const FIRMS = [
+        { id: "prop",    icon: "🏛️", name: "Prop Firm",  sub: "FTMO · FundedNext · MyFunded" },
+        { id: "futures", icon: "📈", name: "Futures",    sub: "Apex · Topstep · Tradeify" },
+        { id: "funded",  icon: "💼", name: "Funded",     sub: "Instant / Funded capital" },
+    ];
+    const PRESETS = ["10000", "25000", "50000", "100000", "200000"];
+    const card = { background: C.panel, border: `1px solid ${C.line}`, borderRadius: 18, padding: "18px 16px", position: "relative", overflow: "hidden" };
+    const inputBox = { background: C.bg2, border: `1px solid ${C.line}`, borderRadius: 10, padding: "10px 12px", color: C.text, fontSize: 14, fontFamily: "inherit", outline: "none", width: "100%", boxSizing: "border-box" };
+    const lbl = { fontSize: 11.5, color: C.mut, fontWeight: 600, marginBottom: 6, display: "block" };
+
+    const numField = (label, val, setVal, suffix, hintUsd, hintColor) =>
+        React.createElement("div", null,
+            React.createElement("label", { style: lbl }, label),
+            React.createElement("div", { style: { position: "relative" } },
+                React.createElement("input", { type: "number", inputMode: "decimal", value: val, onChange: e => setVal(e.target.value), style: inputBox }),
+                suffix && React.createElement("span", { style: { position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: C.mut, fontSize: 13, fontWeight: 600 } }, suffix)),
+            hintUsd != null && React.createElement("div", { style: { fontSize: 11, color: hintColor || C.blueLt, marginTop: 4, fontWeight: 600 } }, "= " + fmt(hintUsd)));
+
+    return React.createElement("div", { className: "fx-rise" },
+        // Header banner
+        React.createElement("section", { style: { ...card, marginBottom: 14, background: "linear-gradient(135deg,rgba(38,130,255,.12),rgba(63,217,138,.06))" } },
+            React.createElement("div", { "aria-hidden": true, style: { position: "absolute", top: -60, right: -40, width: 200, height: 200, background: `radial-gradient(closest-side,${C.glow},transparent)`, filter: "blur(20px)" } }),
+            React.createElement("div", { style: { position: "relative" } },
+                React.createElement("div", { style: { fontSize: 22, fontWeight: 800, fontFamily: "'LaoOverride','Sora','Noto Sans Lao',sans-serif", display: "flex", alignItems: "center", gap: 8 } }, "🏦 ເທຣດກອງທຶນ"),
+                React.createElement("div", { style: { fontSize: 12.5, color: C.cyan, marginTop: 4, lineHeight: 1.6 } }, "ວາງແຜນຜ່ານກອງທຶນ Funded · Prop Firm · Futures — ເນັ້ນ ", React.createElement("b", { style: { color: C.green } }, "ບໍ່ໃຫ້ໂດນ SL ຈนสอบตก"), " ປົກປ້ອງທຶນກ່อน"))),
+
+        // Firm type
+        React.createElement("section", { style: { ...card, marginBottom: 14 } },
+            React.createElement("label", { style: lbl }, "ປະເພດກອງທຶນ"),
+            React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 } },
+                FIRMS.map(f => React.createElement("button", { key: f.id, className: "fx-btn", onClick: () => setFundedType(f.id),
+                    style: { padding: "12px 6px", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "center",
+                        border: `1.5px solid ${fundedType === f.id ? C.blue : C.line}`, background: fundedType === f.id ? "rgba(38,130,255,.14)" : C.bg2 } },
+                    React.createElement("div", { style: { fontSize: 22 } }, f.icon),
+                    React.createElement("div", { style: { fontSize: 12.5, fontWeight: 700, color: fundedType === f.id ? C.cyan : C.text, marginTop: 3 } }, f.name),
+                    React.createElement("div", { style: { fontSize: 9.5, color: C.mut, marginTop: 2, lineHeight: 1.3 } }, f.sub))))),
+
+        // Account size + presets
+        React.createElement("section", { style: { ...card, marginBottom: 14 } },
+            React.createElement("label", { style: lbl }, "ຂະໜາດບັນຊີ (Account Size)"),
+            React.createElement("div", { style: { position: "relative", marginBottom: 10 } },
+                React.createElement("span", { style: { position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.green, fontSize: 15, fontWeight: 700 } }, "$"),
+                React.createElement("input", { type: "number", inputMode: "numeric", value: accountSize, onChange: e => setAccountSize(e.target.value), style: { ...inputBox, paddingLeft: 26, fontSize: 18, fontWeight: 700, color: C.green } })),
+            React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap" } },
+                PRESETS.map(p => React.createElement("button", { key: p, className: "fx-btn", onClick: () => setAccountSize(p),
+                    style: { flex: "1 1 auto", padding: "7px 4px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700,
+                        border: `1px solid ${accountSize === p ? C.green : C.line}`, background: accountSize === p ? "rgba(63,217,138,.12)" : C.bg2, color: accountSize === p ? C.green : C.mut } },
+                    "$" + (parseInt(p) / 1000) + "K")))),
+
+        // Rules grid
+        React.createElement("section", { style: { ...card, marginBottom: 14 } },
+            React.createElement("label", { style: { ...lbl, marginBottom: 12, fontSize: 12.5, color: C.text, fontWeight: 700 } }, "📋 ກົດກອງທຶນ"),
+            React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 } },
+                numField("🎯 Profit Target", profitTarget, setProfitTarget, "%", usd(profitTarget), C.green),
+                numField("🛑 Daily Loss (DLL)", maxDLL, setMaxDLL, "%", usd(maxDLL), C.red),
+                numField("📉 Max Drawdown", maxDD, setMaxDD, "%", usd(maxDD), C.amber),
+                numField("⚖️ ຄວາມສ່ຽງ/ໄມ້", riskPerTrade, setRiskPerTrade, "%", usd(riskPerTrade), C.blueLt))),
+
+        // Upload + analyze (reuse chart upload)
+        React.createElement("section", { style: card },
+            React.createElement("label", { style: { ...lbl, marginBottom: 10, fontSize: 12.5, color: C.text, fontWeight: 700 } }, "📊 ອັບໂຫຼດກຣາฟ XAU/USD"),
+            charts.length === 0
+                ? React.createElement(Dropzone, { onDrop: onDrop, onClick: () => { var _a; return (_a = fileRef.current) === null || _a === void 0 ? void 0 : _a.click(); }, t: t })
+                : React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(130px,1fr))", gap: 10 } },
+                    charts.map((c, idx) => React.createElement("div", { key: c.id, className: "fx-card", style: { borderRadius: 12, overflow: "hidden", border: `1px solid ${C.line}`, position: "relative" } },
+                        React.createElement("img", { src: c.url, alt: "chart", style: { width: "100%", height: 100, objectFit: "cover", display: "block", background: "#000" } }),
+                        React.createElement("button", { onClick: () => removeChart(c.id), style: { position: "absolute", top: 6, right: 6, width: 24, height: 24, borderRadius: "50%", border: "none", background: "rgba(5,7,13,.8)", color: C.text, cursor: "pointer", fontSize: 14 } }, "×"))),
+                    charts.length < MAX_CHARTS && React.createElement("button", { className: "fx-btn", onClick: () => { var _a; return (_a = fileRef.current) === null || _a === void 0 ? void 0 : _a.click(); }, style: { minHeight: 100, borderRadius: 12, border: `1.5px dashed ${C.line}`, background: "transparent", color: C.mut, cursor: "pointer", fontSize: 13, fontFamily: "inherit" } }, "+ ເພີ່ມຮູບ")),
+            React.createElement("input", { ref: fileRef, type: "file", accept: "image/*", multiple: true, style: { display: "none" }, onChange: (e) => addFiles(e.target.files) }),
+            charts.length > 0 && React.createElement("div", { style: { display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" } },
+                React.createElement("button", { className: "fx-btn", onClick: analyzeFunded, disabled: loading, style: primaryBtn(loading) },
+                    loading ? React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 8 } }, React.createElement(Spinner, null), " ", stage || "ກຳລັງວາງແຜນ…") : "🛡️ ວາງແຜນຜ່ານກອງທຶນ"),
+                React.createElement("button", { className: "fx-btn", onClick: reset, disabled: loading, style: ghostBtn }, t("clearAll"))),
+            err && React.createElement("div", { style: { marginTop: 16, padding: "12px 16px", borderRadius: 10, background: "rgba(255,107,107,.08)", border: `1px solid ${C.red}`, color: "#FFC4C4", fontSize: 14, lineHeight: 1.6 } }, err)),
+
+        fundedResult && React.createElement(FundedResult, { data: fundedResult, fmt: fmt })
+    );
+}
+
+function FundedResult({ data, fmt }) {
+    if (data && data.readable === false)
+        return React.createElement("section", { style: { marginTop: 14, background: C.panel, border: `1px solid ${C.red}`, borderRadius: 16, padding: 18, color: "#FFC4C4" } }, data.note || "ອ່ານກຣາฟບໍ່ໄດ້ — ໃຊ້ຮູບຊັດກວ່າ.");
+    const s = data.setup || {};
+    const dirColor = s.direction === "Buy" ? C.green : s.direction === "Sell" ? C.red : C.amber;
+    const meterColor = data.risk_meter === "ປອດໄພ" ? C.green : data.risk_meter === "ສ່ຽງ" ? C.red : C.amber;
+    const block = (icon, title, body, color) => body && React.createElement("div", { style: { background: C.bg2, border: `1px solid ${C.line}`, borderRadius: 12, padding: "12px 14px" } },
+        React.createElement("div", { style: { fontSize: 11.5, fontWeight: 700, color: color || C.blueLt, marginBottom: 5, display: "flex", alignItems: "center", gap: 6 } }, icon + " " + title),
+        React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65, whiteSpace: "pre-wrap" } }, body));
+
+    return React.createElement("section", { style: { marginTop: 16, background: C.panel, border: `1px solid ${C.line}`, borderRadius: 18, padding: "20px 16px", position: "relative", overflow: "hidden" } },
+        React.createElement("div", { "aria-hidden": true, style: { position: "absolute", top: -50, left: "50%", transform: "translateX(-50%)", width: 300, height: 160, background: `radial-gradient(closest-side,${C.glow},transparent)`, filter: "blur(24px)", opacity: .6 } }),
+        React.createElement("div", { style: { position: "relative", display: "flex", flexDirection: "column", gap: 12 } },
+            // top: direction + risk meter
+            React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" } },
+                React.createElement("span", { style: { fontSize: 16, fontWeight: 800, color: dirColor, border: `1.5px solid ${dirColor}`, borderRadius: 99, padding: "4px 16px", background: dirColor + "1A" } }, (s.direction || "WAIT") + (s.status ? " · " + s.status : "")),
+                data.risk_meter && React.createElement("span", { style: { marginLeft: "auto", fontSize: 12, fontWeight: 700, color: meterColor, border: `1px solid ${meterColor}`, borderRadius: 99, padding: "4px 12px", background: meterColor + "14" } }, "ຄວາມສ່ຽງ: " + data.risk_meter)),
+            data.challenge_summary && React.createElement("div", { style: { fontSize: 12, color: C.mut, lineHeight: 1.6 } }, data.challenge_summary),
+            block("📈", "ອ່ານຕະຫຼาด", data.market_read),
+            // entry / sl / tp row
+            (s.entry_zone || s.stop) && React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 } },
+                s.entry_zone && React.createElement("div", { style: { background: "rgba(38,130,255,.08)", border: `1px solid ${C.blue}`, borderRadius: 12, padding: "10px 12px" } },
+                    React.createElement("div", { style: { fontSize: 10.5, color: C.mut, fontWeight: 600 } }, "ENTRY"),
+                    React.createElement("div", { style: { fontSize: 16, fontWeight: 800, color: C.cyan } }, s.entry_zone)),
+                s.stop && React.createElement("div", { style: { background: "rgba(255,107,107,.08)", border: `1px solid ${C.red}`, borderRadius: 12, padding: "10px 12px" } },
+                    React.createElement("div", { style: { fontSize: 10.5, color: C.mut, fontWeight: 600 } }, "SL (ປ້ອງກັນ hunt)"),
+                    React.createElement("div", { style: { fontSize: 16, fontWeight: 800, color: "#FFC4C4" } }, s.stop),
+                    s.sl_distance && React.createElement("div", { style: { fontSize: 10.5, color: C.mut, marginTop: 2 } }, "ໄລຍະ ~" + s.sl_distance))),
+            Array.isArray(s.targets) && s.targets.length > 0 && React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } },
+                s.targets.map((tp, i) => React.createElement("span", { key: i, style: { flex: "1 1 auto", textAlign: "center", fontSize: 13, fontWeight: 700, color: C.green, background: "rgba(63,217,138,.1)", border: `1px solid ${C.green}`, borderRadius: 10, padding: "8px 6px" } }, "TP" + (i + 1) + " · " + tp))),
+            (s.rr || s.confidence) && React.createElement("div", { style: { display: "flex", gap: 14, fontSize: 12, color: C.mut } },
+                s.rr && React.createElement("span", null, "RR: ", React.createElement("b", { style: { color: C.text } }, s.rr)),
+                s.confidence && React.createElement("span", null, "ໝັ້ນໃຈ: ", React.createElement("b", { style: { color: C.text } }, s.confidence))),
+            block("🧮", "ຂະໜາດ Lot ປອດໄພ", data.lot_size, C.cyan),
+            block("📅", "ແຜນປະຈຳວັນ", data.daily_plan, C.blueLt),
+            block("🏁", "ຈັງຫວະຜ່ານກອງທຶນ", data.pass_pace, C.green),
+            block("⚠️", "ກັນ DLL ແຕກ", data.dll_guard, C.amber),
+            data.quick_map && React.createElement("div", { style: { background: "linear-gradient(95deg,rgba(38,130,255,.14),rgba(63,217,138,.08))", border: `1px solid ${C.blue}`, borderRadius: 12, padding: "12px 14px", fontSize: 13.5, fontWeight: 700, color: C.cyan } }, "🎯 " + data.quick_map),
+            React.createElement("div", { style: { fontSize: 10.5, color: C.mut, textAlign: "center", marginTop: 4, lineHeight: 1.5 } }, "⚠️ ນີ້ແມ່ນການວິເຄາະຊ່ວຍຕັດສິນໃຈ ບໍ່ແມ່ນຄຳແນະນຳການລົງທຶນ — ບໍລິຫານຄວາມສ່ຽງເອງສະເໝີ")
+        ));
+}
+
 // ── Multi-AI engine selector (consensus) ─────────────────────
 function AIEnginePanel({ t, engines, setEngines }) {
     const AIS = [
