@@ -2359,6 +2359,8 @@ HARD RULES (protect the trader):
 
 KEEP IT TIGHT — each text field 1 short sentence (the SMC reads above are 1 line each). Max 2 zones, 1 primary setup + at most 1 alternative, up to 5 confluence factors. Output ONLY the JSON.
 
+⭐ SNIPER FINAL MANDATE (overrides everything above): no matter WHICH confluences, patterns, or tools you found (Elliott, Wyckoff, Harmonic, ICT, options flow, multi-TF, etc.), the final output MUST converge on ONE single SNIPER entry zone — the one precise price where the chart has the highest probability of reversing INSTANTLY on first touch (order goes green immediately, no drag/drawdown). Use all the analysis ONLY to pinpoint and justify that single zone. Never spread the conclusion across several vague areas. If nothing qualifies as that instant-reversal sniper zone right now, the setup MUST be "ລໍຖ້າ" (wait) and you state what must print first — do not water down the sniper standard. Everything you reported is supporting evidence for this one zone.
+
 Write ALL text values in ${outLang} (keep "status"/"grade" keys in Lao as shown). Numbers, prices, TFs, pips, ratios, % stay as digits.
 
 Respond with ONLY a valid JSON object — no markdown, no backticks. Write every text value in ${outLang} (but keep the "status" and "grade" keys in Lao exactly as shown):
@@ -5186,19 +5188,35 @@ function WalletReferral({ t, user }) {
     // Referral code derived from email (demo). Backend should assign a unique code.
     const code = (((_a = user === null || user === void 0 ? void 0 : user.email) === null || _a === void 0 ? void 0 : _a.split("@")[0]) || "user").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8) + "FX";
     const link = `https://kanhstartup-netizen.github.io/snipertech-/snipertech/?ref=${code}`;
-    const copyLink = async () => {
+    const [shortLink, setShortLink] = useState("");
+    // Shorten the long GitHub-Pages invite link via is.gd (free, no API key).
+    // Falls back to the full link if the service is unreachable. Cached after first call.
+    const getShortLink = async () => {
+        if (shortLink) return shortLink;
         try {
-            await navigator.clipboard.writeText(link);
+            const r = await fetch("https://is.gd/create.php?format=simple&url=" + encodeURIComponent(link), { cache: "no-store" });
+            const s = (await r.text()).trim();
+            if (s && /^https?:\/\//.test(s)) { setShortLink(s); return s; }
+        } catch(e) {}
+        return link;
+    };
+    // Generate the short link once when the wallet/referral screen opens.
+    React.useEffect(() => { getShortLink(); /* eslint-disable-next-line */ }, []);
+    const copyLink = async () => {
+        const url = await getShortLink();
+        try {
+            await navigator.clipboard.writeText(url);
             setCopied(true);
             setTimeout(() => setCopied(false), 1800);
         }
         catch { }
     };
     const share = async () => {
-        const text = `🎯 SniperTech AI — AI ວິເຄາະທອງ XAU/USD\n\nສະໝັກທົດລອງຟຣີ 3 ວັນ ຜ່ານລິ້ງຂອງຂ້ອຍ:\n${link}\n\n(ໃສ່ code ${code} ຕອນສະໝັກ)`;
+        const url = await getShortLink();
+        const text = `🎯 SniperTech AI — AI ວິເຄາະທອງ XAU/USD\n\nສະໝັກທົດລອງຟຣີ 3 ວັນ ຜ່ານລິ້ງຂອງຂ້ອຍ:\n${url}\n\n(ໃສ່ code ${code} ຕອນສະໝັກ)`;
         try {
             if (navigator.share) {
-                await navigator.share({ title: "SniperTech AI", text, url: link });
+                await navigator.share({ title: "SniperTech AI", text, url: url });
             }
             else {
                 await navigator.clipboard.writeText(text);
@@ -5249,7 +5267,7 @@ function WalletReferral({ t, user }) {
                 React.createElement("div", { style: { marginTop: 12 } },
                     React.createElement("div", { style: { fontSize: 11, color: C.mut, marginBottom: 5 } }, t("refYourLink")),
                     React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center", background: C.bg2, border: `1px solid ${C.line}`, borderRadius: 10, padding: "9px 12px" } },
-                        React.createElement("code", { style: { flex: 1, fontSize: 11.5, color: C.text, wordBreak: "break-all", lineHeight: 1.4 } }, link),
+                        React.createElement("code", { style: { flex: 1, fontSize: 11.5, color: C.text, wordBreak: "break-all", lineHeight: 1.4 } }, shortLink || link),
                         React.createElement("button", { onClick: copyLink, className: "fx-btn", style: { flexShrink: 0, fontSize: 11, fontWeight: 700, color: "#04101F", background: copied ? C.green : C.blueLt, border: "none", borderRadius: 7, padding: "6px 11px", cursor: "pointer", fontFamily: "inherit" } }, copied ? t("refCopied") : t("refCopy")))),
                 React.createElement("button", { onClick: share, className: "fx-btn", style: { width: "100%", marginTop: 12, padding: "12px", borderRadius: 11, border: "none", background: `linear-gradient(95deg,${C.blue},${C.blueLt})`, color: "#04101F", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" } },
                     "\uD83D\uDCE4 ",
