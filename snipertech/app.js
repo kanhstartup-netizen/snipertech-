@@ -2011,7 +2011,11 @@ function SniperTechX() {
         // Restore admin state on reload if user email matches ADMIN_EMAILS
         try { const s = localStorage.getItem("sniper_user"); if (s) { const u = JSON.parse(s); return isAdminEmail(u.email); } } catch(e) {} return false;
     }); // admin unlock — hides AI engine internals from clients
-    React.useEffect(() => { if (isAdmin) setCourseUnlocked(true); }, [isAdmin]);
+    // VIP (paid, non-trial, active) OR admin unlocks the full Learning course too.
+    React.useEffect(() => {
+        const vip = isAdmin || (!!user && user.plan && user.plan !== "Trial");
+        if (vip) setCourseUnlocked(true);
+    }, [isAdmin, user]);
     // ── Theme: mutate live C palette + re-render whole app on change ──
     const [theme, setThemeState] = useState(DEFAULT_THEME);
     const setTheme = (key) => { const applied = applyTheme(key); setThemeState(applied); };
@@ -2258,12 +2262,13 @@ I) GLOBAL SNIPER TECHNIQUES (from elite SMC communities worldwide — Stacey Bur
 ANALYZE ONLY what is visible. If an image is unclear or not a price chart, set "readable" false and explain briefly in "note".
 
 HARD RULES (protect the trader):
-- ⭐ M15 WICK-TIP ENTRY (TOP PRIORITY — this app's signature): the entry MUST be placed at the EXTREME TIP of an M15 candle wick (the precise high of a sweep wick for a Sell, or the precise low of a sweep wick for a Buy) — i.e. the exact price where M15 liquidity was grabbed and instantly rejected. The goal is that the order is in PROFIT immediately on fill, with NO adverse excursion (no drawdown, no "drag" up or down before it works). To achieve this:
-  • Find on M15 the most recent liquidity SWEEP wick that pierced a key level and snapped back with rejection (long wick, small body against the move).
-  • Set "entry_zone" at the very tip of that wick (within ~1-3 dollars of the wick extreme), NOT in the candle body and NOT at a mid-range level.
-  • The wick tip must align with HTF bias + premium/discount (Buy only at a discount-side wick low, Sell only at a premium-side wick high). If no clean M15 rejection wick exists at a valid level yet, set setup status to "ລໍຖ້າ" and say price has not printed the wick — do NOT invent an entry.
-  • Report the exact wick the entry is taken from in the new "m15_wick" field (which candle, which level it swept, the tip price).
-  • SL goes just BEYOND that same wick tip (a few dollars past the extreme that already rejected), keeping it tight — see SL rule below.
+- ⭐ SNIPER REVERSAL POINT (TOP PRIORITY — this app's signature): find the SINGLE price level with the HIGHEST PROBABILITY that the chart reverses the moment price touches it, so the order turns green almost immediately (minimal/zero adverse excursion). This is NOT "the latest M15 wick" — the most recent wick is often the WRONG choice because price may never return to it. Instead, locate the best institutional decision point:
+  • Build confluence: the level must stack as many of these as possible — HTF (H4/H1) order block or FVG, a clear liquidity pool that has NOT yet been swept (resting stops price is likely to run TO), premium/discount alignment (Buy only in discount, Sell only in premium), an unmitigated OB, and a round-number / psychological level.
+  • Prefer a level price is APPROACHING and likely to REACH, not one it has already left behind. A great sniper entry sits where price is heading next and where a sweep + rejection is most probable, giving the highest chance of an instant turn.
+  • Among candidate levels, choose the one with (a) the most confluence factors agreeing AND (b) the clearest, freshest liquidity to grab — that combination is what makes the reversal sharp and immediate.
+  • Refine the exact entry on M15/M5 (OB or FVG edge) so the zone is tight and the stop sits just beyond the level that would invalidate the reversal.
+  • If no high-probability reversal point is in reach yet (price mid-range, no clean liquidity, weak confluence), set the setup status to "ລໍຖ້າ" and explain what must happen first — do NOT force an entry onto the nearest wick.
+  • Report the chosen sniper level and WHY it is the highest-probability reversal in the "m15_wick" field (the confluence behind it + the precise entry price/zone).
 - SNIPER PRECISION (critical): this is a SNIPER signal, not a wide swing zone. The "entry_zone" MUST be TIGHT — for gold (XAU/USD) keep it roughly 3-8 dollars wide (≈ 30-80 pip), and NEVER wider than 10 dollars (100 pip). A wide zone like 4200-4225 (25 dollars) is WRONG — narrow it to the single best refined zone (e.g. an M5/M15 order block or FVG inside the larger area), e.g. 4200-4206. Pick the most precise entry, not the whole range.
 - STOP LOSS at a structurally valid level just beyond the OB/swing that invalidates the idea — but keep it REALISTIC and CONTROLLED: target about 30-120 pip (≈ 3-12 dollars) on gold. NEVER report an SL more than 150 pip (15 dollars) away — if structure seems to require more than that, the entry zone is wrong, so refine to a lower-timeframe entry closer to invalidation instead of widening the stop. Report distance in "sl_pips". Also avoid tiny forced stops (an 8-pip stop on gold gets hunted) — the sweet spot is a tight but breathable 30-120 pip.
 - The distance from entry to the FINAL target (TP3) should be reasonable for an intraday move — do NOT stretch the whole entry→SL→TP span across hundreds of dollars. If your levels imply a ~2500-pip span, they are far too wide: tighten them.
@@ -2292,7 +2297,7 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
   "bias": "Buy|Sell|Wait — single word direction bias from the multi-TF read",
   "structure": "in ${outLang}, 1-2 short sentences max",
   "premium_discount": "in ${outLang} — is price in DISCOUNT (below 50%, favor Buy) or PREMIUM (above 50%, favor Sell) now? 1 line",
-  "m15_wick": "in ${outLang} — the exact M15 rejection wick the entry is taken from: which level it swept + the wick-tip price used as entry (1 line). If no valid M15 wick yet, say so and mark setup ລໍຖ້າ.",
+  "m15_wick": "in ${outLang} — the chosen SNIPER reversal level: the confluence behind why it has the highest probability of an instant turn (HTF OB/FVG + unswept liquidity + premium/discount + round number) and the precise entry price/zone. If no high-probability point is in reach, say so and mark setup ລໍຖ້າ.",
   "liquidity": "in ${outLang} — key liquidity pool + any sweep/grab seen (1 line)",
   "order_flow": "in ${outLang} — who has control now (displacement/absorption/BOS/CHoCH), 1 line",
   "order_book": "in ${outLang} — only if DOM/volume profile is visible; otherwise note it isn't shown and you used price/volume (1 line)",
@@ -2304,7 +2309,7 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
   "setups": [{
     "direction":"Buy|Sell","status":"ພ້ອມເຂົ້າ|ລໍຖ້າ","grade":"ສູງ|ກາງ|ຕ່ຳ",
     "confluence_factors":["in ${outLang}, short — e.g. liquidity sweep, discount zone, order block, BOS, DXY agrees"],
-    "entry_zone":"at the M15 wick TIP — ultra-tight, ~1-3 dollars (e.g. 4200-4202), at the exact swept high(Sell)/low(Buy), so the trade is in profit instantly","stop":"price","sl_pips":"30-120 pip typical, NEVER >150 pip",
+    "entry_zone":"TIGHT zone at the highest-probability reversal level — ~3-8 dollars wide, refined on M15/M5 (e.g. 4200-4206), where price is most likely to turn instantly","stop":"price","sl_pips":"30-120 pip typical, NEVER >150 pip",
     "targets":["TP1 price","TP2 price","TP3 price"],"rr":"e.g. 1:3","confidence":"e.g. 60-65%",
     "rationale":"in ${outLang}, 1 short line","invalidation":"in ${outLang}, short"
   }],
