@@ -148,6 +148,36 @@ const KCM_LOGO = "./img5.jpeg";
 // Subscription: 3-day free trial, then monthly
 const TRIAL_DAYS = 3;
 
+// ─────────────────────────────────────────────────────────────
+// Persistent per-email account store (survives logout)
+// ─────────────────────────────────────────────────────────────
+// `sniper_user` = the CURRENT signed-in session (removed on logout).
+// `sniper_accounts` = a permanent map { emailLower: {email, plan, expiresAt, name, phone, trialUsed, avatar} }
+// that is NEVER cleared on logout — this is what remembers a user's VIP
+// status and original trial end-date when they sign back in.
+const ACCT_KEY = "sniper_accounts";
+const emailKey = (e) => (e || "").trim().toLowerCase();
+function loadAccounts() {
+    try { const s = localStorage.getItem(ACCT_KEY); return s ? JSON.parse(s) : {}; } catch(e) { return {}; }
+}
+function getAccount(email) {
+    const k = emailKey(email);
+    if (!k) return null;
+    const all = loadAccounts();
+    return all[k] || null;
+}
+// Merge & persist an account record. Returns the merged record.
+function saveAccount(rec) {
+    const k = emailKey(rec && rec.email);
+    if (!k) return rec;
+    try {
+        const all = loadAccounts();
+        all[k] = { ...(all[k] || {}), ...rec, email: rec.email };
+        localStorage.setItem(ACCT_KEY, JSON.stringify(all));
+        return all[k];
+    } catch(e) { return rec; }
+}
+
 // Activation codes — Static fallback codes
 const ACTIVATION_CODES = {
     "VIP30":    { days: 30,  plan: "VIP" },
@@ -2011,11 +2041,7 @@ function SniperTechX() {
         // Restore admin state on reload if user email matches ADMIN_EMAILS
         try { const s = localStorage.getItem("sniper_user"); if (s) { const u = JSON.parse(s); return isAdminEmail(u.email); } } catch(e) {} return false;
     }); // admin unlock — hides AI engine internals from clients
-    // VIP (paid, non-trial, active) OR admin unlocks the full Learning course too.
-    React.useEffect(() => {
-        const vip = isAdmin || (!!user && user.plan && user.plan !== "Trial");
-        if (vip) setCourseUnlocked(true);
-    }, [isAdmin, user]);
+    React.useEffect(() => { if (isAdmin) setCourseUnlocked(true); }, [isAdmin]);
     // ── Theme: mutate live C palette + re-render whole app on change ──
     const [theme, setThemeState] = useState(DEFAULT_THEME);
     const setTheme = (key) => { const applied = applyTheme(key); setThemeState(applied); };
@@ -2262,13 +2288,12 @@ I) GLOBAL SNIPER TECHNIQUES (from elite SMC communities worldwide — Stacey Bur
 ANALYZE ONLY what is visible. If an image is unclear or not a price chart, set "readable" false and explain briefly in "note".
 
 HARD RULES (protect the trader):
-- ⭐ SNIPER REVERSAL POINT (TOP PRIORITY — this app's signature): find the SINGLE price level with the HIGHEST PROBABILITY that the chart reverses the moment price touches it, so the order turns green almost immediately (minimal/zero adverse excursion). This is NOT "the latest M15 wick" — the most recent wick is often the WRONG choice because price may never return to it. Instead, locate the best institutional decision point:
-  • Build confluence: the level must stack as many of these as possible — HTF (H4/H1) order block or FVG, a clear liquidity pool that has NOT yet been swept (resting stops price is likely to run TO), premium/discount alignment (Buy only in discount, Sell only in premium), an unmitigated OB, and a round-number / psychological level.
-  • Prefer a level price is APPROACHING and likely to REACH, not one it has already left behind. A great sniper entry sits where price is heading next and where a sweep + rejection is most probable, giving the highest chance of an instant turn.
-  • Among candidate levels, choose the one with (a) the most confluence factors agreeing AND (b) the clearest, freshest liquidity to grab — that combination is what makes the reversal sharp and immediate.
-  • Refine the exact entry on M15/M5 (OB or FVG edge) so the zone is tight and the stop sits just beyond the level that would invalidate the reversal.
-  • If no high-probability reversal point is in reach yet (price mid-range, no clean liquidity, weak confluence), set the setup status to "ລໍຖ້າ" and explain what must happen first — do NOT force an entry onto the nearest wick.
-  • Report the chosen sniper level and WHY it is the highest-probability reversal in the "m15_wick" field (the confluence behind it + the precise entry price/zone).
+- ⭐ M15 WICK-TIP ENTRY (TOP PRIORITY — this app's signature): the entry MUST be placed at the EXTREME TIP of an M15 candle wick (the precise high of a sweep wick for a Sell, or the precise low of a sweep wick for a Buy) — i.e. the exact price where M15 liquidity was grabbed and instantly rejected. The goal is that the order is in PROFIT immediately on fill, with NO adverse excursion (no drawdown, no "drag" up or down before it works). To achieve this:
+  • Find on M15 the most recent liquidity SWEEP wick that pierced a key level and snapped back with rejection (long wick, small body against the move).
+  • Set "entry_zone" at the very tip of that wick (within ~1-3 dollars of the wick extreme), NOT in the candle body and NOT at a mid-range level.
+  • The wick tip must align with HTF bias + premium/discount (Buy only at a discount-side wick low, Sell only at a premium-side wick high). If no clean M15 rejection wick exists at a valid level yet, set setup status to "ລໍຖ້າ" and say price has not printed the wick — do NOT invent an entry.
+  • Report the exact wick the entry is taken from in the new "m15_wick" field (which candle, which level it swept, the tip price).
+  • SL goes just BEYOND that same wick tip (a few dollars past the extreme that already rejected), keeping it tight — see SL rule below.
 - SNIPER PRECISION (critical): this is a SNIPER signal, not a wide swing zone. The "entry_zone" MUST be TIGHT — for gold (XAU/USD) keep it roughly 3-8 dollars wide (≈ 30-80 pip), and NEVER wider than 10 dollars (100 pip). A wide zone like 4200-4225 (25 dollars) is WRONG — narrow it to the single best refined zone (e.g. an M5/M15 order block or FVG inside the larger area), e.g. 4200-4206. Pick the most precise entry, not the whole range.
 - STOP LOSS at a structurally valid level just beyond the OB/swing that invalidates the idea — but keep it REALISTIC and CONTROLLED: target about 30-120 pip (≈ 3-12 dollars) on gold. NEVER report an SL more than 150 pip (15 dollars) away — if structure seems to require more than that, the entry zone is wrong, so refine to a lower-timeframe entry closer to invalidation instead of widening the stop. Report distance in "sl_pips". Also avoid tiny forced stops (an 8-pip stop on gold gets hunted) — the sweet spot is a tight but breathable 30-120 pip.
 - The distance from entry to the FINAL target (TP3) should be reasonable for an intraday move — do NOT stretch the whole entry→SL→TP span across hundreds of dollars. If your levels imply a ~2500-pip span, they are far too wide: tighten them.
@@ -2297,7 +2322,7 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
   "bias": "Buy|Sell|Wait — single word direction bias from the multi-TF read",
   "structure": "in ${outLang}, 1-2 short sentences max",
   "premium_discount": "in ${outLang} — is price in DISCOUNT (below 50%, favor Buy) or PREMIUM (above 50%, favor Sell) now? 1 line",
-  "m15_wick": "in ${outLang} — the chosen SNIPER reversal level: the confluence behind why it has the highest probability of an instant turn (HTF OB/FVG + unswept liquidity + premium/discount + round number) and the precise entry price/zone. If no high-probability point is in reach, say so and mark setup ລໍຖ້າ.",
+  "m15_wick": "in ${outLang} — the exact M15 rejection wick the entry is taken from: which level it swept + the wick-tip price used as entry (1 line). If no valid M15 wick yet, say so and mark setup ລໍຖ້າ.",
   "liquidity": "in ${outLang} — key liquidity pool + any sweep/grab seen (1 line)",
   "order_flow": "in ${outLang} — who has control now (displacement/absorption/BOS/CHoCH), 1 line",
   "order_book": "in ${outLang} — only if DOM/volume profile is visible; otherwise note it isn't shown and you used price/volume (1 line)",
@@ -2309,7 +2334,7 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
   "setups": [{
     "direction":"Buy|Sell","status":"ພ້ອມເຂົ້າ|ລໍຖ້າ","grade":"ສູງ|ກາງ|ຕ່ຳ",
     "confluence_factors":["in ${outLang}, short — e.g. liquidity sweep, discount zone, order block, BOS, DXY agrees"],
-    "entry_zone":"TIGHT zone at the highest-probability reversal level — ~3-8 dollars wide, refined on M15/M5 (e.g. 4200-4206), where price is most likely to turn instantly","stop":"price","sl_pips":"30-120 pip typical, NEVER >150 pip",
+    "entry_zone":"at the M15 wick TIP — ultra-tight, ~1-3 dollars (e.g. 4200-4202), at the exact swept high(Sell)/low(Buy), so the trade is in profit instantly","stop":"price","sl_pips":"30-120 pip typical, NEVER >150 pip",
     "targets":["TP1 price","TP2 price","TP3 price"],"rr":"e.g. 1:3","confidence":"e.g. 60-65%",
     "rationale":"in ${outLang}, 1 short line","invalidation":"in ${outLang}, short"
   }],
@@ -2486,10 +2511,18 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
     const isLocked = isAdmin ? false : (user ? msLeft <= 0 : false);
     // VIP = a paid (non-trial) active member, or admin. Used to gate premium AI features.
     const isVip = isAdmin || (!!user && user.plan && user.plan !== "Trial" && !isLocked);
-    // On successful payment (demo): extend 30 days and unlock
+    // On successful payment / VIP code activation: extend and unlock — and
+    // PERSIST to the permanent per-email store so VIP survives logout.
     const onPaid = (days, plan) => {
         const d = days || 30; const p = plan || "VIP";
-        setUser((u) => { const nu = { ...u, expiresAt: Date.now() + d * 86400000, plan: p }; try { localStorage.setItem("sniper_user", JSON.stringify(nu)); } catch(e) {} return nu; });
+        const newExpiry = Date.now() + d * 86400000;
+        setUser((u) => {
+            const nu = { ...u, expiresAt: newExpiry, plan: p };
+            try { localStorage.setItem("sniper_user", JSON.stringify(nu)); } catch(e) {}
+            // permanent record keyed by email — this is what restores VIP on re-login
+            if (nu.email) saveAccount({ email: nu.email, plan: p, expiresAt: newExpiry, name: nu.name, trialUsed: true });
+            return nu;
+        });
         setShowPay(false);
     };
     // Splash intro animation on app open
@@ -2497,8 +2530,22 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
         return React.createElement(SplashScreen, { onDone: () => setShowSplash(false) });
     // Show login screen until the customer is signed in
     if (!user)
-        return React.createElement(Login, { onLogin: (u) => { setUser(u); try { localStorage.setItem("sniper_user", JSON.stringify(u)); } catch(e) {} if (isAdminEmail(u.email)) { u.expiresAt = Date.now() + 36500 * 86400000; u.plan = "VIP"; try { localStorage.setItem("sniper_user", JSON.stringify(u)); } catch(e) {} }
-        if (isAdminEmail(u.email))
+        return React.createElement(Login, { onLogin: (u) => {
+            // Admins are permanent VIP for ~100 years.
+            if (isAdminEmail(u.email)) { u.expiresAt = Date.now() + 36500 * 86400000; u.plan = "VIP"; }
+            // Social logins (Google/Apple) bypass the Login form, so resolve them
+            // against the permanent store here too: returning email keeps its
+            // plan + expiry, brand-new email gets one fresh trial.
+            else {
+                const acct = getAccount(u.email);
+                if (acct && acct.expiresAt) { u.plan = acct.plan || u.plan; u.expiresAt = acct.expiresAt; }
+                else if (!u.expiresAt) { u.expiresAt = Date.now() + TRIAL_DAYS * 86400000; u.plan = u.plan || "Trial"; }
+            }
+            setUser(u);
+            try { localStorage.setItem("sniper_user", JSON.stringify(u)); } catch(e) {}
+            // Always mirror into the permanent per-email store.
+            saveAccount({ email: u.email, plan: u.plan, expiresAt: u.expiresAt, name: u.name, trialUsed: true });
+            if (isAdminEmail(u.email))
                 setIsAdmin(true);
             // ── Phase 3: Init Firebase Push Notification ──
             initFCM(u.email).catch(()=>{});
@@ -3250,54 +3297,32 @@ function Login({ onLogin, lang, setLang, t }) {
             const adminWa = `https://wa.me/${WHATSAPP_NUMBER}?text=${refMsg}`;
             setTimeout(() => window.open(adminWa, "_blank"), 2000);
         }
-        // DEMO ONLY: no real verification. Replace with backend call.
-        // New signups get a free trial; logins get a demo active period.
-        // Signup: new trial. Login: restore saved expiresAt (don't reset timer!)
-        let expiresAt;
-        if (mode === "signup") {
-            // Keep the original trial clock running for a returning email.
-            // Only start a fresh 3-day trial for a genuinely new email — this
-            // is what stops the counter being stuck at 3 on every signup.
-            try {
-                const saved = localStorage.getItem("sniper_user");
-                const savedUser = saved ? JSON.parse(saved) : null;
-                if (savedUser && savedUser.email === email && savedUser.expiresAt) {
-                    expiresAt = savedUser.expiresAt; // resume existing trial
-                } else {
-                    expiresAt = Date.now() + TRIAL_DAYS * 86400000; // brand-new trial
-                }
-            } catch(e) {
-                expiresAt = Date.now() + TRIAL_DAYS * 86400000;
-            }
+        // ── Resolve this email against the PERMANENT account store ──
+        // This is the real fix: VIP status and the original trial end-date are
+        // kept per-email in `sniper_accounts`, which logout does NOT clear. So
+        // signing back in always restores the correct plan + remaining time, and
+        // a returning trial user can never reset their 3 days by re-registering.
+        const existing = getAccount(email);
+        let expiresAt, plan;
+        if (existing && existing.expiresAt) {
+            // Returning account → restore exactly as stored (VIP stays VIP,
+            // trial keeps its original countdown).
+            expiresAt = existing.expiresAt;
+            plan = existing.plan || "Trial";
         } else {
-            // Try to restore saved expiresAt from localStorage
-            try {
-                const saved = localStorage.getItem("sniper_user");
-                const savedUser = saved ? JSON.parse(saved) : null;
-                if (savedUser && savedUser.email === email && savedUser.expiresAt) {
-                    expiresAt = savedUser.expiresAt; // Keep original expiry
-                } else {
-                    expiresAt = Date.now() + TRIAL_DAYS * 86400000; // New user
-                }
-            } catch(e) {
-                expiresAt = Date.now() + TRIAL_DAYS * 86400000;
-            }
+            // Genuinely new email → start one fresh trial, recorded permanently
+            // so it cannot be farmed again from this device.
+            expiresAt = Date.now() + TRIAL_DAYS * 86400000;
+            plan = "Trial";
         }
         if (rememberMe) {
             try { localStorage.setItem("sniper_saved_email", email); localStorage.setItem("sniper_saved_pw", pw); localStorage.setItem("sniper_remember", "1"); } catch(e) {}
         } else {
             try { localStorage.removeItem("sniper_saved_email"); localStorage.removeItem("sniper_saved_pw"); localStorage.removeItem("sniper_remember"); } catch(e) {}
         }
-        // Restore saved plan on login
-        let plan = mode === "signup" ? "Trial" : "Trial";
-        try {
-            const saved = localStorage.getItem("sniper_user");
-            const savedUser = saved ? JSON.parse(saved) : null;
-            if (savedUser && savedUser.email === email && savedUser.plan) {
-                plan = savedUser.plan;
-            }
-        } catch(e) {}
-        onLogin({ name: name.trim() || email.split("@")[0], email, plan, expiresAt });
+        const finalName = name.trim() || (existing && existing.name) || email.split("@")[0];
+        const account = saveAccount({ email, plan, expiresAt, name: finalName, trialUsed: true, phone: existing && existing.phone, avatar: existing && existing.avatar });
+        onLogin({ name: account.name, email, plan: account.plan, expiresAt: account.expiresAt });
     };
     return (React.createElement("div", { style: { minHeight: "100%", background: C.bg, color: C.text, fontFamily: "'LaoOverride','Noto Sans Lao','Inter',system-ui,sans-serif", position: "relative", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", padding: "32px 18px" } },
         React.createElement("style", null, `
@@ -4293,6 +4318,8 @@ function ProfilePage({ t, user, lang, setLang, daysLeft, notify, setNotify, onPa
             // If quota exceeded (large avatar) — save without avatar, keep in memory only
             try { localStorage.setItem("sniper_user", JSON.stringify({ ...updated, avatar: null })); } catch(e2) {}
         }
+        // Mirror profile fields into the permanent per-email account too.
+        try { if (updated.email) saveAccount({ email: updated.email, plan: updated.plan, expiresAt: updated.expiresAt, name: updated.name, phone: updated.phone, avatar: updated.avatar }); } catch(e) {}
         if (onUpdateUser) onUpdateUser(updated);
         setPicker(null);
     };
