@@ -218,6 +218,33 @@ function setMemberCloud(email, plan, expiresAt, deviceId) {
     } catch(e) {}
 }
 
+// ── Cloud profile sync (avatar/name/phone survive logout + device change) ──
+async function getProfileCloud(email) {
+    if (!SHEETS_URL || !email) return null;
+    try {
+        const url = `${SHEETS_URL}?action=getProfile&email=${encodeURIComponent(emailKey(email))}`;
+        const r = await fetch(url, { cache: "no-store" });
+        const text = await r.text();
+        let d = null; try { d = JSON.parse(text); } catch(e) { return null; }
+        if (d && d.found) return { name: d.name || "", phone: d.phone || "", avatar: d.avatar || "" };
+        return null;
+    } catch(e) { return null; }
+}
+function setProfileCloud(email, name, phone, avatar) {
+    if (!SHEETS_URL || !email) return;
+    try {
+        // POST so a large avatar data-URL isn't stuffed into the query string.
+        const body = new URLSearchParams({
+            action: "setProfile",
+            email: emailKey(email),
+            name: name || "",
+            phone: phone || "",
+            avatar: avatar || ""
+        });
+        fetch(SHEETS_URL, { method: "POST", body: body, cache: "no-store" }).catch(() => {});
+    } catch(e) {}
+}
+
 // Badge label: lifetime → "Life Time", active non-trial → "VIP", else trial.
 function planBadgeLabel(user, isAdmin, t) {
     if (isAdmin) return "VIP";
@@ -2657,6 +2684,10 @@ DIRECTIONAL CONSISTENCY (CRITICAL — do not contradict the chart):
 - The ONLY case a counter-trend trade is allowed is a CONFIRMED reversal: a liquidity sweep of a major level PLUS a CHoCH/BOS on the lower timeframe against the old trend. If that confirmation is not clearly visible, output "Wait" — do NOT take a counter-trend trade.
 - If the dominant bias and a clean entry don't align right now, output direction "Wait" rather than inventing an opposite-direction setup. WAIT is a valid, professional answer for a funded account.
 
+ENTRY ZONE PRECISION (critical): the "entry_zone" MUST be a TIGHT sniper zone, not a wide swing area. For gold (XAU/USD) keep it roughly 3-8 dollars wide and NEVER wider than 10 dollars. A 14-dollar zone like 3988-4002 is TOO WIDE — refine it to the single best M15/M5 order block or FVG inside that area (e.g. 3996-4002). Pick the most precise reversal level price will actually reach, not the whole range.
+
+INSTRUMENT DETECTION: read the symbol/ticker shown on the chart (e.g. XAUUSD, MGCQ26 gold micro-future, EURUSD, BTCUSD) and report it in "pair". The trader needs to see which instrument this plan is for. If you genuinely cannot read it, default to "XAUUSD".
+
 Respond with ONLY a valid JSON object (no markdown/backticks). Write all text values in ${outLang}; keep digits as digits:
 {
   "readable": true,
@@ -2664,10 +2695,11 @@ Respond with ONLY a valid JSON object (no markdown/backticks). Write all text va
   "challenge_summary": "in ${outLang} — 1 line: size $${size.toLocaleString()}, target $${tgtUsd.toLocaleString()}, DLL $${dllUsd.toLocaleString()}, max DD $${ddUsd.toLocaleString()}",
   "market_read": "in ${outLang} — short institutional read of the chart (trend, premium/discount, key liquidity, current order flow). 2-3 short lines.",
   "htf_bias": "in ${outLang} — ONE short line: the dominant H4/H1 bias you found (Bullish / Bearish / Range) and why. The trade direction below MUST match this (unless a confirmed reversal).",
+  "pair": "the instrument/symbol you DETECTED from the chart (e.g. XAUUSD, MGCQ26, EURUSD, BTCUSD). Read it from the chart's title/ticker. If unclear, write 'XAUUSD'.",
   "setup": {
     "direction": "Buy|Sell|Wait",
     "status": "ພ້ອມເຂົ້າ|ລໍຖ້າ",
-    "entry_zone": "TIGHT high-probability reversal zone price will actually reach (e.g. 3298-3302). If Wait, say what must print first.",
+    "entry_zone": "TIGHT high-probability reversal zone — for gold (XAU/USD) keep it ~3-8 dollars wide and NEVER wider than 10 dollars. A 14-dollar zone like 3988-4002 is WRONG; refine to the single best M15/M5 OB/FVG (e.g. 3996-4002). If Wait, say what must print first.",
     "stop": "SL price — placed BEYOND the swept liquidity so it is hard to hunt",
     "sl_distance": "SL distance in dollars from entry (e.g. ~6.0)",
     "targets": ["TP1 price (conservative, bank quickly)","TP2 price"],
@@ -2775,6 +2807,24 @@ Respond with ONLY a valid JSON object (no markdown/backticks). Write all text va
                     // user sees a clear message instead of a silently-running countdown.
                     setDeviceConflict({ email: u.email, plan: m.plan || "VIP", boundTo });
                 }
+            }).catch(()=>{});
+            // ── Restore profile (avatar/name/phone) from cloud on login ──
+            // So the photo survives logout and follows the member to a new device.
+            getProfileCloud(u.email).then((pf) => {
+                if (!pf) return;
+                if (!pf.avatar && !pf.name && !pf.phone) return;
+                setUser((cur) => {
+                    if (!cur || cur.email !== u.email) return cur;
+                    const nu = {
+                        ...cur,
+                        name: cur.name || pf.name || cur.name,
+                        phone: cur.phone || pf.phone || cur.phone,
+                        avatar: cur.avatar || pf.avatar || cur.avatar
+                    };
+                    try { localStorage.setItem("sniper_user", JSON.stringify(nu)); } catch(e) {}
+                    saveAccount({ email: nu.email, plan: nu.plan, expiresAt: nu.expiresAt, name: nu.name, phone: nu.phone, avatar: nu.avatar });
+                    return nu;
+                });
             }).catch(()=>{});
             // ── Phase 3: Init Firebase Push Notification ──
             initFCM(u.email).catch(()=>{});
@@ -4572,6 +4622,8 @@ function ProfilePage({ t, user, lang, setLang, daysLeft, notify, setNotify, onPa
         }
         if (onUpdateUser) onUpdateUser(updated);
         try { if (updated.email) saveAccount({ email: updated.email, plan: updated.plan, expiresAt: updated.expiresAt, name: updated.name, phone: updated.phone, avatar: updated.avatar }); } catch(e) {}
+        // Sync to cloud so avatar/name/phone survive logout + device change.
+        try { if (updated.email) setProfileCloud(updated.email, updated.name, updated.phone, updated.avatar); } catch(e) {}
         setPicker(null);
     };
 
@@ -4901,13 +4953,37 @@ function FundedResult({ data, fmt }) {
         React.createElement("div", { style: { padding: "9px 14px", background: (color || C.blue) + "12", borderBottom: `1px solid ${C.line}`, fontSize: 12, fontWeight: 800, color: color || C.blueLt, display: "flex", alignItems: "center", gap: 7 } }, icon + " " + title),
         React.createElement("div", { style: { padding: "12px 14px", fontSize: 13.5, color: C.text, lineHeight: 1.7, whiteSpace: "pre-wrap" } }, children));
 
+    // Split a value like "3996-4002 (Premium OB ...)" into the leading PRICE (dominant)
+    // and the rest of the text (small note). Keeps the number big and the words small.
+    const splitPrice = (val) => {
+        const str = String(val == null ? "" : val).trim();
+        // Match a leading number or range, optionally with comma/decimal separators.
+        const m = str.match(/^[~≈]?\s*[\d.,]+(?:\s*[-–]\s*[\d.,]+)?/);
+        if (!m) return { price: str, note: "" };
+        const price = m[0].trim();
+        let note = str.slice(m[0].length).trim();
+        // strip leading separators like "—", "·", "(" wrappers stay as-is
+        note = note.replace(/^[—·\-:]+\s*/, "").trim();
+        return { price: price, note: note };
+    };
+    // A big-price tile: number is the dominant element, description small underneath.
+    const priceTile = (label, val, accent, bg) => {
+        const sp = splitPrice(val);
+        return React.createElement("div", { style: { background: bg, border: `1px solid ${accent}`, borderRadius: 10, padding: "9px 11px" } },
+            React.createElement("div", { style: { fontSize: 10, color: C.mut, fontWeight: 700, marginBottom: 1 } }, label),
+            React.createElement("div", { style: { fontSize: 22, fontWeight: 900, color: accent, lineHeight: 1.15, letterSpacing: "-0.01em" } }, sp.price),
+            sp.note && React.createElement("div", { style: { fontSize: 10.5, color: C.mut, lineHeight: 1.45, marginTop: 3 } }, sp.note));
+    };
+
     return React.createElement("section", { style: { marginTop: 16, background: C.panel, border: `1px solid ${C.line}`, borderRadius: 18, padding: "18px 14px", position: "relative", overflow: "hidden" } },
         React.createElement("div", { "aria-hidden": true, style: { position: "absolute", top: -50, left: "50%", transform: "translateX(-50%)", width: 300, height: 160, background: `radial-gradient(closest-side,${dirColor}55,transparent)`, filter: "blur(24px)", opacity: .5 } }),
         React.createElement("div", { style: { position: "relative", display: "flex", flexDirection: "column", gap: 12 } },
 
             // ── HERO verdict: big, unmistakable ──
             React.createElement("div", { style: { textAlign: "center", padding: "16px 12px", borderRadius: 16, border: `2px solid ${dirColor}`, background: dirColor + "14" } },
-                React.createElement("div", { style: { fontSize: 11, color: C.mut, fontWeight: 700, letterSpacing: .5, marginBottom: 4 } }, "ແຜນເທຣດກອງທຶນ"),
+                React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 6 } },
+                    React.createElement("span", { style: { fontSize: 11, color: C.mut, fontWeight: 700, letterSpacing: .5 } }, "ແຜນເທຣດກອງທຶນ"),
+                    data.pair && React.createElement("span", { style: { fontSize: 11.5, fontWeight: 900, color: C.cyan, border: `1px solid ${C.blue}`, borderRadius: 7, padding: "2px 9px", background: "rgba(38,130,255,.14)", letterSpacing: .5 } }, String(data.pair).toUpperCase())),
                 React.createElement("div", { style: { fontSize: 30, fontWeight: 900, color: dirColor, lineHeight: 1.1, fontFamily: "'LaoOverride','Sora','Noto Sans Lao',sans-serif" } }, dirIcon + " " + dirLabel),
                 s.status && React.createElement("div", { style: { fontSize: 12.5, color: C.text, marginTop: 4, fontWeight: 600 } }, s.status),
                 React.createElement("div", { style: { display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap", marginTop: 10 } },
@@ -4926,19 +5002,25 @@ function FundedResult({ data, fmt }) {
 
             // ── TRADE SETUP group ──
             (s.entry_zone || s.stop || (Array.isArray(s.targets) && s.targets.length)) && sectionCard("🎯", "ຈຸດເຂົ້າ-ອອກ (Trade Setup)", C.blue,
-                React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } },
-                    React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 } },
-                        s.entry_zone && React.createElement("div", { style: { background: "rgba(38,130,255,.10)", border: `1px solid ${C.blue}`, borderRadius: 10, padding: "9px 11px" } },
-                            React.createElement("div", { style: { fontSize: 10, color: C.mut, fontWeight: 700 } }, "📍 ENTRY"),
-                            React.createElement("div", { style: { fontSize: 17, fontWeight: 800, color: C.cyan } }, s.entry_zone)),
-                        s.stop && React.createElement("div", { style: { background: "rgba(255,107,107,.10)", border: `1px solid ${C.red}`, borderRadius: 10, padding: "9px 11px" } },
-                            React.createElement("div", { style: { fontSize: 10, color: C.mut, fontWeight: 700 } }, "🛑 SL (ກັນ hunt)"),
-                            React.createElement("div", { style: { fontSize: 17, fontWeight: 800, color: "#FFC4C4" } }, s.stop),
-                            s.sl_distance && React.createElement("div", { style: { fontSize: 10, color: C.mut, marginTop: 1 } }, "ໄລຍະ ~" + s.sl_distance))),
+                React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 9 } },
+                    s.entry_zone && priceTile("📍 ENTRY (ຈຸດເຂົ້າ)", s.entry_zone, C.cyan, "rgba(38,130,255,.10)"),
+                    s.stop && (() => {
+                        const sp = splitPrice(s.stop);
+                        return React.createElement("div", { style: { background: "rgba(255,107,107,.10)", border: `1px solid ${C.red}`, borderRadius: 10, padding: "9px 11px" } },
+                            React.createElement("div", { style: { fontSize: 10, color: C.mut, fontWeight: 700, marginBottom: 1 } }, "🛑 SL · ກັນໂດນ hunt"),
+                            React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" } },
+                                React.createElement("span", { style: { fontSize: 22, fontWeight: 900, color: "#FFC4C4", lineHeight: 1.15 } }, sp.price),
+                                s.sl_distance && React.createElement("span", { style: { fontSize: 11, color: C.mut, fontWeight: 600 } }, "ໄລຍະ ~" + s.sl_distance)),
+                            sp.note && React.createElement("div", { style: { fontSize: 10.5, color: C.mut, lineHeight: 1.45, marginTop: 3 } }, sp.note));
+                    })(),
                     Array.isArray(s.targets) && s.targets.length > 0 && React.createElement("div", { style: { display: "flex", gap: 7, flexWrap: "wrap" } },
-                        s.targets.map((tp, i) => React.createElement("div", { key: i, style: { flex: "1 1 auto", textAlign: "center", background: "rgba(63,217,138,.10)", border: `1px solid ${C.green}`, borderRadius: 10, padding: "7px 6px" } },
-                            React.createElement("div", { style: { fontSize: 9.5, color: C.mut, fontWeight: 700 } }, "TP" + (i + 1)),
-                            React.createElement("div", { style: { fontSize: 14, fontWeight: 800, color: C.green } }, tp)))))),
+                        s.targets.map((tp, i) => {
+                            const sp = splitPrice(tp);
+                            return React.createElement("div", { key: i, style: { flex: "1 1 120px", background: "rgba(63,217,138,.10)", border: `1px solid ${C.green}`, borderRadius: 10, padding: "8px 9px", textAlign: "center" } },
+                                React.createElement("div", { style: { fontSize: 9.5, color: C.mut, fontWeight: 700 } }, "TP" + (i + 1)),
+                                React.createElement("div", { style: { fontSize: 18, fontWeight: 900, color: C.green, lineHeight: 1.15 } }, sp.price),
+                                sp.note && React.createElement("div", { style: { fontSize: 9.5, color: C.mut, lineHeight: 1.4, marginTop: 2 } }, sp.note));
+                        })))),
 
             data.market_read && sectionCard("📈", "ອ່ານຕະຫຼາດ", C.blueLt, data.market_read),
             data.lot_size && sectionCard("🧮", "ຂະໜາດ Lot ປອດໄພ", C.cyan, data.lot_size),
