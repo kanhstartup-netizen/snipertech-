@@ -162,7 +162,7 @@ const ACTIVATION_CODES = {
 };
 
 // Google Sheets Web App URL — Admin paste URL here after setup
-const SHEETS_URL = "https://script.google.com/macros/s/AKfycbyZb9ohTLxXDUTcDniBhXIwLekia194Daq99r0L-V9rncUhuOmPnoSFZLBrBBRyygiW/exec";
+const SHEETS_URL = "https://script.google.com/macros/s/AKfycbzLoVi_gUvGdvz4kKFKppzN2HmGMAqflm7d_2EnY73Pxmet5vf0CgJs02u2axf3aTNQ/exec";
 
 // ── Persistent per-email account store (local cache) ──
 const ACCT_KEY = "sniper_accounts";
