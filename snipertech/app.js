@@ -4986,11 +4986,15 @@ function FundedResult({ data, fmt }) {
         const out = []; let last = 0; let m; let k = 0;
         while ((m = re.exec(str)) !== null) {
             const tok = m[0];
-            // skip tiny bare numbers like a lone "1" or "30" in "30 min" — only pop
-            // numbers that look like prices (>=3 digits) or any range.
-            const digits = tok.replace(/[^\d]/g, "");
-            const isRange = /[-–]/.test(tok);
-            if (digits.length < 3 && !isRange) continue;
+            // Skip time-of-day patterns like "01:00-03:00" (a colon right after the match).
+            const after = str.slice(m.index + tok.length, m.index + tok.length + 1);
+            const before = str.slice(Math.max(0, m.index - 1), m.index);
+            if (after === ":" || before === ":") { continue; }
+            // Only pop numbers that look like PRICES: a part with 3+ digits.
+            // A range counts only if at least one side has 3+ digits (so "00-03" is ignored).
+            const parts = tok.replace(/[~≈]/g, "").split(/[-–]/);
+            const looksPrice = parts.some(p => p.replace(/[^\d]/g, "").length >= 3);
+            if (!looksPrice) continue;
             if (m.index > last) out.push(str.slice(last, m.index));
             out.push(React.createElement("span", { key: "p" + (k++), style: { fontSize: (baseSize || 13) + 6, fontWeight: 900, color: accent, letterSpacing: "-0.01em", whiteSpace: "nowrap" } }, tok));
             last = m.index + tok.length;
