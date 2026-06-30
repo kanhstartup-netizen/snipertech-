@@ -4966,13 +4966,41 @@ function FundedResult({ data, fmt }) {
         note = note.replace(/^[—·\-:]+\s*/, "").trim();
         return { price: price, note: note };
     };
-    // A big-price tile: number is the dominant element, description small underneath.
+    // Does the value START with a price? → clean big-price layout works.
+    const startsWithPrice = (val) => /^[~≈]?\s*[\d.,]+(?:\s*[-–]\s*[\d.,]+)?/.test(String(val == null ? "" : val).trim());
+    // Highlight EVERY price/range inside a sentence: make the numbers larger, bold,
+    // and a different colour so they pop out of the small surrounding words.
+    const highlightPrices = (text, accent, baseSize) => {
+        const str = String(text == null ? "" : text);
+        // price/range: digits with optional , . separators, optional ~ and a -/– range.
+        const re = /[~≈]?\d[\d.,]*(?:\s*[-–]\s*\d[\d.,]*)?/g;
+        const out = []; let last = 0; let m; let k = 0;
+        while ((m = re.exec(str)) !== null) {
+            const tok = m[0];
+            // skip tiny bare numbers like a lone "1" or "30" in "30 min" — only pop
+            // numbers that look like prices (>=3 digits) or any range.
+            const digits = tok.replace(/[^\d]/g, "");
+            const isRange = /[-–]/.test(tok);
+            if (digits.length < 3 && !isRange) continue;
+            if (m.index > last) out.push(str.slice(last, m.index));
+            out.push(React.createElement("span", { key: "p" + (k++), style: { fontSize: (baseSize || 13) + 6, fontWeight: 900, color: accent, letterSpacing: "-0.01em", whiteSpace: "nowrap" } }, tok));
+            last = m.index + tok.length;
+        }
+        if (last < str.length) out.push(str.slice(last));
+        return out;
+    };
+    // A price tile. If the value is a clean price (+optional note) → big number on top.
+    // If the price is buried in a sentence → show the sentence small with prices popped out.
     const priceTile = (label, val, accent, bg) => {
+        const clean = startsWithPrice(val);
         const sp = splitPrice(val);
         return React.createElement("div", { style: { background: bg, border: `1px solid ${accent}`, borderRadius: 10, padding: "9px 11px" } },
-            React.createElement("div", { style: { fontSize: 10, color: C.mut, fontWeight: 700, marginBottom: 1 } }, label),
-            React.createElement("div", { style: { fontSize: 22, fontWeight: 900, color: accent, lineHeight: 1.15, letterSpacing: "-0.01em" } }, sp.price),
-            sp.note && React.createElement("div", { style: { fontSize: 10.5, color: C.mut, lineHeight: 1.45, marginTop: 3 } }, sp.note));
+            React.createElement("div", { style: { fontSize: 10, color: C.mut, fontWeight: 700, marginBottom: clean ? 1 : 3 } }, label),
+            clean
+                ? React.createElement(React.Fragment, null,
+                    React.createElement("div", { style: { fontSize: 22, fontWeight: 900, color: accent, lineHeight: 1.15, letterSpacing: "-0.01em" } }, sp.price),
+                    sp.note && React.createElement("div", { style: { fontSize: 10.5, color: C.mut, lineHeight: 1.45, marginTop: 3 } }, sp.note))
+                : React.createElement("div", { style: { fontSize: 12, color: C.mut, lineHeight: 1.7 } }, highlightPrices(val, accent, 12)));
     };
 
     return React.createElement("section", { style: { marginTop: 16, background: C.panel, border: `1px solid ${C.line}`, borderRadius: 18, padding: "18px 14px", position: "relative", overflow: "hidden" } },
@@ -5005,21 +5033,31 @@ function FundedResult({ data, fmt }) {
                 React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 9 } },
                     s.entry_zone && priceTile("📍 ENTRY (ຈຸດເຂົ້າ)", s.entry_zone, C.cyan, "rgba(38,130,255,.10)"),
                     s.stop && (() => {
+                        const clean = startsWithPrice(s.stop);
                         const sp = splitPrice(s.stop);
                         return React.createElement("div", { style: { background: "rgba(255,107,107,.10)", border: `1px solid ${C.red}`, borderRadius: 10, padding: "9px 11px" } },
-                            React.createElement("div", { style: { fontSize: 10, color: C.mut, fontWeight: 700, marginBottom: 1 } }, "🛑 SL · ກັນໂດນ hunt"),
-                            React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" } },
-                                React.createElement("span", { style: { fontSize: 22, fontWeight: 900, color: "#FFC4C4", lineHeight: 1.15 } }, sp.price),
-                                s.sl_distance && React.createElement("span", { style: { fontSize: 11, color: C.mut, fontWeight: 600 } }, "ໄລຍະ ~" + s.sl_distance)),
-                            sp.note && React.createElement("div", { style: { fontSize: 10.5, color: C.mut, lineHeight: 1.45, marginTop: 3 } }, sp.note));
+                            React.createElement("div", { style: { fontSize: 10, color: C.mut, fontWeight: 700, marginBottom: clean ? 1 : 3 } }, "🛑 SL · ກັນໂດນ hunt"),
+                            clean
+                                ? React.createElement(React.Fragment, null,
+                                    React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" } },
+                                        React.createElement("span", { style: { fontSize: 22, fontWeight: 900, color: "#FF8A8A", lineHeight: 1.15 } }, sp.price),
+                                        s.sl_distance && React.createElement("span", { style: { fontSize: 11, color: C.mut, fontWeight: 600 } }, "ໄລຍະ ~" + s.sl_distance)),
+                                    sp.note && React.createElement("div", { style: { fontSize: 10.5, color: C.mut, lineHeight: 1.45, marginTop: 3 } }, sp.note))
+                                : React.createElement(React.Fragment, null,
+                                    React.createElement("div", { style: { fontSize: 12, color: C.mut, lineHeight: 1.7 } }, highlightPrices(s.stop, "#FF8A8A", 12)),
+                                    s.sl_distance && React.createElement("div", { style: { fontSize: 11, color: C.mut, fontWeight: 600, marginTop: 3 } }, "ໄລຍະ ~" + s.sl_distance)));
                     })(),
                     Array.isArray(s.targets) && s.targets.length > 0 && React.createElement("div", { style: { display: "flex", gap: 7, flexWrap: "wrap" } },
                         s.targets.map((tp, i) => {
+                            const clean = startsWithPrice(tp);
                             const sp = splitPrice(tp);
                             return React.createElement("div", { key: i, style: { flex: "1 1 120px", background: "rgba(63,217,138,.10)", border: `1px solid ${C.green}`, borderRadius: 10, padding: "8px 9px", textAlign: "center" } },
                                 React.createElement("div", { style: { fontSize: 9.5, color: C.mut, fontWeight: 700 } }, "TP" + (i + 1)),
-                                React.createElement("div", { style: { fontSize: 18, fontWeight: 900, color: C.green, lineHeight: 1.15 } }, sp.price),
-                                sp.note && React.createElement("div", { style: { fontSize: 9.5, color: C.mut, lineHeight: 1.4, marginTop: 2 } }, sp.note));
+                                clean
+                                    ? React.createElement(React.Fragment, null,
+                                        React.createElement("div", { style: { fontSize: 18, fontWeight: 900, color: C.green, lineHeight: 1.15 } }, sp.price),
+                                        sp.note && React.createElement("div", { style: { fontSize: 9.5, color: C.mut, lineHeight: 1.4, marginTop: 2 } }, sp.note))
+                                    : React.createElement("div", { style: { fontSize: 11, color: C.mut, lineHeight: 1.6 } }, highlightPrices(tp, C.green, 11)));
                         })))),
 
             data.market_read && sectionCard("📈", "ອ່ານຕະຫຼາດ", C.blueLt, data.market_read),
