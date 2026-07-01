@@ -2234,16 +2234,23 @@ function SniperTechX() {
             const img = new Image();
             img.onload = () => {
                 try {
-                    const MAX_W = 1280;
+                    // Higher resolution + quality than before so the price-axis numbers
+                    // stay sharp. Blurry axis text was causing the AI to read different
+                    // price levels on the SAME chart (e.g. 4014 vs 4062), because a vision
+                    // model guesses when small numbers are not crisp. 1600px @ 0.88 keeps
+                    // the axis legible while still compressing large PC screenshots.
+                    const MAX_W = 1600;
                     const scale = Math.min(MAX_W / img.width, 1);
                     const w = Math.max(1, Math.round(img.width * scale));
                     const h = Math.max(1, Math.round(img.height * scale));
                     const canvas = document.createElement("canvas");
                     canvas.width = w; canvas.height = h;
                     const ctx = canvas.getContext("2d");
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = "high";
                     ctx.fillStyle = "#0b0f1a"; ctx.fillRect(0, 0, w, h);
                     ctx.drawImage(img, 0, 0, w, h);
-                    const out = canvas.toDataURL("image/jpeg", 0.72);
+                    const out = canvas.toDataURL("image/jpeg", 0.88);
                     if (out && out.length < dataUrl.length) cb(out, "image/jpeg");
                     else cb(dataUrl, mime);
                 } catch(e) { cb(dataUrl, mime); }
@@ -2304,6 +2311,8 @@ ${searchBlock}
 
 DETECT each image's timeframe yourself (labels like "M5/15/1H/H4/D", axis spacing, candle granularity) → report in "detected_timeframes". Higher TF = trend/bias, lower TF = entry.
 
+⚑ PRICE ACCURACY (CRITICAL — read prices, do NOT guess): Before anything else, read the CURRENT price from the chart precisely — use the price scale on the RIGHT Y-AXIS and the last (most recent) candle / the live price line/label. Anchor EVERY level you output (entry, stop, targets, zones) to that real axis scale, so they sit within the visible price range of the chart. Read the digits exactly as printed on the axis — do not round to a "nice" number and do not infer a price from the pattern alone. If the axis numbers are too blurry to read confidently, say so in "note" and lower confidence rather than inventing precise prices. Report the price you read in "current_price". Two analyses of the SAME chart must give the SAME levels — consistency comes from reading the axis, not estimating.
+
 INTERMARKET (no live data — use general macro logic only, NEVER state live prices/levels; keep as directional caution): USD & rates drive gold inversely — DXY UP or US Treasury YIELDS (esp. 10Y/real yields) UP → gold pressured DOWN; DXY DOWN or yields DOWN → gold supported UP. GOLD vs SILVER FUTURES: they usually move together; silver leading/outperforming often signals risk-on metals strength (bullish confluence), silver lagging = weak metals demand. If the user typed a DXY/yield direction or uploaded a DXY/yield/futures screenshot, factor it in; otherwise give a brief general caution and tell the trader to confirm the live level. Summarize the net macro lean for gold in "intermarket_read" (1-2 short lines), and keep the DXY line in "dxy_signal", oil in "oil_signal", imminent high-impact news in "news_alert" (else short "no major news").
 
 CORE SMART-MONEY READ (top-down; require several to AGREE before trusting a setup):
@@ -2349,6 +2358,7 @@ Write ALL text values in ${outLang} (keep "status"/"grade" keys in Lao exactly a
   "readable": true,
   "note": "in ${outLang}, only if needed",
   "instrument_guess": "e.g. XAU/USD",
+  "current_price": "the CURRENT price read precisely from the right Y-axis / last candle (a single number, e.g. 4062.5) — this anchors all other levels; read it, don't guess",
   "bias": "Buy|Sell|Wait — single word",
   "trend": "in ${outLang} — main trend + bias (1 short line)",
   "sniper_grade": "A+++ | A+ | A | B | C | WAIT — A+++ = 3+ TF fractal alignment + all confluences; A+ = 5+; A = 3-4; B = 2-3; C = weak; WAIT = <2 or no sweep yet",
@@ -3220,7 +3230,9 @@ function Result({ data, t, engines, isAdmin }) {
                         React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 7 } },
                             React.createElement("span", { style: { fontSize: 15, fontWeight: 800, color: dirColor, letterSpacing: ".03em" } }, buy ? "▲ BUY" : "▼ SELL"),
                             s.status && React.createElement("span", { style: { fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 99, color: "#04101F", background: ready ? dirColor : C.blueLt } }, ready ? t("rReady") : t("rWait")))),
-                    data.instrument_guess && React.createElement("div", { style: { marginTop: 6, fontSize: 12.5, color: C.mut } }, data.instrument_guess)),
+                    (data.instrument_guess || data.current_price) && React.createElement("div", { style: { marginTop: 6, fontSize: 12.5, color: C.mut, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" } },
+                        data.instrument_guess && React.createElement("span", null, data.instrument_guess),
+                        data.current_price && React.createElement("span", { style: { fontWeight: 700, color: C.cyan, background: "rgba(38,130,255,.1)", border: `1px solid ${C.line}`, borderRadius: 8, padding: "1px 8px" } }, "@ " + data.current_price))),
                 ((_a = data.timeframe_breakdown) === null || _a === void 0 ? void 0 : _a.length) > 0 && (React.createElement("div", { style: { padding: "12px 18px", borderBottom: `1px solid ${C.line}`, display: "flex", flexDirection: "column", gap: 7 } },
                     data.timeframe_breakdown.map((tf, j) => (React.createElement("div", { key: j, style: { display: "flex", gap: 10, alignItems: "baseline" } },
                         React.createElement("span", { style: { flexShrink: 0, width: 38, fontSize: 11, fontWeight: 800, color: C.blueLt, fontFamily: "'Sora',sans-serif" } }, tf.tf),
