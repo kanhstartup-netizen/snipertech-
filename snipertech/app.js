@@ -1191,6 +1191,7 @@ const T = {
         aiConsensus: "ການລົງມະຕິ AI",
         aiActive: "ໃຊ້ງານ",
         aiOff: "ປິດ",
+        streamingLive: "ກຳລັງວິເຄາະສົດ — ຜົນຈະທະຍອຍຂຶ້ນ ຈົນຄົບ…",
         aiSpeedWarn: "⚠️ ເປີດຫຼາຍຕົວ = ວິເຄາະຊ້າລົງ (ຕ້ອງລໍຕົວທີ່ຊ້າສຸດ). Claude ຕົວດຽວໄວທີ່ສຸດ.",
         aiFastNote: "⚡ Claude ຕົວດຽວ — ໄວທີ່ສຸດ ແລະ ວິເຄາະຄົບຖ້ວນ. ເປີດ GPT/Gemini ເພື່ອຂໍຄວາມເຫັນເພີ່ມ (ຊ້າລົງ).",
         aiReady: "ພ້ອມ (ຕໍ່ backend)",
@@ -1490,6 +1491,7 @@ const T = {
         aiConsensus: "การลงมติ AI",
         aiActive: "ใช้งาน",
         aiOff: "ปิด",
+        streamingLive: "กำลังวิเคราะห์สด — ผลจะทยอยขึ้นจนครบ…",
         aiSpeedWarn: "⚠️ เปิดหลายตัว = วิเคราะห์ช้าลง (ต้องรอตัวที่ช้าสุด) Claude ตัวเดียวเร็วที่สุด",
         aiFastNote: "⚡ Claude ตัวเดียว — เร็วที่สุดและวิเคราะห์ครบถ้วน เปิด GPT/Gemini เพื่อขอความเห็นเพิ่ม (ช้าลง)",
         aiReady: "พร้อม (ต้องเชื่อม backend)",
@@ -1788,6 +1790,7 @@ const T = {
         aiConsensus: "AI Consensus",
         aiActive: "Active",
         aiOff: "Off",
+        streamingLive: "Analyzing live — results fill in as they arrive…",
         aiSpeedWarn: "⚠️ More engines = slower analysis (waits for the slowest). Claude alone is fastest.",
         aiFastNote: "⚡ Claude only — fastest with full analysis. Enable GPT/Gemini for extra opinions (slower).",
         aiReady: "Ready (needs backend)",
@@ -2341,33 +2344,15 @@ ANALYZE ONLY what is visible. If an image is unclear or not a price chart, set "
 
 KEEP IT TIGHT — each text field = 1 short sentence. Max 2 zones, 1 primary setup + at most 1 alternative, up to 5 confluence factors.
 
-Write ALL text values in ${outLang} (keep "status"/"grade" keys in Lao exactly as shown; numbers/prices/TF/pips/ratios/% as digits). Respond with ONLY a valid JSON object — no markdown, no backticks:
+Write ALL text values in ${outLang} (keep "status"/"grade" keys in Lao exactly as shown; numbers/prices/TF/pips/ratios/% as digits). Respond with ONLY a valid JSON object — no markdown, no backticks. OUTPUT THE FIELDS IN EXACTLY THIS ORDER (do not reorder — the app renders the trade plan progressively as it streams, so the decision fields must come first):
 {
   "readable": true,
   "note": "in ${outLang}, only if needed",
-  "detected_timeframes": "in ${outLang} — e.g. 1 = H4, 2 = M15",
-  "news_alert": "in ${outLang} — imminent high-impact news + caution, or short 'no major news'",
-  "dxy_signal": "in ${outLang} — DXY direction + meaning for gold (1 line)",
-  "oil_signal": "in ${outLang} — oil direction + brief note (1 line, secondary)",
-  "intermarket_read": "in ${outLang} — net macro lean for gold from DXY + bond yields + gold/silver futures (general logic, NO live prices), 1-2 short lines, or 'no external macro data'",
   "instrument_guess": "e.g. XAU/USD",
-  "trend": "in ${outLang} — main trend + bias (1 short line)",
-  "timeframe_breakdown": [{"tf":"H4|H1|M15|M5","read":"in ${outLang} — ONE short phrase"}],
   "bias": "Buy|Sell|Wait — single word",
-  "structure": "in ${outLang}, 1-2 short sentences",
-  "premium_discount": "in ${outLang} — DISCOUNT (below 50%, favor Buy) or PREMIUM (above 50%, favor Sell) now? 1 line",
-  "m15_wick": "in ${outLang} — the chosen SNIPER reversal zone + why it's highest-probability to be reached and reverse instantly + precise entry price/zone. If none in reach, say so and mark ລໍຖ້າ.",
-  "liquidity": "in ${outLang} — key liquidity pool + any sweep (1 line)",
-  "order_flow": "in ${outLang} — who controls now (1 line)",
-  "order_book": "in ${outLang} — only if DOM/FXSSI order book/ratio/stop-cluster image is shown, else note not shown (1 line)",
-  "macd_read": "in ${outLang} — MACD momentum/cross/histogram + any divergence, or 'not shown' (1 line)",
-  "fib_read": "in ${outLang} — key Fib retracement/OTE levels + is price in 0.618-0.786 OTE? note Fib circle/arc if drawn, or 'not shown' (1 line)",
-  "volume_read": "in ${outLang} — big-volume spike/absorption/exhaustion read + key volume node, or 'not shown' (1 line)",
-  "advanced_read": "in ${outLang} — Elliott/Wyckoff/Harmonic/killzone/expected-range IF clearly present; 1-3 short lines, omit rest",
-  "ict_read": "in ${outLang} — ICT specifics IF visible (Power-of-3, Silver Bullet, OTE, Breaker, Inducement, Daily profile, Asia range, Unicorn); 1-2 lines, omit rest",
-  "options_flow": "in ${outLang} — ONLY if a CME QuikStrike/OI/Intraday-Volume chart is uploaded: apply spot-conversion + tiers + vol regime + full CME read with converted spot levels & vol-adjusted SL/TP. Else 'ບໍ່ມີ CME chart'.",
+  "trend": "in ${outLang} — main trend + bias (1 short line)",
   "sniper_grade": "A+++ | A+ | A | B | C | WAIT — A+++ = 3+ TF fractal alignment + all confluences; A+ = 5+; A = 3-4; B = 2-3; C = weak; WAIT = <2 or no sweep yet",
-  "zones": [{"type":"resistance|support","label":"in ${outLang} — include tier if applicable: Tier1🔴(00) Tier2🟡(50) Tier3🟢(25/75)","range":"TIGHT spot range e.g. 3298-3302 (≤10 dollars)","why":"in ${outLang}, short — OB/FVG/sweep/round-number/wall if relevant"}],
+  "m15_wick": "in ${outLang} — the chosen SNIPER reversal zone + why it's highest-probability to be reached and reverse instantly + precise entry price/zone. If none in reach, say so and mark ລໍຖ້າ.",
   "setups": [{
     "direction":"Buy|Sell","status":"ພ້ອມເຂົ້າ|ລໍຖ້າ","grade":"ສູງ|ກາງ|ຕ່ຳ",
     "confluence_factors":["in ${outLang}, short — e.g. sweep, discount, OB, BOS, MACD divergence, OTE, volume spike, DXY agrees"],
@@ -2375,9 +2360,27 @@ Write ALL text values in ${outLang} (keep "status"/"grade" keys in Lao exactly a
     "targets":["TP1 price","TP2 price","TP3 price"],"rr":"e.g. 1:3","confidence":"e.g. 60-65%",
     "rationale":"in ${outLang}, 1 short line","invalidation":"in ${outLang}, short"
   }],
+  "zones": [{"type":"resistance|support","label":"in ${outLang} — include tier if applicable: Tier1🔴(00) Tier2🟡(50) Tier3🟢(25/75)","range":"TIGHT spot range e.g. 3298-3302 (≤10 dollars)","why":"in ${outLang}, short — OB/FVG/sweep/round-number/wall if relevant"}],
   "next_move": "in ${outLang} — ONE short backup line if price breaks the level",
   "quick_map":"in ${outLang} — ONE-LINE plan",
-  "risk_reminder":"in ${outLang}, short"
+  "risk_reminder":"in ${outLang}, short",
+  "detected_timeframes": "in ${outLang} — e.g. 1 = H4, 2 = M15",
+  "timeframe_breakdown": [{"tf":"H4|H1|M15|M5","read":"in ${outLang} — ONE short phrase"}],
+  "structure": "in ${outLang}, 1-2 short sentences",
+  "premium_discount": "in ${outLang} — DISCOUNT (below 50%, favor Buy) or PREMIUM (above 50%, favor Sell) now? 1 line",
+  "liquidity": "in ${outLang} — key liquidity pool + any sweep (1 line)",
+  "order_flow": "in ${outLang} — who controls now (1 line)",
+  "order_book": "in ${outLang} — only if DOM/FXSSI order book/ratio/stop-cluster image is shown, else note not shown (1 line)",
+  "macd_read": "in ${outLang} — MACD momentum/cross/histogram + any divergence, or 'not shown' (1 line)",
+  "fib_read": "in ${outLang} — key Fib retracement/OTE levels + is price in 0.618-0.786 OTE? note Fib circle/arc if drawn, or 'not shown' (1 line)",
+  "volume_read": "in ${outLang} — big-volume spike/absorption/exhaustion read + key volume node, or 'not shown' (1 line)",
+  "news_alert": "in ${outLang} — imminent high-impact news + caution, or short 'no major news'",
+  "dxy_signal": "in ${outLang} — DXY direction + meaning for gold (1 line)",
+  "oil_signal": "in ${outLang} — oil direction + brief note (1 line, secondary)",
+  "intermarket_read": "in ${outLang} — net macro lean for gold from DXY + bond yields + gold/silver futures (general logic, NO live prices), 1-2 short lines, or 'no external macro data'",
+  "advanced_read": "in ${outLang} — Elliott/Wyckoff/Harmonic/killzone/expected-range IF clearly present; 1-3 short lines, omit rest",
+  "ict_read": "in ${outLang} — ICT specifics IF visible (Power-of-3, Silver Bullet, OTE, Breaker, Inducement, Daily profile, Asia range, Unicorn); 1-2 lines, omit rest",
+  "options_flow": "in ${outLang} — ONLY if a CME QuikStrike/OI/Intraday-Volume chart is uploaded: apply spot-conversion + tiers + vol regime + full CME read with converted spot levels & vol-adjusted SL/TP. Else 'ບໍ່ມີ CME chart'."
 }`;
         const content = [];
         charts.forEach((c, i) => {
@@ -2453,6 +2456,28 @@ Write ALL text values in ${outLang} (keep "status"/"grade" keys in Lao exactly a
                 const decoder = new TextDecoder();
                 let buffer = "";
                 let firstChunk = true;
+                // ── Progressive render ─────────────────────────────
+                // As tokens stream in, periodically try to parse the partial JSON and
+                // show whatever complete fields exist already (bias, sniper zone,
+                // entry/SL/TP…) — so the user sees the trade plan build in ~10-15s
+                // instead of waiting for the full ~30-40s response to finish.
+                let lastRenderLen = 0;
+                let lastRenderAt = 0;
+                const tryProgressive = () => {
+                    // Throttle: only attempt when enough new text arrived and ~400ms passed.
+                    const now = (typeof performance !== "undefined" ? performance.now() : Date.now());
+                    if (text.length - lastRenderLen < 120) return;
+                    if (now - lastRenderAt < 400) return;
+                    lastRenderLen = text.length;
+                    lastRenderAt = now;
+                    let partial = null;
+                    try { partial = extractJson(text); } catch (e) {
+                        try { partial = tryRepairJson(text); } catch (e2) { partial = null; }
+                    }
+                    if (partial && typeof partial === "object" && (partial.bias || partial.setups || partial.trend)) {
+                        try { setResult({ ...partial, consensus: null, _streaming: true }); } catch (e) {}
+                    }
+                };
                 try {
                     while (true) {
                         const { done, value } = await reader.read();
@@ -2473,6 +2498,7 @@ Write ALL text values in ${outLang} (keep "status"/"grade" keys in Lao exactly a
                                 if (d) {
                                     text += d;
                                     if (firstChunk) { firstChunk = false; try { setStage("📥 ກຳລັງຮັບຜົນວິເຄາະ…"); } catch(e){} }
+                                    tryProgressive();
                                 }
                             } else if (evt.type === "message_delta") {
                                 if (evt.delta && evt.delta.stop_reason) stopReason = evt.delta.stop_reason;
@@ -2872,6 +2898,7 @@ Respond with ONLY a valid JSON object (no markdown/backticks). Write all text va
         @media (prefers-reduced-motion: reduce){ *{ animation:none!important; transition:none!important; } }
         .spin{ animation:fxspin .9s linear infinite; }
         @keyframes fxspin{ to{ transform:rotate(360deg);} }
+        @keyframes sniperPulse{ 0%,100%{ opacity:1; transform:scale(1);} 50%{ opacity:.35; transform:scale(.7);} }
         @keyframes fxFloat{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-7px);} }
         @keyframes fxGlowPulse{ 0%,100%{ opacity:.5; } 50%{ opacity:1; } }
         @keyframes fxRise{ from{ opacity:0; transform:translateY(14px);} to{ opacity:1; transform:translateY(0);} }
@@ -3148,6 +3175,9 @@ function Result({ data, t, engines, isAdmin }) {
     const biasColor = biasIsWait ? C.amber : (biasIsBuy ? C.green : C.red);
     const biasLabel = biasIsWait ? t("rWait") : (biasIsBuy ? "BUY" : "SELL");
     return (React.createElement("div", { className: "fx-rise", style: { marginTop: 22, display: "flex", flexDirection: "column", gap: 14 } },
+        data._streaming && (React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 9, padding: "8px 14px", borderRadius: 12, border: `1px solid ${C.blue}`, background: "rgba(38,130,255,.08)", fontSize: 12, color: C.blueLt } },
+            React.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.blueLt, animation: "sniperPulse 1s ease-in-out infinite" } }),
+            React.createElement("span", null, t("streamingLive")))),
         data.consensus && (React.createElement("div", { style: { borderRadius: 14, border: `1px solid ${data.consensus.agree ? C.green : C.amber}`, background: data.consensus.agree ? "rgba(63,217,138,.08)" : "rgba(255,194,75,.08)", padding: "12px 15px" } },
             React.createElement("div", { style: { fontWeight: 700, fontSize: 13.5, color: data.consensus.agree ? C.green : C.amber, marginBottom: 8 } }, data.consensus.summary),
             React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } }, data.consensus.votes.map((v, i) => React.createElement("div", { key: i, style: { display: "flex", alignItems: "center", gap: 5, background: C.panel, border: `1px solid ${C.line}`, borderRadius: 99, padding: "4px 10px", fontSize: 11 } },
@@ -3161,7 +3191,9 @@ function Result({ data, t, engines, isAdmin }) {
         isAdmin && data._timing && (React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, padding: "7px 14px", borderRadius: 12, border: `1px solid ${(data._timing.netMs > 30000) ? C.red : (data._timing.netMs > 15000 ? C.amber : C.green)}`, background: C.panel2, fontSize: 11, color: C.mut, flexWrap: "wrap" } },
             React.createElement("span", { style: { fontSize: 13 } }, "\u23F1\uFE0F"),
             React.createElement("span", { style: { fontWeight: 700, color: (data._timing.netMs > 30000) ? C.red : (data._timing.netMs > 15000 ? C.amber : C.green) } }, (data._timing.netMs/1000).toFixed(1) + "s"),
-            React.createElement("span", null, "proxy round-trip"),
+            React.createElement("span", null, "first-byte"),
+            React.createElement("span", { style: { color: C.line } }, "\u00B7"),
+            React.createElement("span", null, "total " + ((data._timing.totalMs||0)/1000).toFixed(1) + "s"),
             React.createElement("span", { style: { color: C.line } }, "\u00B7"),
             React.createElement("span", null, "model: " + (data._timing.model || "?")),
             React.createElement("span", { style: { color: C.line } }, "\u00B7"),
