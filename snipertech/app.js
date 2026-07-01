@@ -2397,13 +2397,14 @@ Write ALL text values in ${outLang} (keep "status"/"grade" keys in Lao exactly a
                 model: "claude-sonnet-4-6",
                 temperature: 0,
                 max_tokens: maxTok,
+                stream: true, // ← stream tokens as they generate (proxy passes SSE straight through)
                 messages: [{ role: "user", content }],
                 // No tools — analysis runs from the chart + model knowledge only (fast, no web lookup).
             };
             // ── TIMING TELEMETRY ──────────────────────────────────
-            // Measures where the wait actually goes. If netMs is large (e.g. 40-60s) the
-            // bottleneck is the proxy/model (check the Cloudflare Worker's model + max_tokens),
-            // NOT this frontend. Logged to console + attached to the parsed result as _timing.
+            // netMs = time to first bytes/headers; totalMs = full stream finished.
+            // With streaming, first tokens now arrive in ~2-3s instead of waiting for
+            // the whole ~60s buffered response the old proxy produced.
             const payloadKB = Math.round(JSON.stringify(reqBody).length / 1024);
             const tStart = (typeof performance !== "undefined" ? performance.now() : Date.now());
             // 90s timeout guard
@@ -2421,9 +2422,9 @@ Write ALL text values in ${outLang} (keep "status"/"grade" keys in Lao exactly a
                     : "ເຊື່ອມຕໍ່ AI ບໍ່ໄດ້ — ກວດ internet ແລ້ວລອງໃໝ່.";
                 throw e;
             }
-            clearTimeout(timer);
             const tHeaders = (typeof performance !== "undefined" ? performance.now() : Date.now());
             if (!response.ok) {
+                clearTimeout(timer);
                 let detail = "";
                 try {
                     const j = await response.json();
@@ -2441,22 +2442,79 @@ Write ALL text values in ${outLang} (keep "status"/"grade" keys in Lao exactly a
                     e.reason = `AI ຕອບກັບ error (${response.status}). ${detail}`.trim();
                 throw e;
             }
-            const data = await response.json();
+            // ── Read the response: streaming (SSE) if available, else plain JSON ──
+            let text = "";
+            let stopReason = null;
+            let outTokens = null;
+            const ctype = (response.headers && response.headers.get) ? (response.headers.get("content-type") || "") : "";
+            if (response.body && response.body.getReader && ctype.includes("event-stream")) {
+                // Parse Anthropic SSE: content_block_delta carries text_delta chunks.
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = "";
+                let firstChunk = true;
+                try {
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        buffer += decoder.decode(value, { stream: true });
+                        // Split complete SSE lines; keep the trailing partial in buffer.
+                        let nl;
+                        while ((nl = buffer.indexOf("\n")) >= 0) {
+                            const line = buffer.slice(0, nl).trim();
+                            buffer = buffer.slice(nl + 1);
+                            if (!line.startsWith("data:")) continue;
+                            const payloadStr = line.slice(5).trim();
+                            if (!payloadStr || payloadStr === "[DONE]") continue;
+                            let evt;
+                            try { evt = JSON.parse(payloadStr); } catch (e) { continue; }
+                            if (evt.type === "content_block_delta" && evt.delta) {
+                                const d = evt.delta.text || evt.delta.partial_json || "";
+                                if (d) {
+                                    text += d;
+                                    if (firstChunk) { firstChunk = false; try { setStage("📥 ກຳລັງຮັບຜົນວິເຄາະ…"); } catch(e){} }
+                                }
+                            } else if (evt.type === "message_delta") {
+                                if (evt.delta && evt.delta.stop_reason) stopReason = evt.delta.stop_reason;
+                                if (evt.usage && evt.usage.output_tokens != null) outTokens = evt.usage.output_tokens;
+                            } else if (evt.type === "message_stop") {
+                                // done
+                            } else if (evt.type === "error") {
+                                clearTimeout(timer);
+                                const e = new Error("http");
+                                e.reason = "AI ຕອບກັບ error: " + ((evt.error && evt.error.message) || "unknown");
+                                throw e;
+                            }
+                        }
+                    }
+                } finally {
+                    clearTimeout(timer);
+                }
+                text = text.trim();
+            } else {
+                // Non-stream fallback (older proxy / news tab): parse full JSON at once.
+                clearTimeout(timer);
+                const data = await response.json();
+                const blocks = data.content || [];
+                text = blocks.map((i) => (i.type === "text" ? i.text : "")).join("").trim();
+                stopReason = data.stop_reason || null;
+                outTokens = (data.usage && data.usage.output_tokens) || null;
+            }
             const tDone = (typeof performance !== "undefined" ? performance.now() : Date.now());
             const netMs = Math.round(tHeaders - tStart);
             const totalMs = Math.round(tDone - tStart);
-            const respModel = data.model || "?";
+            const respModel = "claude-sonnet-4-6";
             try {
-                console.log(`[SniperTech timing] charts=${charts.length} payload=${payloadKB}KB maxTok=${maxTok} model=${respModel} | proxy round-trip=${(netMs/1000).toFixed(1)}s total=${(totalMs/1000).toFixed(1)}s out_tokens=${data.usage?.output_tokens ?? "?"}`);
-                window.__sniperTiming = { charts: charts.length, payloadKB, maxTok, model: respModel, netMs, totalMs, outTokens: data.usage?.output_tokens };
+                console.log(`[SniperTech timing] charts=${charts.length} payload=${payloadKB}KB maxTok=${maxTok} model=${respModel} | first-byte=${(netMs/1000).toFixed(1)}s total=${(totalMs/1000).toFixed(1)}s out_tokens=${outTokens ?? "?"}`);
+                window.__sniperTiming = { charts: charts.length, payloadKB, maxTok, model: respModel, netMs, totalMs, outTokens };
             } catch(e) {}
-            const blocks = data.content || [];
-            const text = blocks.map((i) => (i.type === "text" ? i.text : "")).join("").trim();
             if (!text) {
                 const e = new Error("empty");
                 e.reason = "AI ບໍ່ໄດ້ສົ່ງຂໍ້ຄວາມກັບມາ. ລອງໃໝ່ອີກເທື່ອ.";
                 throw e;
             }
+            // Build a data-like object so the rest of the flow is unchanged.
+            const data = { stop_reason: stopReason, usage: { output_tokens: outTokens } };
             // Try normal parse first
             try {
                 const p = extractJson(text);
