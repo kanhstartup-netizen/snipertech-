@@ -2389,7 +2389,7 @@ Write ALL text values in ${outLang} (keep "status"/"grade" keys in Lao exactly a
         const attempt = async (withNews) => {
             var _a;
             // Output is now a tight, fixed-shape JSON (each field = 1 short line), so the
-            // model needs far less room than before. Base 2000 + 350 per chart, capped 3600.
+            // model needs far less room than before. Base 2200 + 350 per chart, capped 3900.
             // Smaller max_tokens = fewer tokens to generate = faster response, with plenty of
             // headroom for the condensed schema even at 4-6 charts.
             const maxTok = Math.min(2200 + charts.length * 350, 3900);
@@ -2400,7 +2400,13 @@ Write ALL text values in ${outLang} (keep "status"/"grade" keys in Lao exactly a
                 messages: [{ role: "user", content }],
                 // No tools — analysis runs from the chart + model knowledge only (fast, no web lookup).
             };
-            // 55s timeout guard (no web search now, so analysis is faster)
+            // ── TIMING TELEMETRY ──────────────────────────────────
+            // Measures where the wait actually goes. If netMs is large (e.g. 40-60s) the
+            // bottleneck is the proxy/model (check the Cloudflare Worker's model + max_tokens),
+            // NOT this frontend. Logged to console + attached to the parsed result as _timing.
+            const payloadKB = Math.round(JSON.stringify(reqBody).length / 1024);
+            const tStart = (typeof performance !== "undefined" ? performance.now() : Date.now());
+            // 90s timeout guard
             const ctrl = new AbortController();
             const timer = setTimeout(() => ctrl.abort(), 90000);
             let response;
@@ -2416,6 +2422,7 @@ Write ALL text values in ${outLang} (keep "status"/"grade" keys in Lao exactly a
                 throw e;
             }
             clearTimeout(timer);
+            const tHeaders = (typeof performance !== "undefined" ? performance.now() : Date.now());
             if (!response.ok) {
                 let detail = "";
                 try {
@@ -2435,6 +2442,14 @@ Write ALL text values in ${outLang} (keep "status"/"grade" keys in Lao exactly a
                 throw e;
             }
             const data = await response.json();
+            const tDone = (typeof performance !== "undefined" ? performance.now() : Date.now());
+            const netMs = Math.round(tHeaders - tStart);
+            const totalMs = Math.round(tDone - tStart);
+            const respModel = data.model || "?";
+            try {
+                console.log(`[SniperTech timing] charts=${charts.length} payload=${payloadKB}KB maxTok=${maxTok} model=${respModel} | proxy round-trip=${(netMs/1000).toFixed(1)}s total=${(totalMs/1000).toFixed(1)}s out_tokens=${data.usage?.output_tokens ?? "?"}`);
+                window.__sniperTiming = { charts: charts.length, payloadKB, maxTok, model: respModel, netMs, totalMs, outTokens: data.usage?.output_tokens };
+            } catch(e) {}
             const blocks = data.content || [];
             const text = blocks.map((i) => (i.type === "text" ? i.text : "")).join("").trim();
             if (!text) {
@@ -2444,13 +2459,17 @@ Write ALL text values in ${outLang} (keep "status"/"grade" keys in Lao exactly a
             }
             // Try normal parse first
             try {
-                return extractJson(text);
+                const p = extractJson(text);
+                try { p._timing = { netMs, totalMs, model: respModel, payloadKB, outTokens: data.usage?.output_tokens }; } catch(e) {}
+                return p;
             }
             catch {
                 // Maybe the JSON got cut off (token limit). Try to repair by closing it.
                 const repaired = tryRepairJson(text);
-                if (repaired)
+                if (repaired) {
+                    try { repaired._timing = { netMs, totalMs, model: respModel, payloadKB, outTokens: data.usage?.output_tokens }; } catch(e) {}
                     return repaired;
+                }
                 // Still broken
                 if (data.stop_reason === "max_tokens") {
                     const e = new Error("truncated");
@@ -3081,6 +3100,17 @@ function Result({ data, t, engines, isAdmin }) {
             React.createElement("span", { style: { fontSize: 15 } }, activeAIs.length > 1 ? "🧠" : "🤖"),
             React.createElement("span", { style: { fontSize: 12, color: C.mut, flex: 1 } }, activeAIs.length > 1 ? t("aiConsensusHigh") : t("aiConsensusSingle")),
             React.createElement("span", { style: { display: "inline-flex", gap: 4 } }, activeAIs.map((a) => (React.createElement("span", { key: a, style: { fontSize: 10, fontWeight: 700, color: C.cyan, background: "rgba(38,130,255,.12)", border: `1px solid ${C.line}`, borderRadius: 99, padding: "2px 8px" } }, a === "claude" ? "Claude" : a === "gpt" ? "ChatGPT" : "Gemini")))))),
+        isAdmin && data._timing && (React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, padding: "7px 14px", borderRadius: 12, border: `1px solid ${(data._timing.netMs > 30000) ? C.red : (data._timing.netMs > 15000 ? C.amber : C.green)}`, background: C.panel2, fontSize: 11, color: C.mut, flexWrap: "wrap" } },
+            React.createElement("span", { style: { fontSize: 13 } }, "\u23F1\uFE0F"),
+            React.createElement("span", { style: { fontWeight: 700, color: (data._timing.netMs > 30000) ? C.red : (data._timing.netMs > 15000 ? C.amber : C.green) } }, (data._timing.netMs/1000).toFixed(1) + "s"),
+            React.createElement("span", null, "proxy round-trip"),
+            React.createElement("span", { style: { color: C.line } }, "\u00B7"),
+            React.createElement("span", null, "model: " + (data._timing.model || "?")),
+            React.createElement("span", { style: { color: C.line } }, "\u00B7"),
+            React.createElement("span", null, (data._timing.payloadKB || "?") + "KB \u2191"),
+            React.createElement("span", { style: { color: C.line } }, "\u00B7"),
+            React.createElement("span", null, "out " + (data._timing.outTokens ?? "?") + " tok"),
+            data._timing.model && !String(data._timing.model).toLowerCase().includes("sonnet") && React.createElement("span", { style: { width: "100%", color: C.red, fontWeight: 700, marginTop: 2 } }, "\u26A0\uFE0F proxy ບໍ່ໄດ້ໃຊ້ Sonnet — ກວດ Cloudflare Worker"))),
         data.news_alert && (React.createElement("div", { style: { borderRadius: 14, border: `1px solid ${C.amber}`, background: "rgba(255,194,75,.1)", padding: "12px 15px", display: "flex", gap: 11, alignItems: "flex-start" } },
             React.createElement("span", { style: { fontSize: 17, lineHeight: 1.2 } }, "\u26A0\uFE0F"),
             React.createElement("div", null,
