@@ -2283,199 +2283,79 @@ function SniperTechX() {
         // GENERAL news/DXY caution (no live lookup), which keeps analysis fast.
         const searchBlock = `STEP 1 — Do NOT use any tool or web search. Work only from the uploaded chart(s) and your own general knowledge. For "news_alert", "dxy_signal" and "oil_signal": give a SHORT general caution from what you already know (e.g. "If near a Fed/FOMC, NFP, CPI or PCE window, expect volatility — confirm the calendar yourself", and the usual DXY↔gold inverse relationship). Do NOT claim live/current prices or today's exact DXY level — keep these as general guidance, and if you have no specific basis, keep them brief or note the trader should check the live calendar.`;
         const scalpRules = "SCALPING — Strict rules: Use H1+M15+M5 only. Choose the entry zone price will actually REACH next and reverse from on first touch (a reachable M15 OB/FVG at unswept liquidity in discount/premium) — do NOT just take the latest M5/M15 wick. Entry confirmed ONLY after a liquidity sweep into that zone + M5 closes body beyond OB/FVG with BOS/CHoCH in trade direction. M15 OB/FVG must be fresh/unmitigated. SL just beyond the zone, max 20 pip. TP1 15-20 pip, TP2 30-40 pip, TP3 60 pip max. Skip if fewer than 4/5 conditions align, or if price is unlikely to reach the zone. Confidence<60% = output wait. Flag false-signal risk (low/medium/high).";
-        const sys = `You are an elite XAU/USD (gold) ${isScalp ? "SCALPING" : "intraday"} analyst giving a SHORT, ready-to-use trade signal. Bias preference: ${biasEn}. Trading style: ${isScalp ? scalpRules : "SWING INTRADAY — standard SL 30-120 pip, standard TP levels"}. The user uploaded ${charts.length} chart screenshot(s) without timeframe labels.
-
-STEP 0 — DETECT each image's TIMEFRAME yourself from the chart's labels (e.g. "M5","15","1H","H4","D"), axis spacing and candle granularity. Report in "detected_timeframes" (in ${outLang}). Use higher TFs for trend/bias, lower TFs for entry.
+        const sys = `You are an elite XAU/USD (gold) ${isScalp ? "SCALPING" : "intraday"} Smart-Money analyst. Give ONE short, ready-to-use sniper trade signal. Bias preference: ${biasEn}. Style: ${isScalp ? scalpRules : "SWING INTRADAY — SL 30-120 pip, tiered TP"}. User uploaded ${charts.length} chart screenshot(s), timeframes NOT labelled.
 
 ${searchBlock}
 
-INTERMARKET RULE (very important — USD drives gold inversely):
-- DXY UP → gold pressured DOWN; DXY DOWN → gold supported UP. Factor the DXY direction you found into your bias and state it in "dxy_signal".
-- Crude Oil can hint at inflation/risk sentiment; note any meaningful read in "oil_signal" (keep short, secondary).
-- If a high-impact news event is imminent, WARN in "news_alert" (one short line: what + when + caution). If nothing major, set "news_alert" to a short "no major news" note.
+DETECT each image's timeframe yourself (labels like "M5/15/1H/H4/D", axis spacing, candle granularity) → report in "detected_timeframes". Higher TF = trend/bias, lower TF = entry.
 
-STEP 2 — Read the chart like an institutional/Smart-Money analyst. Work top-down and require multiple of these to AGREE before trusting a setup:
+INTERMARKET: DXY UP → gold DOWN; DXY DOWN → gold UP (state in "dxy_signal"). Note oil only if meaningful ("oil_signal"). Warn on imminent high-impact news in "news_alert", else short "no major news".
 
-A) PREMIUM / DISCOUNT (very important for entry quality): Take the most relevant swing (recent impulse leg). Mark its 50% (equilibrium) using Fibonacci. Price BELOW 50% = DISCOUNT zone → favor BUYS there. Price ABOVE 50% = PREMIUM zone → favor SELLS there. State clearly which zone price is in now in "premium_discount". Premium/discount must MATCH the trade direction (don't buy in deep premium or sell in deep discount unless there is a strong reason).
+CORE SMART-MONEY READ (top-down; require several to AGREE before trusting a setup):
+- PREMIUM/DISCOUNT: mark the relevant impulse leg's 50% equilibrium (Fibonacci). Below 50% = DISCOUNT → favor BUY; above = PREMIUM → favor SELL. Direction MUST match the zone. Report in "premium_discount".
+- LIQUIDITY: equal highs/lows, prior day/session H-L, trendline liquidity. A SWEEP/GRAB (spike through then snap back) reversing into discount/premium with displacement = high quality. Report in "liquidity".
+- ORDER FLOW: displacement (institutional intent), absorption, BOS (confirms), CHoCH (reversal warning). Who has control now → "order_flow".
+- ORDER BLOCKS & FVG: last opposing candle before displacement (OB) + any imbalance (FVG). Prefer fresh/unmitigated. Fold into the zones/setup.
+- ORDER BOOK/DOM: only if the screenshot truly shows DOM/footprint/volume profile — read it; otherwise say it's not shown and you used price/volume ("order_book"). Never fabricate depth.
 
-B) LIQUIDITY: Identify obvious liquidity pools — equal highs/lows, prior day/session high-low, trendline liquidity (where stops cluster). A LIQUIDITY SWEEP / GRAB = price spikes through that level then snaps back (stop hunt). A sweep that reverses INTO a discount/premium zone with displacement is a high-quality signal. Describe the key sweep in "liquidity".
+INDICATORS (read only if visible on the chart; say "not shown" otherwise — never invent):
+- MACD: state momentum (bullish/bearish), whether MACD line is above/below signal, histogram expanding/contracting, and any MACD/price DIVERGENCE (regular = reversal warning, hidden = continuation). Divergence at a liquidity sweep + OB is a strong confluence. Report in "macd_read".
+- FIBONACCI (retracement + circle/OTE): use the last confirmed impulse (after BOS/CHoCH). Golden OTE zone = 0.618-0.786 retracement; the 0.5 equilibrium ties to premium/discount. If a Fib CIRCLE / time-price arc is drawn, note where price meets the arc (dynamic S/R). Best entries sit in OTE overlapping an OB/FVG. Report key levels + whether price is in OTE in "fib_read".
+- BIG TRADE VOLUME: read volume bars / spikes. A VOLUME SPIKE on a sweep or displacement candle = institutional participation (confirms the move). A spike that FAILS to push price (absorption/climax) = exhaustion/reversal. Low volume into a level = weak, likely fake. Note big-volume nodes/thin single-prints price is drawn to. Report in "volume_read".
 
-C) ORDER FLOW: Read momentum from candle behavior — displacement (strong impulsive candles = institutional intent), absorption (large opposing candles that fail to follow through), break of structure (BOS) confirming direction, change of character (CHoCH) warning of reversal. Summarize the current order-flow read in "order_flow" (which side has control right now).
+ADVANCED (apply ONLY when clearly present; "not clear" is a valid, respected answer — do not force patterns): Elliott wave count; Wyckoff phase (accumulation/distribution, spring/UTAD, SOS/SOW); Harmonic (Gartley/Bat/Butterfly/Crab/Shark) + PRZ; ICT killzones (London 07:00-10:00 UK, NY 08:00-11:00 ET), Power-of-3 (AMD), Silver Bullet window, OTE, Breaker/Mitigation blocks, Inducement, Judas swing, Turtle Soup, Unicorn model, Daily profile, Asia range, fractal multi-TF alignment. Summarize only what's genuinely visible in "advanced_read" and ICT-specifics in "ict_read" (1-3 short lines each, omit the rest).
 
-D) ORDER BLOCKS & FVG: Mark the last opposing candle before a displacement move (order block) and any Fair Value Gap / imbalance left behind. These are high-probability re-entry zones. Fold into the zones/setup.
+CME OPTIONS (options_flow) — ONLY if a CME QuikStrike Vol2Vol / OI / Intraday-Volume chart is uploaded, else set "ບໍ່ມີ CME chart". If present: (1) CONVERT every futures level to XAU/USD SPOT (GC ≈ Spot + basis: front ~$3-8, next ~$8-15, 2mo+ ~$15-25) — report BOTH prices + state basis. (2) TIER each spot level: Tier1🔴 ends-00 (strongest pin), Tier2🟡 ends-50, Tier3🟢 ends-25/75. (3) VOL REGIME: compare IV vs Vol Settle → HIGH_VOL/NORMAL/LOW_VOL/COMPRESSING; daily expected move ≈ Spot×VolSettle%÷√252; adjust SL/TP. (4) Read max_pain / put wall / call wall / 1σ range (all → spot+tier), IV skew, DTE, dealer pressure (price vs max pain), and give a 2-3 line trade implication.
 
-E) ORDER BOOK / DOM: Only comment on order book / depth-of-market IF the screenshot actually shows DOM, footprint, or a volume profile. If it does, read it. If it does NOT (a normal candlestick chart), say so honestly in "order_book" (e.g. note that DOM is not visible and you used volume/price action instead) — do NOT fabricate bid/ask depth you cannot see.
+PROFESSIONAL PLAYBOOK (institutional/funded gold routine): mark untapped HTF level → WAIT for price to reach it → wait for a liquidity SWEEP → confirm displacement/BOS/MSS on lower TF → enter on the FVG/OB refinement → target next opposing liquidity. Gold hunts stops with long wicks: demand a BODY close beyond a level for BOS/CHoCH; wider structural stop but refine entry on a lower TF so stop stays tight in dollars. Only SELL from premium, only BUY from discount; best entries in 0.62-0.79 OTE overlapping OB/FVG. Cleanest moves in London/NY killzones. TPs at real liquidity pools (tiered partials, TP1≥1:2, overall 1:3+). Risk 0.5-1%, no martingale, quality over frequency. Confluence stacking sets the grade: 5+ aligned = high, 2-3 = medium, <2 = wait — never inflate.
 
-Confluence target: the BEST setups stack several of the above (e.g. sweep of liquidity + into discount + order block + BOS + DXY agreeing). The more that align, the higher the grade.
-
-STEP 3 — ADVANCED CONFIRMATIONS (apply when the chart clearly shows them; do NOT force a pattern that isn't there — say "not clear" rather than inventing one):
-- ELLIOTT WAVE: if a clean impulse/correction is visible, state the likely wave count (e.g. "in wave 3 of 5" or "ABC correction") and what it implies next. Keep it simple.
-- WYCKOFF: identify accumulation/distribution schematics if present — spring, upthrust (UTAD), sign of strength/weakness, the phase (A-E). Note which phase price seems to be in.
-- HARMONIC PATTERNS: spot Gartley, Bat, Butterfly, Crab, or Shark if the swing ratios fit; give the potential reversal zone (PRZ). Only if ratios actually align.
-- ICT KILLZONES (timing): note which session/killzone is active or upcoming (Asian range, London Open 07:00-10:00 UK, New York Open / AM session 08:00-11:00 ET, London close). Gold often runs liquidity during London & NY opens — factor timing into the entry.
-- EXPECTED RANGE / IMPLIED VOLATILITY (CME QuikStrike Vol2Vol) — COMPREHENSIVE ANALYSIS:
-  If the uploaded image is a CME QuikStrike Vol2Vol Expected Range chart (GC Gold Futures options), apply ALL of the following rules:
-
-  ══ FEATURE 1 — FUTURES → SPOT CONVERSION (MANDATORY) ══
-  CME GC futures trade at a PREMIUM above XAU/USD Spot. The basis (spread) is approximately:
-    Front-month (nearest expiry): Futures ≈ Spot + $3 to $8
-    Next-month: Futures ≈ Spot + $8 to $15
-    2+ months out: Futures ≈ Spot + $15 to $25
-  RULE: ALL price levels read from the CME chart (max pain, put wall, call wall, expected range boundaries, Vol Settle, delta strike prices) MUST be converted to XAU/USD SPOT price by subtracting the estimated basis before reporting. State the basis used (e.g. "basis ~$6 → Futures 3320 = Spot ~3314"). NEVER report raw futures prices as if they equal Spot — this causes confusion.
-  Conversion formula: Spot ≈ Futures_Strike − Basis_Estimate
-  Report BOTH the original futures price AND the converted spot price for every key level (e.g. "Put wall: GC $3300 → Spot $3294").
-
-  ══ FEATURE 2 — PSYCHOLOGICAL S/R LEVELS (ROUND NUMBER HIERARCHY) ══
-  After converting all key levels to Spot, classify each by its round-number importance:
-    🔴 TIER 1 — ends in 00 (e.g. 3300, 3400): STRONGEST psychological support/resistance. Institutions watch these closely. Expect high-volume reactions, pin risk at options expiry, and stop clusters just above/below.
-    🟡 TIER 2 — ends in 50 (e.g. 3250, 3350): STRONG mid-level. Second most watched. Acts as interim target and S/R especially on H1-H4.
-    🟢 TIER 3 — ends in 25 or 75 (e.g. 3225, 3275, 3325, 3375): MODERATE. Quarter-handles used as entry/TP refinement zones on M15-M30.
-  For each converted Spot level identified (max pain, put wall, call wall, 1σ boundary, Vol Settle), state its tier and what it means practically (e.g. "Spot $3300 = Tier 1 🔴 → extremely strong pin magnet, hard ceiling, TP here not above").
-  When multiple Tier 1 levels exist in the expected range, the one closest to max pain has highest gravity.
-
-  ══ FEATURE 3 — VOL SETTLE & VOLATILITY RISK FILTER ══
-  • VOL SETTLE line: the previous session's implied volatility settle level (shown as a horizontal reference line on the vol smile chart, or the "Settle" value in the header). Compare current IV to the Vol Settle:
-    − Current IV ABOVE Vol Settle: IV is EXPANDING → expect larger-than-normal intraday moves. WIDEN SL by 10-20%, reduce position size, extend TP targets.
-    − Current IV BELOW Vol Settle (IV compression): market is calming. Expect mean-reversion / range-bound price action. TIGHTEN SL, TP at nearer round levels, fade breakouts.
-    − IV NEAR Vol Settle (±0.5%): neutral. Use standard risk parameters.
-  • DAILY EXPECTED MOVE (DEM) from Vol Settle: DEM (in dollars) ≈ (Spot_Price × Vol_Settle% × √(1/252)). For example, if Spot = $3300 and Vol Settle = 15% annual → DEM ≈ $3300 × 0.15 / √252 ≈ $31/day. This is the ±1σ DAILY expected move. If current price is already near ±1 DEM from the open, probability of further extension is <16% → strong mean-reversion zone.
-  • VOL CHG SIGNAL: if Vol Chg shown (e.g. "Vol Chg: -5.68"), classify as:
-    − Negative (IV falling): directional squeeze → breakout likely soon. Trade with trend, momentum entries.
-    − Positive (IV rising): uncertainty / event risk → fade extremes, widen SL, expect whipsaws.
-    − Near zero: stable environment. Normal risk parameters.
-  State the volatility regime in the output: "HIGH_VOL / NORMAL / LOW_VOL / COMPRESSING" and adjust the SL/TP recommendations accordingly.
-
-  ══ FEATURE 4 — CME CHART ELEMENTS (FULL READ) ══
-  • RANGES BAR: 1σ/2σ/3σ expected move boxes from current futures price. Convert boundaries to Spot. The 1σ box = ~68% probability price stays inside by expiry. The 2σ = ~95%. Use 1σ boundaries as TP1/TP2 limits (after Spot conversion).
-  • INTRADAY VOLUME: orange bars = PUT volume (support floors), blue bars = CALL volume (resistance ceilings). Dominant-side volume = expected directional flow. Strike with BOTH high put+call volume = max pain / pin zone.
-  • OPEN INTEREST: put OI below price = gamma support floor (dealers buy futures to hedge). Call OI above price = gamma resistance ceiling (dealers sell futures to hedge). Largest OI strike = MAX PAIN → gravitational center, convert to Spot.
-  • VOLATILITY SMILE: U-shaped IV curve. Lowest point = ATM IV. If put-side IV much higher than call-side = fear premium = bearish skew = watch for downside spike. Call-skewed = bullish sentiment. Symmetric = neutral.
-  • DELTA MARKERS (25ΔP / 25ΔC): bracket the institutional "expected 1σ move" range. Convert to Spot. Price OUTSIDE this range = statistically unusual, high mean-reversion probability.
-  • DTE: < 1 DTE = gamma explosion = violent pinning moves. > 5 DTE = slower, trend-following works. > 20 DTE = standard technical analysis dominates.
-  • FUTURE CHG vs MAX PAIN: if current futures price BELOW max pain → dealer delta-hedging creates upward pressure. ABOVE max pain → downward pressure. This is the "dealer pinning" effect.
-
-  HOW TO TRADE — COMPLETE WORKFLOW (apply in order):
-  1. Read all futures price levels → convert ALL to XAU/USD Spot (subtract basis, state estimate).
-  2. Classify each Spot level by psychological tier (Tier 1 ends-00, Tier 2 ends-50, Tier 3 ends-25/75).
-  3. Identify max pain (Spot), put wall (Spot), call wall (Spot) and their tiers.
-  4. Check Vol Settle vs current IV → determine volatility regime (HIGH/NORMAL/LOW/COMPRESSING).
-  5. Calculate DEM → check if price is near ±1 DEM from session open → mean-reversion alert if so.
-  6. If Vol Chg negative + DTE < 1 → expect pinning toward max pain (Spot) → fade breakouts, trade range.
-  7. If Vol Chg positive + one-sided volume dominant → expect breakout toward dominant side → trade with flow.
-  8. Use 1σ boundaries (Spot) as hard TP ceiling/floor. Use Tier 1 round numbers inside the range as primary TP targets. Use Tier 2 as secondary TP.
-  9. Set SL OUTSIDE nearest put/call wall (Spot) + round-number buffer (~$3-5 beyond Tier 1/2 level).
-
-  Report ALL findings in "options_flow" field with these sub-fields:
-    futures_basis_used (e.g. "~$6, front-month estimate")
-    max_pain_futures + max_pain_spot + max_pain_tier (e.g. "Tier 1 🔴")
-    put_wall_futures + put_wall_spot + put_wall_tier
-    call_wall_futures + call_wall_spot + call_wall_tier
-    expected_range_1sigma_futures + expected_range_1sigma_spot
-    iv_atm_level + vol_settle_level + vol_regime (HIGH_VOL/NORMAL/LOW_VOL/COMPRESSING)
-    vol_chg_signal (directional/uncertainty/stable)
-    daily_expected_move_spot (dollar amount)
-    vol_skew_direction (put-skewed/call-skewed/neutral)
-    dte_note
-    psychological_levels (list each key Spot level with tier label)
-    dealer_pressure (upward/downward/neutral — based on price vs max pain)
-    trade_implication (2-3 lines: recommended bias, key Spot S/R to watch, SL/TP adjustment based on vol regime)
-- ICT POWER OF 3 (AMD): look for Accumulation (range/consolidation), Manipulation (fake breakout / liquidity grab), then Distribution (real move begins). Identify which phase is active and whether the manipulation candle (stop hunt) has already completed.
-- ICT SILVER BULLET: identify if price is in a Silver Bullet window (10:00-11:00 ET or 14:00-15:00 ET New York time). A FVG formed during these windows inside a killzone = premium entry. Flag if visible.
-- ICT OPTIMAL TRADE ENTRY (OTE): the highest-probability entry sits in the 0.618-0.786 Fibonacci retracement of the last confirmed swing (AFTER a BOS/CHoCH). If price has retraced into the 62-79% zone overlapping an OB or FVG, flag as OTE = true.
-- BREAKER BLOCKS: a prior OB that price broke through decisively becomes a Breaker — it flips polarity (old support → resistance, old resistance → support). Identify any visible Breaker on the chart.
-- MITIGATION BLOCKS: if price returned to partially fill an OB (50-100% fill) before moving, that OB may be "mitigated" and weaker. Mark only fresh/untested OBs as high-quality.
-- PROPULSION BLOCKS: the last candle BEFORE a strong displacement move (often a small doji/inside bar right before the explosive candle). This is the sharpest entry inside the OB.
-- ICT CONSEQUENT ENCROACHMENT (CE): midpoint of a FVG — price often reacts exactly at the 50% of a FVG before continuing. Use as fine-entry inside a FVG.
-- TURTLE SOUP / STOP HUNT REVERSAL: equal highs/lows being swept = retail stop hunt by institutions. After sweep + displacement candle reversing = sniper entry. Check for this pattern.
-- JUDAS SWING: early-session fake move opposite to the real direction (common London open 08:00-09:00 UK). If price spikes one way then violently reverses during killzone — that reversal is the real move.
-- MARKET MAKER MODEL: institutions accumulate → mark up → distribute → mark down. Identify which phase the current structure suggests and trade WITH the market maker, not against.
-- SMC MONTHLY/WEEKLY/DAILY BIAS: always frame the D1/W1 bias first. Daily candles closing as displacement = bias confirmed. HTF bias overrules LTF setups — never trade a LTF Buy into a D1/W1 premium resistance.
-- VOLUME IMBALANCE / SINGLE PRINT: thin areas on volume profile (single prints) act like FVGs — price is magnetically drawn back to fill them. If visible on chart, mark as high-priority target.
-
-Summarize whatever of STEP 3 is genuinely present in "advanced_read" (one short line each that applies; omit what's not visible).
-
-PROFESSIONAL PLAYBOOK — apply this institutional + prop-firm-funded knowledge to raise accuracy (distilled from how funded/institutional gold traders actually operate):
-A) CORE SEQUENCE (the institutional gold routine): (1) mark untapped HTF levels (prior day/session high-low, HTF order block, FVG, equal highs/lows); (2) WAIT for price to reach the level — never predict; (3) wait for a liquidity SWEEP of that level (stop-hunt that traps retail); (4) confirm DISPLACEMENT / BOS / MSS on a lower timeframe (M5/M1) showing intent; (5) enter on the resulting FVG/OB refinement; (6) target the NEXT opposing liquidity pool. If any step is missing, grade lower or set status "wait".
-B) GOLD'S PERSONALITY: XAU/USD moves far faster than FX, hunts stops aggressively, and prints long misleading wicks. Demand a candle-BODY close beyond a level (not just a wick) to confirm BOS/CHoCH. Gold needs WIDER stops than FX but the ENTRY must be refined on a lower timeframe so the stop stays tight in dollar terms.
-C) PREMIUM/DISCOUNT IS NON-NEGOTIABLE: use the dealing-range 50% (equilibrium). Only SELL from premium (above EQ), only BUY from discount (below EQ). Best entries sit in the 0.62-0.79 OTE zone overlapping an OB/FVG.
-D) SESSIONS / KILLZONES: the cleanest institutional moves happen in the London open and New York open killzones. An Asian-range breakout is only trustworthy when confirmed by a killzone. Flag low-volume chop (late NY / Asian mid-range) as lower-confidence.
-E) TAKE-PROFIT METHOD (how funded desks bank gold): set TPs at the NEXT real liquidity pools / opposing OB / session high-low — NOT round guesses. Use TIERED partials: TP1 = nearest liquidity (bank ~⅓-½, then move SL to break-even), TP2 = mid pool, TP3 = far pool, and leave a small runner trailed behind structure (don't trail too tight — gold's noise will stop you out). Always ensure TP1 alone gives at least 1:2 R, with overall 1:3+ available. A funded trader needs only ~40% win rate at 1:3 to be profitable, so quality > frequency.
-F) PROP-FIRM RISK DISCIPLINE (bake this into the risk_reminder and confidence): risk only 0.5-1% per trade; never average down / martingale; one A+ confluence setup beats many mediocre ones; respect daily loss limits (stop after 2-3 losses); the stop must be a price the trader can accept BEFORE entry. "Not being wrong for long" matters more than being right.
-G) CONFLUENCE STACKING decides the grade: HTF bias + premium/discount alignment + liquidity sweep + OB/FVG + BOS/displacement + session timing + DXY agreeing. 5+ aligned = high grade; 2-3 = medium; <2 = wait. Never inflate.
-H) ICT SMART MONEY CONCEPTS — ELITE LAYER (from ICT Mentorship 2022-2024 & Inner Circle Trader public teachings):
-   • INDUCEMENT (IDM): before a real move, institutions deliberately create a fake level to lure retail entries and grab their stops. Look for a small swing high/low that forms inside consolidation pointing the WRONG direction — that is the inducement. After price sweeps IDM and reverses = sniper entry.
-   • DEALING RANGE REFINEMENT: the best ICT entries use a nested discount-within-discount (for buys) or premium-within-premium (for sells). When price is already in the daily discount, find the H1 sub-range and enter in the H1 discount too. Double-layered alignment = highest quality.
-   • UNICORN MODEL (ICT 2022): BOS on H1 → price drops into H1 FVG that overlaps with M15 OB → entry. This is one of ICT's cleanest published models. Flag if this structure is visible.
-   • SILVER BULLET ENTRY DRILL: the 3-candle FVG during the 10:00 or 14:00 ET Silver Bullet window, aligned with the daily bias, is high probability. Enter on a retest of that FVG if price has not already left the window.
-   • DAILY PROFILES: ICT teaches 4 daily price delivery models — Classic Bullish (HTF buy day: manipulate down AM, distribute up PM), Classic Bearish (HTF sell day: pump AM, dump PM), Consolidation, and Trending. Identify which profile best fits the current daily candle action.
-   • TIME & PRICE THEORY: institutional algorithms target SPECIFIC price levels at SPECIFIC times (e.g. prior day high at London open, prior week high at NY open). Combine price levels with killzone timing for highest precision.
-   • ASIA RANGE BOX: mark the Asian session high/low (22:00-07:00 UK). London often breaks one side (fake) then reverses to take the other. NY then continues the true direction. Note if Asian range is defined and which side was breached.
-   • QUARTERLY SHIFTS (ICT): every quarter (Jan, Apr, Jul, Oct) institutions rebalance. The first 2 weeks of a new quarter often establish the quarterly bias (bullish or bearish). If near a quarterly shift, note higher institutional activity.
-I) GLOBAL SNIPER TECHNIQUES (from elite SMC communities worldwide — Stacey Burke, The Trading Fraternity, Phantom Trading):
-   • STACEY BURKE — FIBONACCI FLOW: the 50% retracement of the LAST impulse leg (not just any swing) = the "Fibonacci Flow" level. Price consistently returns to this exact 50% before continuing. If price is AT the 50% of the last impulse = ultra-high confluence entry zone.
-   • MOMENTUM SHIFT ENTRY: after a BOS, wait for price to retrace to the 50-61.8% of the breaking candle itself (not the whole swing) — this micro-entry keeps stops tiny and maximizes RR.
-   • PHANTOM TRADING — KILL CANDLE: the first strong displacement candle of the session (the one that breaks a key level with a full-bodied close). The open of that candle + the FVG it creates = the re-entry zone. Never miss a kill candle retest.
-   • LIQUIDITY VOID FILL: after a fast displacement (gap-like move with no retracement), price MUST return to fill at least 50% of the void before reaching TP. Account for this retrace in the trade plan — it is not a reversal, it is filling before continuation.
-   • MULTI-TIMEFRAME FRACTAL ALIGNMENT: the same OB/FVG structure repeating on D1, H4, H1, and M15 simultaneously = fractal alignment. When 3+ timeframes show the same zone, grade it A+++ regardless of other confluence.
-   • SNIPER ENTRY DRILL (prop-firm standard): after all confluences align, zoom to M1-M5 and wait for a micro-CHoCH (1 swing high/low taken out on M1) pointing in trade direction inside the entry zone. This micro-confirmation reduces false entries by ~40% and tightens SL dramatically.
-
-ANALYZE ONLY what is visible. If an image is unclear or not a price chart, set "readable" false and explain briefly in "note".
+⭐ SNIPER REVERSAL ZONE (this app's signature, TOP PRIORITY): output ONE single zone with the HIGHEST probability that price both REACHES it AND reverses instantly on first touch (order goes green with no/minimal drawdown). This is NOT the latest candle wick (price often never returns there). Requirements: pick a zone price is genuinely heading TOWARD and will realistically tag; stack maximum confluence at it (HTF OB/FVG + unswept liquidity draw + premium/discount + unmitigated OB + round number + MACD/Fib/Volume agreement); if the read implies price drags deep before turning, refine to the exact M15/M5 OB/FVG edge; if no such zone is in reach now, set status "ລໍຖ້າ" and state what must print first — never force an entry onto the nearest wick. Report it in "m15_wick".
 
 HARD RULES (protect the trader):
-- ⭐ SNIPER REVERSAL ZONE (TOP PRIORITY — this app's signature): find the SINGLE zone with the HIGHEST PROBABILITY that price REACHES it AND reverses the instant it is touched, so the order goes green immediately with no/minimal drawdown (no "drag" before it works). This is explicitly NOT "the latest candle wick" — the most recent wick is usually WRONG because price often never returns to it. To achieve this:
-  • Pick a zone price is HEADING TOWARD and is genuinely likely to TOUCH — not one it already left behind. Ask "will price realistically tag this from here?" If not, it is not valid.
-  • Stack maximum confluence at the zone: HTF (H4/H1) OB or FVG, UNSWEPT liquidity (resting stops price is drawn to), premium/discount alignment (Buy only in discount, Sell only in premium), unmitigated OB, round-number / psychological level. More factors = sharper, more immediate reversal.
-  • Choose the candidate that BOTH (a) price will most likely reach AND (b) has strongest confluence for an instant rejection. That intersection is the sniper zone.
-  • If your read implies price pierces deep and drags before turning, the zone is wrong — refine to the exact M15/M5 OB or FVG edge where rejection is sharpest.
-  • If no high-probability reversal zone is in reach now (price mid-range, no clean liquidity draw, weak confluence), set status "ລໍຖ້າ" and explain what must print first — do NOT force an entry onto the nearest wick.
-  • In "m15_wick" report the chosen sniper zone + WHY it is the highest-probability reversal price will actually reach (the confluence + precise entry price/zone).
-- SNIPER PRECISION (critical): this is a SNIPER signal, not a wide swing zone. The "entry_zone" MUST be TIGHT — for gold (XAU/USD) keep it roughly 3-8 dollars wide (≈ 30-80 pip), and NEVER wider than 10 dollars (100 pip). A wide zone like 4200-4225 (25 dollars) is WRONG — narrow it to the single best refined zone (e.g. an M5/M15 order block or FVG inside the larger area), e.g. 4200-4206. Pick the most precise entry, not the whole range.
-- STOP LOSS at a structurally valid level just beyond the OB/swing that invalidates the idea — but keep it REALISTIC and CONTROLLED: target about 30-120 pip (≈ 3-12 dollars) on gold. NEVER report an SL more than 150 pip (15 dollars) away — if structure seems to require more than that, the entry zone is wrong, so refine to a lower-timeframe entry closer to invalidation instead of widening the stop. Report distance in "sl_pips". Also avoid tiny forced stops (an 8-pip stop on gold gets hunted) — the sweet spot is a tight but breathable 30-120 pip.
-- The distance from entry to the FINAL target (TP3) should be reasonable for an intraday move — do NOT stretch the whole entry→SL→TP span across hundreds of dollars. If your levels imply a ~2500-pip span, they are far too wide: tighten them.
-- TP1/TP2/TP3 at real targets; report honest "rr". Don't invent targets to fake 1:3.
-- "confidence" realistic: clean setups ≈60-75%, ordinary 45-65%. A textbook A+ setup (all confluences aligned) may reach up to 80%, but NEVER above 80%, and NEVER claim 90%+. Use a range like "70-78%".
-- Grade "ສູງ"/"ກາງ"/"ຕ່ຳ" by genuine confluence (more factors agree, NOT guaranteed win).
-- If price hasn't reached a quality zone, set status "ລໍຖ້າ".
-- Use "Buy" / "Sell" for direction (NEVER "Long"/"Short").
-- For Elliott/Wyckoff/Harmonic: be honest — only name a pattern if the structure truly fits. "not clear" is a valid, respected answer (in the output language).
+- SNIPER PRECISION: "entry_zone" MUST be TIGHT — gold ~3-8 dollars wide (30-80 pip), NEVER wider than 10 dollars. Refine to the single best M5/M15 OB/FVG, not a broad range.
+- STOP LOSS just beyond the structure that invalidates the idea: ~30-120 pip (3-12 dollars). NEVER >150 pip — if structure needs more, the entry is wrong, refine lower-TF closer to invalidation. Avoid tiny hunted stops (<20 pip). Report "sl_pips".
+- TP1/TP2/TP3 at real targets; honest "rr"; don't invent targets to fake 1:3. Whole entry→TP3 span must be a reasonable intraday move, not hundreds of dollars.
+- "confidence" realistic: clean ≈60-75%, ordinary 45-65%, textbook A+ up to 80% MAX, never 90%+. Use a range.
+- If price hasn't reached a quality zone, status "ລໍຖ້າ". Use "Buy"/"Sell" (never Long/Short).
 
-KEEP IT TIGHT — each text field 1 short sentence (the SMC reads above are 1 line each). Max 2 zones, 1 primary setup + at most 1 alternative, up to 5 confluence factors. Output ONLY the JSON.
+ANALYZE ONLY what is visible. If an image is unclear or not a price chart, set "readable" false and explain in "note".
 
-⭐ SNIPER FINAL MANDATE (overrides everything above): no matter WHICH confluences, patterns, or tools you found (Elliott, Wyckoff, Harmonic, ICT, options flow, multi-TF, etc.), the final output MUST converge on ONE single SNIPER entry zone — the one precise price where the chart has the highest probability of reversing INSTANTLY on first touch (order goes green immediately, no drag/drawdown). Use all the analysis ONLY to pinpoint and justify that single zone. Never spread the conclusion across several vague areas. If nothing qualifies as that instant-reversal sniper zone right now, the setup MUST be "ລໍຖ້າ" (wait) and you state what must print first — do not water down the sniper standard. Everything you reported is supporting evidence for this one zone.
+KEEP IT TIGHT — each text field = 1 short sentence. Max 2 zones, 1 primary setup + at most 1 alternative, up to 5 confluence factors.
 
-Write ALL text values in ${outLang} (keep "status"/"grade" keys in Lao as shown). Numbers, prices, TFs, pips, ratios, % stay as digits.
-
-Respond with ONLY a valid JSON object — no markdown, no backticks. Write every text value in ${outLang} (but keep the "status" and "grade" keys in Lao exactly as shown):
+Write ALL text values in ${outLang} (keep "status"/"grade" keys in Lao exactly as shown; numbers/prices/TF/pips/ratios/% as digits). Respond with ONLY a valid JSON object — no markdown, no backticks:
 {
   "readable": true,
   "note": "in ${outLang}, only if needed",
   "detected_timeframes": "in ${outLang} — e.g. 1 = H4, 2 = M15",
-  "news_alert": "in ${outLang} — high-impact news happening now/soon + caution, or a short 'no major news' note",
-  "dxy_signal": "in ${outLang} — DXY direction today + what it means for gold (1 line)",
-  "oil_signal": "in ${outLang} — crude oil direction + brief note (1 line, secondary)",
+  "news_alert": "in ${outLang} — imminent high-impact news + caution, or short 'no major news'",
+  "dxy_signal": "in ${outLang} — DXY direction + meaning for gold (1 line)",
+  "oil_signal": "in ${outLang} — oil direction + brief note (1 line, secondary)",
   "instrument_guess": "e.g. XAU/USD",
   "trend": "in ${outLang} — main trend + bias (1 short line)",
-  "timeframe_breakdown": [{"tf":"H4|H1|M15|M5","read":"in ${outLang} — ONE very short phrase, e.g. 'Sideway on supply', 'Sweep high then stall'"}],
-  "bias": "Buy|Sell|Wait — single word direction bias from the multi-TF read",
-  "structure": "in ${outLang}, 1-2 short sentences max",
-  "premium_discount": "in ${outLang} — is price in DISCOUNT (below 50%, favor Buy) or PREMIUM (above 50%, favor Sell) now? 1 line",
-  "m15_wick": "in ${outLang} — the chosen SNIPER reversal zone: why it has the highest probability that price will REACH it and turn instantly (HTF OB/FVG + unswept liquidity draw + premium/discount + round number) + the precise entry price/zone. If none in reach, say so and mark setup ລໍຖ້າ.",
-  "liquidity": "in ${outLang} — key liquidity pool + any sweep/grab seen (1 line)",
-  "order_flow": "in ${outLang} — who has control now (displacement/absorption/BOS/CHoCH), 1 line",
-  "order_book": "in ${outLang} — only if DOM/volume profile is visible; otherwise note it isn't shown and you used price/volume (1 line)",
-  "advanced_read": "in ${outLang} — short notes on Elliott Wave / Wyckoff / Harmonic / ICT killzone / expected-range IF clearly present; omit what's not visible. Keep to 1-3 short lines total.",
-  "ict_read": "in ${outLang} — ICT-specific observations IF visible: Power of 3 phase (A/M/D), Silver Bullet window active, OTE zone hit, Breaker block, Inducement level, Daily Profile type, Asia range status, Unicorn Model. 1-2 lines max, omit what isn't clearly present.",
-  "options_flow": "in ${outLang} — ONLY if a CME QuikStrike Vol2Vol / OI / Intraday Volume chart is uploaded. Apply ALL 4 features: (1) SPOT CONVERSION — state basis estimate, then report EVERY key level as BOTH GC Futures price AND converted XAU/USD Spot price (e.g. 'Put wall: GC $3300 → Spot ~$3294 [basis $6]'); (2) PSYCHOLOGICAL TIERS — classify each Spot level: Tier 1 🔴 (ends-00 = strongest), Tier 2 🟡 (ends-50 = strong), Tier 3 🟢 (ends-25/75 = moderate); (3) VOL SETTLE REGIME — compare current IV vs Vol Settle → label HIGH_VOL/NORMAL/LOW_VOL/COMPRESSING → state daily expected move in dollars → adjust SL/TP recommendation accordingly; (4) FULL CME READ — max_pain(futures+spot+tier), put_wall(futures+spot+tier), call_wall(futures+spot+tier), 1σ_range(futures+spot), iv_atm, vol_settle, vol_chg_signal, dte_note, dealer_pressure(up/down/neutral), trade_implication(2-3 lines with Spot levels + vol-adjusted SL/TP). If no options chart uploaded, set to 'ບໍ່ມີ CME chart'.",
-  "sniper_grade": "A+++ | A+ | A | B | C | WAIT — overall ICT/SMC grade: A+++ = fractal alignment 3+ TFs + all confluences; A+ = 5+ confluences; A = 3-4; B = 2-3 partial; C = weak; WAIT = <2 or no sweep yet",
-  "zones": [{"type":"resistance|support","label":"in ${outLang} — include psychological tier if applicable: Tier1🔴(ends-00) Tier2🟡(ends-50) Tier3🟢(ends-25/75)","range":"TIGHT Spot price range, e.g. 3298-3302 (max ~10 dollars wide)","why":"in ${outLang}, short — mention OB/FVG/sweep/round-number/options-wall if relevant"}],
+  "timeframe_breakdown": [{"tf":"H4|H1|M15|M5","read":"in ${outLang} — ONE short phrase"}],
+  "bias": "Buy|Sell|Wait — single word",
+  "structure": "in ${outLang}, 1-2 short sentences",
+  "premium_discount": "in ${outLang} — DISCOUNT (below 50%, favor Buy) or PREMIUM (above 50%, favor Sell) now? 1 line",
+  "m15_wick": "in ${outLang} — the chosen SNIPER reversal zone + why it's highest-probability to be reached and reverse instantly + precise entry price/zone. If none in reach, say so and mark ລໍຖ້າ.",
+  "liquidity": "in ${outLang} — key liquidity pool + any sweep (1 line)",
+  "order_flow": "in ${outLang} — who controls now (1 line)",
+  "order_book": "in ${outLang} — only if DOM/volume profile visible, else note not shown (1 line)",
+  "macd_read": "in ${outLang} — MACD momentum/cross/histogram + any divergence, or 'not shown' (1 line)",
+  "fib_read": "in ${outLang} — key Fib retracement/OTE levels + is price in 0.618-0.786 OTE? note Fib circle/arc if drawn, or 'not shown' (1 line)",
+  "volume_read": "in ${outLang} — big-volume spike/absorption/exhaustion read + key volume node, or 'not shown' (1 line)",
+  "advanced_read": "in ${outLang} — Elliott/Wyckoff/Harmonic/killzone/expected-range IF clearly present; 1-3 short lines, omit rest",
+  "ict_read": "in ${outLang} — ICT specifics IF visible (Power-of-3, Silver Bullet, OTE, Breaker, Inducement, Daily profile, Asia range, Unicorn); 1-2 lines, omit rest",
+  "options_flow": "in ${outLang} — ONLY if a CME QuikStrike/OI/Intraday-Volume chart is uploaded: apply spot-conversion + tiers + vol regime + full CME read with converted spot levels & vol-adjusted SL/TP. Else 'ບໍ່ມີ CME chart'.",
+  "sniper_grade": "A+++ | A+ | A | B | C | WAIT — A+++ = 3+ TF fractal alignment + all confluences; A+ = 5+; A = 3-4; B = 2-3; C = weak; WAIT = <2 or no sweep yet",
+  "zones": [{"type":"resistance|support","label":"in ${outLang} — include tier if applicable: Tier1🔴(00) Tier2🟡(50) Tier3🟢(25/75)","range":"TIGHT spot range e.g. 3298-3302 (≤10 dollars)","why":"in ${outLang}, short — OB/FVG/sweep/round-number/wall if relevant"}],
   "setups": [{
     "direction":"Buy|Sell","status":"ພ້ອມເຂົ້າ|ລໍຖ້າ","grade":"ສູງ|ກາງ|ຕ່ຳ",
-    "confluence_factors":["in ${outLang}, short — e.g. liquidity sweep, discount zone, order block, BOS, DXY agrees"],
-    "entry_zone":"TIGHT zone at the highest-probability reversal level price will actually reach — ~3-8 dollars wide, refined on M15/M5 (e.g. 4200-4206), where price turns on first touch","stop":"price","sl_pips":"30-120 pip typical, NEVER >150 pip",
+    "confluence_factors":["in ${outLang}, short — e.g. sweep, discount, OB, BOS, MACD divergence, OTE, volume spike, DXY agrees"],
+    "entry_zone":"TIGHT ~3-8 dollars wide at the highest-probability reversal level price will reach (e.g. 4200-4206)","stop":"price","sl_pips":"30-120 pip, NEVER >150",
     "targets":["TP1 price","TP2 price","TP3 price"],"rr":"e.g. 1:3","confidence":"e.g. 60-65%",
     "rationale":"in ${outLang}, 1 short line","invalidation":"in ${outLang}, short"
   }],
-  "next_move": "in ${outLang} — ONE short backup line: what to do if price goes the other way / breaks the level (e.g. 'If breaks 4800: wait BOS up + retest 4785 then Buy')",
+  "next_move": "in ${outLang} — ONE short backup line if price breaks the level",
   "quick_map":"in ${outLang} — ONE-LINE plan",
   "risk_reminder":"in ${outLang}, short"
 }`;
@@ -2488,9 +2368,11 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
         // One attempt. Returns parsed result, or throws an Error with a Lao-friendly .reason
         const attempt = async (withNews) => {
             var _a;
-            // Give the model enough room to finish the JSON. More charts → more to describe.
-            // Base 3200 + 600 per chart, capped at 5200. (Advanced SMC fields add length.)
-            const maxTok = Math.min(3200 + charts.length * 600, 5200);
+            // Output is now a tight, fixed-shape JSON (each field = 1 short line), so the
+            // model needs far less room than before. Base 2000 + 350 per chart, capped 3600.
+            // Smaller max_tokens = fewer tokens to generate = faster response, with plenty of
+            // headroom for the condensed schema even at 4-6 charts.
+            const maxTok = Math.min(2000 + charts.length * 350, 3600);
             const reqBody = {
                 model: "claude-sonnet-4-6",
                 temperature: 0,
@@ -2570,7 +2452,7 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
             // the slowest single engine instead of Claude + the others combined.
             const activeEngines = Object.keys(aiEngines).filter(k => aiEngines[k]);
             const otherEngines = activeEngines.filter(e => e !== "claude");
-            const maxTok2 = Math.min(3200 + charts.length * 600, 5200);
+            const maxTok2 = Math.min(2000 + charts.length * 350, 3600);
             const otherEnginesPromise = otherEngines.length > 0
                 ? Promise.allSettled(otherEngines.map(async (engine) => {
                     try {
@@ -3257,7 +3139,7 @@ function Result({ data, t, engines, isAdmin }) {
                 React.createElement("span", { style: { flexShrink: 0, width: 16, height: 16, borderRadius: 4, border: `1.5px solid ${C.mut}`, display: "inline-block" } }),
                 React.createElement("span", { style: { color: C.text, fontSize: 13, lineHeight: 1.45 } }, c)))))),
         data.risk_reminder && React.createElement("div", { style: { padding: "11px 15px", borderRadius: 10, background: C.panel2, border: `1px solid ${C.line}`, color: C.mut, fontSize: 12.5, lineHeight: 1.6 } }, data.risk_reminder),
-        isAdmin && (data.premium_discount || data.liquidity || data.order_flow || data.dxy_signal) && (React.createElement("details", { style: { borderRadius: 14, border: `1px solid ${C.line}`, background: C.panel, padding: "12px 16px" } },
+        isAdmin && (data.premium_discount || data.liquidity || data.order_flow || data.dxy_signal || data.macd_read || data.fib_read || data.volume_read) && (React.createElement("details", { style: { borderRadius: 14, border: `1px solid ${C.line}`, background: C.panel, padding: "12px 16px" } },
             React.createElement("summary", { style: { cursor: "pointer", fontSize: 12, fontWeight: 700, color: C.mut } },
                 "\uD83D\uDD2C ",
                 t("rSmc"),
@@ -3269,6 +3151,9 @@ function Result({ data, t, engines, isAdmin }) {
                 data.liquidity && React.createElement(SmcRow, { icon: "\uD83D\uDCA7", k: t("rLiquidity"), v: data.liquidity, color: C.blueLt }),
                 data.order_flow && React.createElement(SmcRow, { icon: "\uD83C\uDF0A", k: t("rOrderFlow"), v: data.order_flow, color: C.green }),
                 data.order_book && React.createElement(SmcRow, { icon: "\uD83D\uDCD6", k: t("rOrderBook"), v: data.order_book, color: C.mut }),
+                data.macd_read && React.createElement(SmcRow, { icon: "\uD83D\uDCC9", k: "MACD", v: data.macd_read, color: C.blueLt }),
+                data.fib_read && React.createElement(SmcRow, { icon: "\uD83C\uDF00", k: "Fibonacci", v: data.fib_read, color: C.amber }),
+                data.volume_read && React.createElement(SmcRow, { icon: "\uD83D\uDCCA", k: "Big Volume", v: data.volume_read, color: C.green }),
                 data.advanced_read && React.createElement(SmcRow, { icon: "\uD83E\uDDEC", k: t("rAdvanced"), v: data.advanced_read, color: C.amber }),
                 data.ict_read && React.createElement(SmcRow, { icon: "\uD83C\uDFAF", k: "ICT Read", v: data.ict_read, color: C.cyan }),
                 data.sniper_grade && data.sniper_grade !== "WAIT" && React.createElement(SmcRow, { icon: "\u2B50", k: "Sniper Grade", v: data.sniper_grade, color: data.sniper_grade.startsWith("A+++") ? C.green : data.sniper_grade.startsWith("A+") ? C.blueLt : C.amber })))),
