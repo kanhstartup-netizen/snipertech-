@@ -1190,6 +1190,9 @@ const T = {
         aiEngine: "ເຄື່ອງຈັກ AI",
         aiConsensus: "ການລົງມະຕິ AI",
         aiActive: "ໃຊ້ງານ",
+        aiOff: "ປິດ",
+        aiSpeedWarn: "⚠️ ເປີດຫຼາຍຕົວ = ວິເຄາະຊ້າລົງ (ຕ້ອງລໍຕົວທີ່ຊ້າສຸດ). Claude ຕົວດຽວໄວທີ່ສຸດ.",
+        aiFastNote: "⚡ Claude ຕົວດຽວ — ໄວທີ່ສຸດ ແລະ ວິເຄາະຄົບຖ້ວນ. ເປີດ GPT/Gemini ເພື່ອຂໍຄວາມເຫັນເພີ່ມ (ຊ້າລົງ).",
         aiReady: "ພ້ອມ (ຕໍ່ backend)",
         aiSoon: "ໄວໆ ນີ້",
         aiClaudeDesc: "ເກັ່ງ SMC · ໂຄງສ້າງ · ເຫດຜົນ",
@@ -1486,6 +1489,9 @@ const T = {
         aiEngine: "เครื่องจักร AI",
         aiConsensus: "การลงมติ AI",
         aiActive: "ใช้งาน",
+        aiOff: "ปิด",
+        aiSpeedWarn: "⚠️ เปิดหลายตัว = วิเคราะห์ช้าลง (ต้องรอตัวที่ช้าสุด) Claude ตัวเดียวเร็วที่สุด",
+        aiFastNote: "⚡ Claude ตัวเดียว — เร็วที่สุดและวิเคราะห์ครบถ้วน เปิด GPT/Gemini เพื่อขอความเห็นเพิ่ม (ช้าลง)",
         aiReady: "พร้อม (ต้องเชื่อม backend)",
         aiSoon: "เร็วๆนี้",
         aiClaudeDesc: "เก่ง SMC · โครงสร้าง · เหตุผล",
@@ -1781,6 +1787,9 @@ const T = {
         aiEngine: "AI Engine",
         aiConsensus: "AI Consensus",
         aiActive: "Active",
+        aiOff: "Off",
+        aiSpeedWarn: "⚠️ More engines = slower analysis (waits for the slowest). Claude alone is fastest.",
+        aiFastNote: "⚡ Claude only — fastest with full analysis. Enable GPT/Gemini for extra opinions (slower).",
         aiReady: "Ready (needs backend)",
         aiSoon: "Soon",
         aiClaudeDesc: "Strong at SMC · structure · reasoning",
@@ -2110,8 +2119,11 @@ function SniperTechX() {
     const [courseUnlocked, setCourseUnlocked] = useState(false); // DEMO — backend should verify $100 payment
     const [learnTab, setLearnTab] = useState("paid"); // learn sub-tab: paid | free
     const [notify, setNotify] = useState(typeof Notification !== "undefined" && Notification.permission === "granted");
-    // Multi-AI consensus: which engines are enabled. Only Claude runs now; others need a backend.
-    const [aiEngines, setAiEngines] = useState({ claude: true, gpt: true, gemini: true });
+    // Multi-AI consensus: which engines are enabled. Default = Claude ONLY for speed.
+    // Claude Sonnet is the strongest vision+reasoning engine here, so running it alone
+    // keeps full analysis quality while removing the wait for slower GPT/Gemini calls.
+    // Admins can still toggle GPT/Gemini back on in the AI Engine panel for consensus.
+    const [aiEngines, setAiEngines] = useState({ claude: true, gpt: false, gemini: false });
     const [isAdmin, setIsAdmin] = useState(() => {
         // Restore admin state on reload if user email matches ADMIN_EMAILS
         try { const s = localStorage.getItem("sniper_user"); if (s) { const u = JSON.parse(s); return isAdminEmail(u.email); } } catch(e) {} return false;
@@ -2289,19 +2301,26 @@ ${searchBlock}
 
 DETECT each image's timeframe yourself (labels like "M5/15/1H/H4/D", axis spacing, candle granularity) → report in "detected_timeframes". Higher TF = trend/bias, lower TF = entry.
 
-INTERMARKET: DXY UP → gold DOWN; DXY DOWN → gold UP (state in "dxy_signal"). Note oil only if meaningful ("oil_signal"). Warn on imminent high-impact news in "news_alert", else short "no major news".
+INTERMARKET (no live data — use general macro logic only, NEVER state live prices/levels; keep as directional caution): USD & rates drive gold inversely — DXY UP or US Treasury YIELDS (esp. 10Y/real yields) UP → gold pressured DOWN; DXY DOWN or yields DOWN → gold supported UP. GOLD vs SILVER FUTURES: they usually move together; silver leading/outperforming often signals risk-on metals strength (bullish confluence), silver lagging = weak metals demand. If the user typed a DXY/yield direction or uploaded a DXY/yield/futures screenshot, factor it in; otherwise give a brief general caution and tell the trader to confirm the live level. Summarize the net macro lean for gold in "intermarket_read" (1-2 short lines), and keep the DXY line in "dxy_signal", oil in "oil_signal", imminent high-impact news in "news_alert" (else short "no major news").
 
 CORE SMART-MONEY READ (top-down; require several to AGREE before trusting a setup):
 - PREMIUM/DISCOUNT: mark the relevant impulse leg's 50% equilibrium (Fibonacci). Below 50% = DISCOUNT → favor BUY; above = PREMIUM → favor SELL. Direction MUST match the zone. Report in "premium_discount".
 - LIQUIDITY: equal highs/lows, prior day/session H-L, trendline liquidity. A SWEEP/GRAB (spike through then snap back) reversing into discount/premium with displacement = high quality. Report in "liquidity".
 - ORDER FLOW: displacement (institutional intent), absorption, BOS (confirms), CHoCH (reversal warning). Who has control now → "order_flow".
 - ORDER BLOCKS & FVG: last opposing candle before displacement (OB) + any imbalance (FVG). Prefer fresh/unmitigated. Fold into the zones/setup.
-- ORDER BOOK/DOM: only if the screenshot truly shows DOM/footprint/volume profile — read it; otherwise say it's not shown and you used price/volume ("order_book"). Never fabricate depth.
+- ORDER BOOK / RATIOS / STOP CLUSTERS: only if the screenshot truly shows DOM/footprint/volume profile OR an FXSSI Order Book, FXSSI Buy/Sell Ratio, or Stop-Loss-Clusters image — read it; otherwise say it's not shown and you used price/volume ("order_book"). Never fabricate depth. When present: FXSSI ORDER BOOK = pending buy/sell limit walls → large sell-limit clusters above = resistance supply, large buy-limit clusters below = support demand; price is often drawn toward the thickest cluster then reacts. FXSSI RATIO (retail buy vs sell %) = a CONTRARIAN signal — crowd heavily long (e.g. 70%+ buy) often precedes a drop, heavily short often precedes a rise; use to confirm a sweep against the crowd. STOP-LOSS CLUSTERS = pools of resting stops → price magnetically hunts the largest cluster (a sweep of it + reversal = sniper entry; a cluster just beyond your zone is where NOT to place your SL). Fold all of this into "order_book" and the sniper zone.
 
 INDICATORS (read only if visible on the chart; say "not shown" otherwise — never invent):
 - MACD: state momentum (bullish/bearish), whether MACD line is above/below signal, histogram expanding/contracting, and any MACD/price DIVERGENCE (regular = reversal warning, hidden = continuation). Divergence at a liquidity sweep + OB is a strong confluence. Report in "macd_read".
 - FIBONACCI (retracement + circle/OTE): use the last confirmed impulse (after BOS/CHoCH). Golden OTE zone = 0.618-0.786 retracement; the 0.5 equilibrium ties to premium/discount. If a Fib CIRCLE / time-price arc is drawn, note where price meets the arc (dynamic S/R). Best entries sit in OTE overlapping an OB/FVG. Report key levels + whether price is in OTE in "fib_read".
 - BIG TRADE VOLUME: read volume bars / spikes. A VOLUME SPIKE on a sweep or displacement candle = institutional participation (confirms the move). A spike that FAILS to push price (absorption/climax) = exhaustion/reversal. Low volume into a level = weak, likely fake. Note big-volume nodes/thin single-prints price is drawn to. Report in "volume_read".
+
+EXTERNAL DATA SCREENSHOTS (read ONLY if the user actually uploaded that image; if not present, do not mention it and never invent numbers):
+- ECONOMIC CALENDAR: if a calendar screenshot is shown, note the nearest HIGH-impact USD/gold event (NFP, CPI, PCE, FOMC/rate decision, Powell speech) + its time, and warn to avoid fresh entries into it (volatility/spread risk). Fold into "news_alert".
+- CME FUTURES VOLUME: if a CME/GC futures volume or COT-style image is shown, read where the heaviest traded volume sits (high-volume node = magnet / strong S/R; low-volume gap = fast-move zone) and whether volume confirms the current push or is fading. Fold into "volume_read".
+- TRADINGVIEW PREMIUM INDICATORS: if the TradingView chart shows extra premium tools (e.g. auto S/R, VWAP, volume profile / VPVR, liquidity/OB indicators, session boxes), read whatever is genuinely visible and use it as confluence — but never assume an indicator is there if you cannot see it.
+
+If none of these external images are present, rely on the price-action chart(s) only and say so where relevant — do NOT fabricate order-book, calendar, or volume data you cannot see.
 
 ADVANCED (apply ONLY when clearly present; "not clear" is a valid, respected answer — do not force patterns): Elliott wave count; Wyckoff phase (accumulation/distribution, spring/UTAD, SOS/SOW); Harmonic (Gartley/Bat/Butterfly/Crab/Shark) + PRZ; ICT killzones (London 07:00-10:00 UK, NY 08:00-11:00 ET), Power-of-3 (AMD), Silver Bullet window, OTE, Breaker/Mitigation blocks, Inducement, Judas swing, Turtle Soup, Unicorn model, Daily profile, Asia range, fractal multi-TF alignment. Summarize only what's genuinely visible in "advanced_read" and ICT-specifics in "ict_read" (1-3 short lines each, omit the rest).
 
@@ -2330,6 +2349,7 @@ Write ALL text values in ${outLang} (keep "status"/"grade" keys in Lao exactly a
   "news_alert": "in ${outLang} — imminent high-impact news + caution, or short 'no major news'",
   "dxy_signal": "in ${outLang} — DXY direction + meaning for gold (1 line)",
   "oil_signal": "in ${outLang} — oil direction + brief note (1 line, secondary)",
+  "intermarket_read": "in ${outLang} — net macro lean for gold from DXY + bond yields + gold/silver futures (general logic, NO live prices), 1-2 short lines, or 'no external macro data'",
   "instrument_guess": "e.g. XAU/USD",
   "trend": "in ${outLang} — main trend + bias (1 short line)",
   "timeframe_breakdown": [{"tf":"H4|H1|M15|M5","read":"in ${outLang} — ONE short phrase"}],
@@ -2339,7 +2359,7 @@ Write ALL text values in ${outLang} (keep "status"/"grade" keys in Lao exactly a
   "m15_wick": "in ${outLang} — the chosen SNIPER reversal zone + why it's highest-probability to be reached and reverse instantly + precise entry price/zone. If none in reach, say so and mark ລໍຖ້າ.",
   "liquidity": "in ${outLang} — key liquidity pool + any sweep (1 line)",
   "order_flow": "in ${outLang} — who controls now (1 line)",
-  "order_book": "in ${outLang} — only if DOM/volume profile visible, else note not shown (1 line)",
+  "order_book": "in ${outLang} — only if DOM/FXSSI order book/ratio/stop-cluster image is shown, else note not shown (1 line)",
   "macd_read": "in ${outLang} — MACD momentum/cross/histogram + any divergence, or 'not shown' (1 line)",
   "fib_read": "in ${outLang} — key Fib retracement/OTE levels + is price in 0.618-0.786 OTE? note Fib circle/arc if drawn, or 'not shown' (1 line)",
   "volume_read": "in ${outLang} — big-volume spike/absorption/exhaustion read + key volume node, or 'not shown' (1 line)",
@@ -2372,7 +2392,7 @@ Write ALL text values in ${outLang} (keep "status"/"grade" keys in Lao exactly a
             // model needs far less room than before. Base 2000 + 350 per chart, capped 3600.
             // Smaller max_tokens = fewer tokens to generate = faster response, with plenty of
             // headroom for the condensed schema even at 4-6 charts.
-            const maxTok = Math.min(2000 + charts.length * 350, 3600);
+            const maxTok = Math.min(2200 + charts.length * 350, 3900);
             const reqBody = {
                 model: "claude-sonnet-4-6",
                 temperature: 0,
@@ -2452,7 +2472,7 @@ Write ALL text values in ${outLang} (keep "status"/"grade" keys in Lao exactly a
             // the slowest single engine instead of Claude + the others combined.
             const activeEngines = Object.keys(aiEngines).filter(k => aiEngines[k]);
             const otherEngines = activeEngines.filter(e => e !== "claude");
-            const maxTok2 = Math.min(2000 + charts.length * 350, 3600);
+            const maxTok2 = Math.min(2200 + charts.length * 350, 3900);
             const otherEnginesPromise = otherEngines.length > 0
                 ? Promise.allSettled(otherEngines.map(async (engine) => {
                     try {
@@ -3139,7 +3159,7 @@ function Result({ data, t, engines, isAdmin }) {
                 React.createElement("span", { style: { flexShrink: 0, width: 16, height: 16, borderRadius: 4, border: `1.5px solid ${C.mut}`, display: "inline-block" } }),
                 React.createElement("span", { style: { color: C.text, fontSize: 13, lineHeight: 1.45 } }, c)))))),
         data.risk_reminder && React.createElement("div", { style: { padding: "11px 15px", borderRadius: 10, background: C.panel2, border: `1px solid ${C.line}`, color: C.mut, fontSize: 12.5, lineHeight: 1.6 } }, data.risk_reminder),
-        isAdmin && (data.premium_discount || data.liquidity || data.order_flow || data.dxy_signal || data.macd_read || data.fib_read || data.volume_read) && (React.createElement("details", { style: { borderRadius: 14, border: `1px solid ${C.line}`, background: C.panel, padding: "12px 16px" } },
+        isAdmin && (data.premium_discount || data.liquidity || data.order_flow || data.dxy_signal || data.macd_read || data.fib_read || data.volume_read || data.intermarket_read) && (React.createElement("details", { style: { borderRadius: 14, border: `1px solid ${C.line}`, background: C.panel, padding: "12px 16px" } },
             React.createElement("summary", { style: { cursor: "pointer", fontSize: 12, fontWeight: 700, color: C.mut } },
                 "\uD83D\uDD2C ",
                 t("rSmc"),
@@ -3147,6 +3167,7 @@ function Result({ data, t, engines, isAdmin }) {
             React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10, marginTop: 12 } },
                 data.dxy_signal && React.createElement(SmcRow, { icon: "\uD83D\uDCB5", k: t("rDxy"), v: data.dxy_signal, color: C.blueLt }),
                 data.oil_signal && React.createElement(SmcRow, { icon: "\uD83D\uDEE2\uFE0F", k: t("rOil"), v: data.oil_signal, color: C.amber }),
+                data.intermarket_read && React.createElement(SmcRow, { icon: "\uD83C\uDF10", k: "Intermarket", v: data.intermarket_read, color: C.cyan }),
                 data.premium_discount && React.createElement(SmcRow, { icon: "\u2696\uFE0F", k: t("rPremDisc"), v: data.premium_discount, color: C.cyan }),
                 data.liquidity && React.createElement(SmcRow, { icon: "\uD83D\uDCA7", k: t("rLiquidity"), v: data.liquidity, color: C.blueLt }),
                 data.order_flow && React.createElement(SmcRow, { icon: "\uD83C\uDF0A", k: t("rOrderFlow"), v: data.order_flow, color: C.green }),
@@ -4986,22 +5007,31 @@ function AIEnginePanel({ t, engines, setEngines }) {
         { id: "gpt",    name: "ChatGPT", icon: "🟢", desc: t("aiGptDesc") },
         { id: "gemini", name: "Gemini",  icon: "🔵", desc: t("aiGeminiDesc") },
     ];
-    // Always force all 3 engines ON — not user-toggleable
-    const activeCount = 3;
+    // Claude is the primary engine and stays locked ON. GPT/Gemini are optional
+    // consensus voters — toggling them on adds a second/third opinion but also adds
+    // wait time (analysis finishes only after the slowest enabled engine returns).
+    const activeCount = Object.keys(engines).filter(k => engines[k]).length;
+    const toggle = (id) => {
+        if (id === "claude") return; // primary engine, cannot be disabled
+        setEngines({ ...engines, [id]: !engines[id] });
+    };
     return (React.createElement("section", { style: { marginTop: 18, background: C.panel, border: `1px solid ${C.line}`, borderRadius: 18, padding: "16px 16px" } },
-        React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12 } },
+        React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 4 } },
             React.createElement("span", { style: { fontSize: 16 } }, "\uD83E\uDDE0"),
             React.createElement("div", { style: { fontFamily: "'LaoOverride','Sora','Noto Sans Lao',sans-serif", fontWeight: 700, fontSize: 14.5 } }, t("aiEngine")),
             React.createElement("span", { style: { marginLeft: "auto", fontSize: 11, color: C.mut } }, t("aiConsensus") + " · " + activeCount)),
-        React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 } }, AIS.map((ai) => (
-            React.createElement("div", { key: ai.id, style: { position: "relative", textAlign: "left", fontFamily: "inherit", borderRadius: 13, padding: "11px 11px", border: `1px solid ${C.blue}`, background: "rgba(38,130,255,.1)" } },
+        React.createElement("div", { style: { fontSize: 10.5, color: C.mut, lineHeight: 1.5, marginBottom: 12 } }, activeCount > 1 ? t("aiSpeedWarn") : t("aiFastNote")),
+        React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 } }, AIS.map((ai) => {
+            const on = !!engines[ai.id];
+            const locked = ai.id === "claude";
+            return (React.createElement("button", { key: ai.id, type: "button", onClick: () => toggle(ai.id), disabled: locked, style: { position: "relative", textAlign: "left", fontFamily: "inherit", cursor: locked ? "default" : "pointer", borderRadius: 13, padding: "11px 11px", border: `1px solid ${on ? C.blue : C.line}`, background: on ? "rgba(38,130,255,.1)" : "rgba(255,255,255,.02)", opacity: on ? 1 : 0.55 } },
                 React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between" } },
                     React.createElement("span", { style: { fontSize: 17 } }, ai.icon),
-                    React.createElement("span", { style: { width: 9, height: 9, borderRadius: "50%", background: C.green, boxShadow: `0 0 7px ${C.green}` } })),
-                React.createElement("div", { style: { fontSize: 12.5, fontWeight: 700, color: C.cyan, marginTop: 7 } }, ai.name),
+                    React.createElement("span", { style: { width: 9, height: 9, borderRadius: "50%", background: on ? C.green : C.mut, boxShadow: on ? `0 0 7px ${C.green}` : "none" } })),
+                React.createElement("div", { style: { fontSize: 12.5, fontWeight: 700, color: on ? C.cyan : C.mut, marginTop: 7 } }, ai.name),
                 React.createElement("div", { style: { fontSize: 9.5, color: C.mut, lineHeight: 1.4, marginTop: 2, minHeight: 26 } }, ai.desc),
-                React.createElement("div", { style: { fontSize: 9, fontWeight: 700, marginTop: 5, color: C.green } }, "● " + t("aiActive")))
-        )))));
+                React.createElement("div", { style: { fontSize: 9, fontWeight: 700, marginTop: 5, color: on ? C.green : C.mut } }, on ? "● " + t("aiActive") : "○ " + t("aiOff"), locked ? " 🔒" : "")));
+        }))));
 }
 // ── Onboarding tutorial (first-time, after signup) ───────────
 function Onboarding({ t, onDone }) {
