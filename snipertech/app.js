@@ -2562,6 +2562,29 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
         };
         try {
             setTimeout(() => setStage(t("analyzing")), 2500);
+            // ── Multi-AI Consensus: fire Claude + GPT + Gemini in PARALLEL ──
+            // Previously GPT/Gemini only started AFTER Claude fully finished
+            // (sequential: Claude → wait → GPT+Gemini). That serial chain is
+            // the main cause of long waits when consensus mode is on. Now all
+            // active engines start at the same time, so total wait is roughly
+            // the slowest single engine instead of Claude + the others combined.
+            const activeEngines = Object.keys(aiEngines).filter(k => aiEngines[k]);
+            const otherEngines = activeEngines.filter(e => e !== "claude");
+            const maxTok2 = Math.min(3200 + charts.length * 600, 5200);
+            const otherEnginesPromise = otherEngines.length > 0
+                ? Promise.allSettled(otherEngines.map(async (engine) => {
+                    try {
+                        const ctrl2 = new AbortController();
+                        setTimeout(() => ctrl2.abort(), 90000);
+                        const rb = { model: engine === "gpt" ? "gpt-4o" : "gemini-1.5-flash", temperature: 0, max_tokens: maxTok2, messages: [{ role: "user", content }] };
+                        const r2 = await callAI(engine, rb, ctrl2.signal);
+                        if (!r2.ok) return { engine, result: null };
+                        const d2 = await r2.json();
+                        const txt2 = (d2.content || []).map(i => i.type === "text" ? i.text : "").join("").trim();
+                        return { engine, result: extractJson(txt2) };
+                    } catch(e2) { return { engine, result: null }; }
+                }))
+                : Promise.resolve([]);
             let parsed;
             try {
                 parsed = await attempt(false);
@@ -2578,25 +2601,11 @@ Respond with ONLY a valid JSON object — no markdown, no backticks. Write every
                 }
             }
             // ── Multi-AI Consensus ──────────────────────────────────
-            const activeEngines = Object.keys(aiEngines).filter(k => aiEngines[k]);
             if (activeEngines.length <= 1) {
                 setResult({ ...parsed, consensus: null });
             } else {
                 setStage("🤝 ກຳລັງລວມມັດຕິຈາກ AI ທຸກຕົວ...");
-                const otherEngines = activeEngines.filter(e => e !== "claude");
-                const maxTok2 = Math.min(3200 + charts.length * 600, 5200);
-                const otherResults = await Promise.allSettled(otherEngines.map(async (engine) => {
-                    try {
-                        const ctrl2 = new AbortController();
-                        setTimeout(() => ctrl2.abort(), 90000);
-                        const rb = { model: engine === "gpt" ? "gpt-4o" : "gemini-1.5-flash", temperature: 0, max_tokens: maxTok2, messages: [{ role: "user", content }] };
-                        const r2 = await callAI(engine, rb, ctrl2.signal);
-                        if (!r2.ok) return { engine, result: null };
-                        const d2 = await r2.json();
-                        const txt2 = (d2.content || []).map(i => i.type === "text" ? i.text : "").join("").trim();
-                        return { engine, result: extractJson(txt2) };
-                    } catch(e2) { return { engine, result: null }; }
-                }));
+                const otherResults = await otherEnginesPromise;
                 const votes = [{ engine: "claude", bias: parsed.bias, direction: parsed.setups?.[0]?.direction, confidence: parsed.setups?.[0]?.confidence }];
                 otherResults.forEach(r => { if (r.status === "fulfilled" && r.value?.result) { const res = r.value.result; votes.push({ engine: r.value.engine, bias: res.bias, direction: res.setups?.[0]?.direction, confidence: res.setups?.[0]?.confidence }); } });
                 const validVotes = votes.filter(v => v.direction);
