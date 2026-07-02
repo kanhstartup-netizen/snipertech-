@@ -283,7 +283,34 @@ const PUSH_ENDPOINT = "https://kanhstartup-netizen.github.io/snipertech-/snipert
 const CLAUDE_ENDPOINT = "https://sniper-proxy.kanh-startup-602.workers.dev";
 const OPENAI_ENDPOINT = "https://sniper-proxy.kanh-startup-602.workers.dev/openai";
 const GEMINI_ENDPOINT = "https://sniper-proxy.kanh-startup-602.workers.dev/gemini";
+const DXY_ENDPOINT = "https://sniper-proxy.kanh-startup-602.workers.dev/dxy";
 const OPENAI_API_KEY = "";
+
+// ── Live DXY (auto-fetched via the Worker, ~15-min delayed, edge-cached 5 min) ──
+// Returns a prompt-ready English line, or null if unavailable. Never throws.
+async function fetchDxyLive(timeoutMs = 4500) {
+    try {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+        const r = await fetch(DXY_ENDPOINT, { signal: ctrl.signal });
+        clearTimeout(timer);
+        if (!r.ok) return null;
+        const d = await r.json();
+        if (!d || !d.price) return null;
+        return `LIVE DXY DATA (auto-fetched, ~15-min delayed): price ${d.price}, 24h ${d.chg24h_pct >= 0 ? "+" : ""}${d.chg24h_pct}%, 5d ${d.chg5d_pct >= 0 ? "+" : ""}${d.chg5d_pct}%, short-term trend ${d.trend}.`;
+    } catch (e) { return null; }
+}
+
+// ── Shared sniper doctrine — ONE source of truth interpolated verbatim into the
+// normal/scalping prompt AND the funded prompt, so every mode reads the market
+// with literally identical rules (this is what keeps directions consistent). ──
+const ANTI_HUNT_DOCTRINE = `🎯 ANTI-STOP-HUNT DOCTRINE (CRITICAL — most losing signals die here; obey ALL, in EVERY mode):
+1. ENTER BEHIND THE POOL, NOT IN FRONT OF IT. If untapped liquidity (equal lows/highs, session low/high, obvious swing) sits just beyond a zone, price will usually SWEEP through it first. Place the zone BEYOND the pool (at the OB/FVG that will absorb the sweep) so the stop-hunt IS the entry fill, not the stop-out.
+2. DEEP-EDGE ENTRY. Inside the chosen OB/FVG, quote the entry at the DEEP edge (0.705-0.79 OTE side, nearest invalidation) — never the shallow first-touch edge.
+3. SL BEYOND THE SWEPT EXTREME + ~$1-2 BUFFER — never at obvious equal lows/highs or round numbers where retail stops cluster.
+4. NO SWEEP, NO TRADE. "ພ້ອມເຂົ້າ" ONLY if the sweep into the zone already happened or the zone sits beyond the pool so the sweep fills the order. Otherwise "ລໍຖ້າ" + what must print first.
+5. FIRST-TOUCH FRESHNESS. Fresh/unmitigated zones only — a tapped zone has spent its orders.
+6. REVERSAL CHECKLIST GATE: the chosen zone must score ≥3 of: [HTF OB/FVG] [liquidity pool just beyond it] [0.62-0.79 OTE] [round number/tier] [MACD divergence or volume spike agreement] [DXY confirmation]. Score <3 → "ລໍຖ້າ", never force it.`;
 
 // ── Multi-AI: call a specific engine ──────────────────────────
 async function callAI(engine, body, signal) {
@@ -2291,6 +2318,10 @@ function SniperTechX() {
             setErr("ກະລຸນາອັບໂຫຼດ screenshot ກຣາຟກ່ອນ.");
             return;
         }
+        // Live DXY: fire immediately, in parallel with everything below (edge-cached
+        // 5 min → usually ~0.3s). Injected into the prompt so the DXY filter always
+        // has real data even when the user did not upload a DXY chart.
+        const dxyPromise = fetchDxyLive();
         // Trial = FULL access to all features for 3 days (no per-day cap). The only
         // thing trial users don't get is the VIP video course. Expiry after TRIAL_DAYS
         // is the natural limit. (Real enforcement still needs a backend.)
@@ -2311,6 +2342,8 @@ ${searchBlock}
 
 DETECT each image's timeframe yourself (labels like "M5/15/1H/H4/D", axis spacing, candle granularity) → report in "detected_timeframes". Higher TF = trend/bias, lower TF = entry.
 
+📐 MISSING-TF RULE (honest confidence): a sniper read needs BOTH context (H4/H1) and precision (M15/M5). Do not count a DXY chart as a gold timeframe. If the gold charts have NO higher timeframe (only M15/M5/M1): state it in "note" ("ຂາດ H4/H1 — bias ອາດຜິດທິດ, ແນະນຳອັບ H4 ຫຼື H1 ເພີ່ມ"), cap "sniper_grade" at B, cut "confidence" by ~10-15%, and be quicker to answer "ລໍຖ້າ". If only higher TFs with NO M15/M5: entry precision is limited — widen honesty ("ຂາດ M15/M5 — ຈຸດເຂົ້າຫຍາບ, ແນະນຳອັບ M15 ເພີ່ມ"), prefer "ລໍຖ້າ" over guessing a tight zone. Never pretend precision you don't have.
+
 ⚑ PRICE ACCURACY (CRITICAL — read prices, do NOT guess): Before anything else, read the CURRENT price from the chart precisely — use the price scale on the RIGHT Y-AXIS and the last (most recent) candle / the live price line/label. Anchor EVERY level you output (entry, stop, targets, zones) to that real axis scale, so they sit within the visible price range of the chart. Read the digits exactly as printed on the axis — do not round to a "nice" number and do not infer a price from the pattern alone. If the axis numbers are too blurry to read confidently, say so in "note" and lower confidence rather than inventing precise prices. Report the price you read in "current_price". Two analyses of the SAME chart must give the SAME levels — consistency comes from reading the axis, not estimating.
 
 💵 DXY CONFIRMATION FILTER (TOP-TIER — check on EVERY analysis): the US Dollar Index moves INVERSELY to gold and is one of the strongest directional confirmations. FIRST scan every uploaded image's ticker: if any chart IS a DXY/USDX/DX chart, analyze it with the SAME structure read (trend, BOS/CHoCH, sweep) and then apply it as a FILTER on the gold setup:
@@ -2318,7 +2351,7 @@ DETECT each image's timeframe yourself (labels like "M5/15/1H/H4/D", axis spacin
 - DXY clearly BEARISH → mirror logic: supports gold BUY, argues against SELL.
 - DXY ranging/unclear → neutral, no adjustment.
 State the verdict in "dxy_signal" (e.g. "DXY bullish BOS → ຢືນຢັນ Sell ຄຳ") and include it in confluence_factors when it agrees.
-If NO DXY chart is uploaded: NEVER invent or assume today's DXY direction — set "dxy_signal" to a 1-line reminder that the trader must check live DXY before entering (DXY up = confirms Sell / blocks Buy, DXY down = confirms Buy / blocks Sell), and do NOT count DXY in confluence_factors.
+If NO DXY chart is uploaded BUT a "LIVE DXY DATA" line is provided in this message: use that live reading as the DXY verdict (trend UP → pressure on gold / confirms Sell; DOWN → supports Buy; FLAT → neutral) — state it in "dxy_signal" with the price and note it is ~15-min delayed, and you MAY count it in confluence_factors when it agrees. If NEITHER a DXY chart NOR live data is present: NEVER invent today's DXY direction — set "dxy_signal" to a 1-line reminder to check live DXY before entering, and do NOT count DXY in confluence_factors.
 
 INTERMARKET (no live data — general macro logic only, NEVER state live prices/levels): US Treasury YIELDS (esp. 10Y/real yields) UP → gold pressured DOWN; yields DOWN → gold supported UP. GOLD vs SILVER FUTURES: usually move together; silver leading = risk-on metals strength (bullish confluence), silver lagging = weak demand. If the user uploaded a yield/futures screenshot, factor it in; otherwise brief general caution only. Summarize the net macro lean in "intermarket_read" (1-2 short lines), oil in "oil_signal", imminent high-impact news in "news_alert" (else short "no major news").
 
@@ -2349,13 +2382,7 @@ PROFESSIONAL PLAYBOOK (institutional/funded gold routine): mark untapped HTF lev
 
 ⭐ SNIPER REVERSAL ZONE (this app's signature, TOP PRIORITY): output ONE single zone with the HIGHEST probability that price both REACHES it AND reverses instantly on first touch (order goes green with no/minimal drawdown). This is NOT the latest candle wick (price often never returns there). Requirements: pick a zone price is genuinely heading TOWARD and will realistically tag; stack maximum confluence at it (HTF OB/FVG + liquidity draw + premium/discount + unmitigated OB + round number + MACD/Fib/Volume agreement); if no such zone is in reach now, set status "ລໍຖ້າ" and state what must print first — never force an entry onto the nearest wick. Report it in "m15_wick".
 
-🎯 ANTI-STOP-HUNT DOCTRINE (CRITICAL — most losing signals die here; obey ALL of these):
-1. ENTER BEHIND THE POOL, NOT IN FRONT OF IT. If untapped liquidity (equal lows/highs, session low/high, obvious swing) sits just beyond a zone, price will usually SWEEP through it first. Never place the entry in front of that pool — place the zone BEYOND it (at the OB/FVG that will absorb the sweep), so the stop-hunt IS the entry fill, not the stop-out.
-2. DEEP-EDGE ENTRY. Inside the chosen OB/FVG, quote the entry at the DEEP edge (the 0.705-0.79 OTE side, nearest invalidation) — not the shallow first-touch edge. Shallow entries get dragged; deep entries reverse with minimal drawdown and allow a tighter dollar SL.
-3. SL BEYOND THE SWEPT EXTREME + BUFFER. Stop goes past the wick that DID or WILL do the sweeping (beyond the liquidity pool and the OB's far edge) plus a small buffer (~$1-2 gold) — never at obvious equal lows/highs or round numbers where retail stops cluster.
-4. NO SWEEP, NO TRADE. Grade "ພ້ອມເຂົ້າ" ONLY if the sweep into the zone already happened or the zone itself sits beyond the pool so the sweep fills the order. If price would have to reverse without taking any liquidity first, that is a low-quality guess — output "ລໍຖ້າ" + what must print first (e.g. "sweep of 4005 lows then M5 CHoCH").
-5. FIRST-TOUCH FRESHNESS. Only fresh/unmitigated zones qualify — a zone already tapped once has spent its orders; do not reuse it.
-These rules apply to EVERY mode (normal, scalping, funded) identically.
+${ANTI_HUNT_DOCTRINE}
 
 HARD RULES (protect the trader):
 - SNIPER PRECISION: "entry_zone" MUST be TIGHT — gold ~3-8 dollars wide (30-80 pip), NEVER wider than 10 dollars. Refine to the single best M5/M15 OB/FVG, not a broad range.
@@ -2400,7 +2427,7 @@ Write ALL text values in ${outLang} (keep "status"/"grade" keys in Lao exactly a
   "fib_read": "in ${outLang} — key Fib retracement/OTE levels + is price in 0.618-0.786 OTE? note Fib circle/arc if drawn, or 'not shown' (1 line)",
   "volume_read": "in ${outLang} — big-volume spike/absorption/exhaustion read + key volume node, or 'not shown' (1 line)",
   "news_alert": "in ${outLang} — imminent high-impact news + caution, or short 'no major news'",
-  "dxy_signal": "in ${outLang} — if a DXY chart was uploaded: its structure verdict + confirm/veto on the gold setup (1 line). If not uploaded: 1-line reminder to check live DXY before entry (up=confirms Sell, down=confirms Buy) — never invent its direction",
+  "dxy_signal": "in ${outLang} — DXY verdict + confirm/veto on the gold setup (1 line), from the uploaded DXY chart or the LIVE DXY DATA line (mention price + ~15-min delay). If neither exists: 1-line reminder to check live DXY — never invent its direction",
   "oil_signal": "in ${outLang} — oil direction + brief note (1 line, secondary)",
   "intermarket_read": "in ${outLang} — net macro lean for gold from DXY + bond yields + gold/silver futures (general logic, NO live prices), 1-2 short lines, or 'no external macro data'",
   "advanced_read": "in ${outLang} — Elliott/Wyckoff/Harmonic/killzone/expected-range IF clearly present; 1-3 short lines, omit rest",
@@ -2412,6 +2439,8 @@ Write ALL text values in ${outLang} (keep "status"/"grade" keys in Lao exactly a
             content.push({ type: "text", text: `Chart ${i + 1} (timeframe not labelled — detect it):` });
             content.push({ type: "image", source: { type: "base64", media_type: c.mime, data: c.b64 } });
         });
+        const dxyLine = await dxyPromise;
+        if (dxyLine) content.push({ type: "text", text: dxyLine });
         content.push({ type: "text", text: sys });
         // One attempt. Returns parsed result, or throws an Error with a Lao-friendly .reason
         const attempt = async (withNews) => {
@@ -2687,6 +2716,7 @@ Write ALL text values in ${outLang} (keep "status"/"grade" keys in Lao exactly a
         if (charts.length === 0) { setErr("ກະລຸນາອັບໂຫຼດ screenshot ກຣາຟກ່ອນ."); return; }
         setLoading(true); setErr(null); setFundedResult(null);
         setStage("ກຳລັງວາງແຜນຜ່ານກອງທຶນ…");
+        const dxyPromise = fetchDxyLive(); // live DXY injected below (same as main mode)
         const outLang = lang === "th" ? "Thai (ภาษาไทย)" : lang === "en" ? "English" : "Lao (ພາສາລາວ)";
         const size = parseFloat(accountSize) || 100000;
         const tgtPct = parseFloat(profitTarget) || 8;
@@ -2705,11 +2735,11 @@ Write ALL text values in ${outLang} (keep "status"/"grade" keys in Lao exactly a
 
 ⚑ PRICE ACCURACY: first read the CURRENT price precisely from the right Y-axis / last candle → report in "current_price"; anchor every level to it. Read digits from the axis, never guess or round.
 
-🎯 ANTI-STOP-HUNT (obey ALL): (1) enter BEHIND the liquidity pool, not in front — the sweep should FILL the order, not stop it out; (2) quote entry at the DEEP edge of the OB/FVG (0.705-0.79 OTE side, nearest invalidation); (3) SL beyond the swept extreme + ~$1-2 buffer, never at obvious equal lows/highs; (4) NO SWEEP, NO TRADE — if price must reverse without taking liquidity first, output "Wait" + what must print; (5) fresh zones only.
+${ANTI_HUNT_DOCTRINE}
 
 DIRECTION: determine dominant H4/H1 order flow → "htf_bias". Trade direction MUST match it. Counter-trend ONLY after a confirmed sweep + lower-TF CHoCH/BOS; otherwise "Wait". WAIT is a professional answer.
 
-💵 DXY FILTER: if any uploaded chart IS a DXY/USDX chart, read its structure — DXY bullish confirms gold Sell / vetoes Buy (downgrade or Wait unless confirmed reversal); DXY bearish mirrors. If no DXY chart uploaded, NEVER assume its direction — add a 1-line reminder in "market_read" to check live DXY before entry.
+💵 DXY FILTER: if any uploaded chart IS a DXY/USDX chart, read its structure — DXY bullish confirms gold Sell / vetoes Buy (downgrade or Wait unless confirmed reversal); DXY bearish mirrors. If no DXY chart but a "LIVE DXY DATA" line is provided, use it as the verdict (UP confirms Sell / vetoes Buy; DOWN mirrors; FLAT neutral — note ~15-min delay). If neither, NEVER assume its direction — add a 1-line reminder in "market_read" to check live DXY before entry.
 
 FUNDED RULES (filter risk, not direction): ${firmName}. $${size.toLocaleString()} account, target $${tgtUsd.toLocaleString()}, DLL $${dllUsd.toLocaleString()}/day, max DD $${ddUsd.toLocaleString()}, risk/trade ${riskPct}% = $${riskUsd.toLocaleString()}. If the correct structural SL is too wide for the risk budget, size DOWN the lot — never widen risk or skip the buffer. LOT MATH (gold): $ per $1 move per 1.0 lot = $100, so lots = ${riskUsd} ÷ (SL_distance_$ × 100), round DOWN.
 
@@ -2744,6 +2774,8 @@ Respond ONLY a valid JSON object (no markdown). Text in ${outLang}; digits as di
             content.push({ type: "text", text: `Chart ${i + 1} (detect timeframe):` });
             content.push({ type: "image", source: { type: "base64", media_type: c.mime, data: c.b64 } });
         });
+        const dxyLine = await dxyPromise;
+        if (dxyLine) content.push({ type: "text", text: dxyLine });
         content.push({ type: "text", text: sys });
         try {
             // Output is trimmed (challenge_summary + dll_guard are now built client-side
@@ -3039,11 +3071,12 @@ Respond ONLY a valid JSON object (no markdown). Text in ${outLang}; digits as di
                                         React.createElement("div", { style: { fontSize: 11, color: C.mut, lineHeight: 1.6, padding: "8px 10px", borderRadius: 8, background: C.bg2, border: `1px solid ${C.line}` } },
                                             styleIdx === 0
                                                 ? React.createElement(React.Fragment, null,
-                                                    React.createElement("span", { style: { color: C.cyan, fontWeight: 700 } }, "📊 ປົກກະຕິ — ຕ້ອງການ: "),
-                                                    "H4 + H1 + M15 + M5 (4 ຮູບ) · SL 30-120 pip · TP ໄກ")
+                                                    React.createElement("span", { style: { color: C.cyan, fontWeight: 700 } }, "📊 ປົກກະຕິ — ແນະນຳ: "),
+                                                    "H4 + M15 + M5 · ຢ່າງໜ້ອຍ 2 TF (1 ໃຫຍ່ H4/H1 + 1 ນ້ອຍ M15/M5) · SL 30-120 pip",
+                                                    React.createElement("div", { style: { marginTop: 4, color: C.mut, fontSize: 10.5 } }, "ຂາດ TF ໃຫຍ່ = AI ຈະຫຼຸດ confidence ລົງເອງ · ➕ ອັບຮູບ DXY ນຳ = ສັນຍານແມ່ນຂຶ້ນ"))
                                                 : React.createElement(React.Fragment, null,
                                                     React.createElement("span", { style: { color: "#FFB800", fontWeight: 700 } }, "⚡ Scalping — ຕ້ອງການ: "),
-                                                    "H1 + M15 + M5 (3 ຮູບ) · SL 15-30 pip · TP ໄວ",
+                                                    "H1 + M15 + M5 (3 ຮູບ) · SL 15-30 pip · TP ໄວ · ➕ ຮູບ DXY = ດີສຸດ",
                                                     React.createElement("div", { style: { marginTop: 4, color: "#FFB800", fontSize: 10.5 } }, "⚠️ ລະວັງ: ສາຍເທຣດສັ້ນ ສັນຍານຫຼອກສູງ — ຕ້ອງເຫັນ OB/FVG ຊັດ ແລະ ຢືນຢັນດ້ວຍ M15 ກ່ອນ"))))))),
                         charts.length === 0 ? (React.createElement(Dropzone, { onDrop: onDrop, onClick: () => { var _a; return (_a = fileRef.current) === null || _a === void 0 ? void 0 : _a.click(); }, t: t })) : (React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))", gap: 12 } },
                             charts.map((c, idx) => (React.createElement("div", { key: c.id, className: "fx-card", style: { borderRadius: 12, overflow: "hidden", border: `1px solid ${C.line}`, background: C.panel2 } },
@@ -3828,61 +3861,55 @@ function NewsPanel({ t, lang, isVip = false, onUpgrade }) {
         setStage(t("nFetching"));
         const outLang = lang === "th" ? "Thai (ภาษาไทย)" : lang === "en" ? "English" : "Lao (ພາສາລາວ)";
         const today = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD
-        const sys = `You are a macro analyst for a gold (XAU/USD) trader. Today is ${today}. Output language: ${outLang} — EVERY note, summary, reason and headline MUST be written in ${outLang}. This is the most important rule.
+        const sys = `You are a macro analyst for a gold (XAU/USD) trader. Today is ${today}. Output language: ${outLang} — EVERY note, summary, reason and headline MUST be written in ${outLang}.
 
-Based on your training knowledge, provide TODAY'S high-impact economic calendar and gold-relevant news. Base it on what ForexFactory and Investing.com would show today, plus any breaking headlines. Focus on USD/gold movers: Fed/FOMC, US data (NFP, CPI, PCE, ISM, jobless claims), and major geopolitical/risk headlines.
+USE WEB SEARCH (2-3 searches MAX, be fast): search today's economic calendar (ForexFactory/Investing) for USD high-impact events + any breaking gold/Fed headlines. Use REAL searched forecast/previous figures — never invent numbers. If search fails, say data is unavailable rather than fabricating.
 
-Classify clearly:
-1) HIGH-IMPACT = "3-star" / red-folder events (move gold most).
-2) OTHER = medium/low impact worth knowing.
-3) OFF-CALENDAR / BREAKING = important headlines NOT on the standard calendar.
+KEEP IT TIGHT: max 4 high_impact, max 3 other_events, max 2 off_calendar. Every text field = ONE short line.
 
-TIME — VERY IMPORTANT: convert every event time to LAOS / VIENTIANE local time (UTC+7, ICT), 24-hour format (e.g. "20:30", not "8:30 PM" and not US time). Put that converted time in "time_local". You may also keep the original source time + zone in "time_src" (e.g. "08:30 EST") for reference. If unsure of the exact time, say so in the note and advise confirming on ForexFactory — do NOT invent a precise time.
+TIME: convert every event time to LAOS time (UTC+7, ICT) 24-hour in "time_local"; keep source time in "time_src". If exact time unknown, say so — do not invent.
 
-STRUCTURE each event into clear parts (so the UI can show heading / subheading / data separately):
-- "event"   = the MAIN title, short (e.g. "S&P Global Flash PMI", "Non-Farm Payrolls", "CPI").
-- "detail"  = a SHORT sub-line / which release it is (e.g. "Manufacturing + Services, June" / "ຂະແໜງຜະລິດ ແລະ ບໍລິການ ເດືອນມິຖຸນາ"), in ${outLang}. Omit if there's nothing to add.
-- "forecast" = consensus/expected figure if known (e.g. "52.3"); "previous" = prior figure (e.g. "52.0"). Use real published consensus from the calendar; if you genuinely don't know, use "" (empty) — do NOT fabricate.
-- "note"    = ONE short line in ${outLang}: what it means for gold.
+PREDICTION (grounded, not guessed): for each high-impact event base "prediction" on the searched consensus + the indicator's recent trend (1 short line, framed as probability). "scenario" = the actionable playbook in ONE line: what gold does if actual comes ABOVE vs BELOW forecast (e.g. "ອອກສູງກວ່າຄາດ → USD ແຂງ → ຄຳລົງ · ຕໍ່າກວ່າຄາດ → ຄຳຂຶ້ນ"). The scenario is MORE important than the point-prediction — the trader trades the reaction, not the guess.
+"usd_effect": exactly "USD_STRONG"|"USD_WEAK"|"USD_NEUTRAL". "gold_effect": exactly "GOLD_UP"|"GOLD_DOWN"|"GOLD_VOLATILE".
 
-FORECAST / PREDICTION (this is the key feature the trader wants) — for EACH high-impact event add:
-- "prediction"  = in ${outLang}, AI's read of how the number is likely to come in vs forecast (e.g. "ຄາດອອກສູງກວ່າຄາດ ~52.6" / "likely beats ~52.6", or "ໃກ້ຄຽງຄາດການ"). Base it on recent trend/prior data. Keep it 1 short line and clearly framed as a PROBABILITY, not a certainty.
-- "usd_effect" = EXACTLY one of these verbatim keys (do NOT translate): "USD_STRONG" | "USD_WEAK" | "USD_NEUTRAL" — your call on what that predicted outcome does to the US dollar.
-- "gold_effect"= EXACTLY one verbatim key: "GOLD_UP" | "GOLD_DOWN" | "GOLD_VOLATILE" — the inverse-of-USD read for gold.
+If a LIVE DXY DATA line is provided in this message, factor it into "gold_lean" and mention it in "lean_reason".
 
-Then an overall "gold_lean" using EXACTLY one of these keys verbatim (do NOT translate the key): "ຂຶ້ນ (Bullish)", "ລົງ (Bearish)", "ຜັນຜວນ/ລໍຖ້າຂ່າວ (Volatile)" — plus a reason and "trading_note", both in ${outLang}.
+"gold_lean" must be EXACTLY one of: "ຂຶ້ນ (Bullish)", "ລົງ (Bearish)", "ຜັນຜວນ/ລໍຖ້າຂ່າວ (Volatile)".
 
-Do not invent numbers you don't have. Predictions are educated estimates, label them as such.
-
-Reminder: write all text values in ${outLang} (but keep the verbatim keys above untranslated). Respond with ONLY valid JSON, no markdown:
+Respond with ONLY valid JSON, no markdown:
 {
-  "date_label": "today's date, written in ${outLang}",
-  "summary": "1-2 sentences in ${outLang}",
+  "date_label": "today's date in ${outLang}",
+  "summary": "1-2 short sentences in ${outLang}",
   "gold_lean": "ຂຶ້ນ (Bullish)|ລົງ (Bearish)|ຜັນຜວນ/ລໍຖ້າຂ່າວ (Volatile)",
-  "lean_reason": "in ${outLang}",
+  "lean_reason": "1 line in ${outLang}",
   "high_impact": [
-    {"time_local":"Laos time 24H e.g. 20:30","time_src":"e.g. 08:30 EST","ccy":"e.g. USD","event":"MAIN title in ${outLang}","detail":"short sub-line in ${outLang} or empty","impact":"label in ${outLang}","forecast":"e.g. 52.3 or empty","previous":"e.g. 52.0 or empty","prediction":"AI estimate in ${outLang}","usd_effect":"USD_STRONG|USD_WEAK|USD_NEUTRAL","gold_effect":"GOLD_UP|GOLD_DOWN|GOLD_VOLATILE","note":"in ${outLang}"}
+    {"time_local":"24H Laos e.g. 20:30","time_src":"e.g. 08:30 EST","ccy":"USD","event":"MAIN title in ${outLang}","detail":"short sub-line or empty","impact":"in ${outLang}","forecast":"searched figure or empty","previous":"searched figure or empty","prediction":"1-line grounded estimate in ${outLang}","scenario":"1-line above/below-forecast playbook in ${outLang}","usd_effect":"USD_STRONG|USD_WEAK|USD_NEUTRAL","gold_effect":"GOLD_UP|GOLD_DOWN|GOLD_VOLATILE","note":"1 line in ${outLang}"}
   ],
   "other_events": [
-    {"time_local":"Laos time 24H","time_src":"original","ccy":"string","event":"MAIN in ${outLang}","detail":"sub in ${outLang} or empty","impact":"in ${outLang}","forecast":"or empty","previous":"or empty","note":"in ${outLang}"}
+    {"time_local":"24H Laos","time_src":"original","ccy":"string","event":"in ${outLang}","detail":"or empty","impact":"in ${outLang}","forecast":"or empty","previous":"or empty","note":"1 line in ${outLang}"}
   ],
-  "off_calendar": [
-    {"headline":"in ${outLang}","note":"in ${outLang}"}
-  ],
-  "trading_note": "in ${outLang}",
-  "disclaimer": "in ${outLang} — remind to confirm live on ForexFactory"
+  "off_calendar": [ {"headline":"in ${outLang}","note":"1 line in ${outLang}"} ],
+  "trading_note": "1 line in ${outLang}",
+  "disclaimer": "in ${outLang} — confirm live on ForexFactory"
 }`;
         const attempt = async () => {
             const ctrl = new AbortController();
             const timer = setTimeout(() => ctrl.abort(), 90000);
             let resp;
             try {
+                const newsContent = [];
+                const dxyLine = await fetchDxyLive(3000);
+                if (dxyLine) newsContent.push({ type: "text", text: dxyLine });
+                newsContent.push({ type: "text", text: sys });
                 resp = await fetch(CLAUDE_ENDPOINT, {
                     method: "POST", headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        model: "claude-sonnet-4-6", temperature: 0, max_tokens: 2600,
-                        messages: [{ role: "user", content: sys }],
-                        
+                        model: "claude-sonnet-4-6", temperature: 0, max_tokens: 2000,
+                        // Real calendar data via web search (2-3 lookups) = accurate
+                        // forecasts instead of hallucinated ones. Output is capped
+                        // (4+3+2 events, 1-line fields) so total time stays similar.
+                        tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 3 }],
+                        messages: [{ role: "user", content: newsContent }],
                     }),
                     signal: ctrl.signal,
                 });
@@ -4117,6 +4144,7 @@ function EventRow({ ev, accent, premium = false, first = false, t, isVip = false
                 } },
                 React.createElement("div", { style: { fontSize: 10.5, fontWeight: 800, letterSpacing: ".04em", color: C.blueLt, marginBottom: ev.prediction ? 6 : 0 } }, t("nPrediction")),
                 ev.prediction && (React.createElement("div", { style: { color: C.text, fontSize: 12.5, lineHeight: 1.55 } }, ev.prediction)),
+                ev.scenario && (React.createElement("div", { style: { marginTop: 7, padding: "7px 10px", borderRadius: 9, background: "rgba(38,130,255,.07)", border: `1px solid ${C.line}`, color: C.blueLt, fontSize: 12, lineHeight: 1.5 } }, "🎬 " + ev.scenario)),
                 (usd || gold) && (React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap", marginTop: ev.prediction ? 9 : 0 } },
                     usd && (React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 800, color: "#04101F", background: usd.color, borderRadius: 999, padding: "3px 11px" } }, usd.label)),
                     gold && (React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 800, color: "#04101F", background: gold.color, borderRadius: 999, padding: "3px 11px" } }, gold.label)))))) : (React.createElement("div", { style: {
