@@ -307,7 +307,7 @@ async function fetchDxyLive(timeoutMs = 4500) {
 const ANTI_HUNT_DOCTRINE = `🎯 ANTI-STOP-HUNT DOCTRINE (CRITICAL — most losing signals die here; obey ALL, in EVERY mode):
 1. ENTER BEHIND THE POOL, NOT IN FRONT OF IT. If untapped liquidity (equal lows/highs, session low/high, obvious swing) sits just beyond a zone, price will usually SWEEP through it first. Place the zone BEYOND the pool (at the OB/FVG that will absorb the sweep) so the stop-hunt IS the entry fill, not the stop-out.
 2. DEEP-EDGE ENTRY. Inside the chosen OB/FVG, quote the entry at the DEEP edge (0.705-0.79 OTE side, nearest invalidation) — never the shallow first-touch edge.
-3. SL BEYOND THE SWEPT EXTREME + ~$1-2 BUFFER — never at obvious equal lows/highs or round numbers where retail stops cluster.
+3. SL BEYOND THE SWEPT EXTREME + ~$1-2 BUFFER — never at obvious equal lows/highs or round numbers where retail stops cluster. When you state an expected sweep range (in m15_wick/quick_map), its far edge must sit at least the buffer BELOW/ABOVE the SL — a sweep range that touches the SL price is a contradiction; restate the range or move the SL.
 4. NO SWEEP, NO TRADE. "ພ້ອມເຂົ້າ" ONLY if the sweep into the zone already happened or the zone sits beyond the pool so the sweep fills the order. Otherwise "ລໍຖ້າ" + what must print first.
 5. FIRST-TOUCH FRESHNESS. Fresh/unmitigated zones only — a tapped zone has spent its orders.
 6. REVERSAL CHECKLIST GATE: the chosen zone must score ≥3 of: [HTF OB/FVG] [liquidity pool just beyond it] [0.62-0.79 OTE] [round number/tier] [MACD divergence or volume spike agreement] [DXY confirmation]. Score <3 → "ລໍຖ້າ", never force it.`;
@@ -2449,7 +2449,13 @@ Write ALL text values in ${outLang} (keep "status"/"grade" keys in Lao exactly a
             // model needs far less room than before. Base 2200 + 350 per chart, capped 3900.
             // Smaller max_tokens = fewer tokens to generate = faster response, with plenty of
             // headroom for the condensed schema even at 4-6 charts.
-            const maxTok = Math.min(2200 + charts.length * 350, 3900);
+            // Headroom increased (was 2200+350/chart, cap 3900) — the schema grew
+            // (current_price, DXY filter, missing-TF note) and 3600/3600 tokens used
+            // on a 4-chart run signals truncation risk. Raising the CAP is safe: it
+            // only limits the ceiling — if the model naturally finishes early (most
+            // runs), nothing changes; it only spends more time on the runs that
+            // actually needed it, protecting the JSON from being cut off mid-field.
+            const maxTok = Math.min(2600 + charts.length * 450, 4600);
             const reqBody = {
                 model: "claude-sonnet-4-6",
                 temperature: 0,
@@ -2586,7 +2592,7 @@ Write ALL text values in ${outLang} (keep "status"/"grade" keys in Lao exactly a
             const respModel = "claude-sonnet-4-6";
             try {
                 console.log(`[SniperTech timing] charts=${charts.length} payload=${payloadKB}KB maxTok=${maxTok} model=${respModel} | first-byte=${(netMs/1000).toFixed(1)}s total=${(totalMs/1000).toFixed(1)}s out_tokens=${outTokens ?? "?"}`);
-                window.__sniperTiming = { charts: charts.length, payloadKB, maxTok, model: respModel, netMs, totalMs, outTokens };
+                window.__sniperTiming = { charts: charts.length, payloadKB, maxTok, model: respModel, netMs, totalMs, outTokens, stopReason };
             } catch(e) {}
             if (!text) {
                 const e = new Error("empty");
@@ -2598,14 +2604,14 @@ Write ALL text values in ${outLang} (keep "status"/"grade" keys in Lao exactly a
             // Try normal parse first
             try {
                 const p = extractJson(text);
-                try { p._timing = { netMs, totalMs, model: respModel, payloadKB, outTokens: data.usage?.output_tokens }; } catch(e) {}
+                try { p._timing = { netMs, totalMs, model: respModel, payloadKB, outTokens: data.usage?.output_tokens, stopReason: data.stop_reason, maxTok }; } catch(e) {}
                 return p;
             }
             catch {
                 // Maybe the JSON got cut off (token limit). Try to repair by closing it.
                 const repaired = tryRepairJson(text);
                 if (repaired) {
-                    try { repaired._timing = { netMs, totalMs, model: respModel, payloadKB, outTokens: data.usage?.output_tokens }; } catch(e) {}
+                    try { repaired._timing = { netMs, totalMs, model: respModel, payloadKB, outTokens: data.usage?.output_tokens, stopReason: data.stop_reason, maxTok, truncated: true }; } catch(e) {}
                     return repaired;
                 }
                 // Still broken
@@ -3257,12 +3263,18 @@ function Result({ data, t, engines, isAdmin }) {
             React.createElement("span", null, (data._timing.payloadKB || "?") + "KB \u2191"),
             React.createElement("span", { style: { color: C.line } }, "\u00B7"),
             React.createElement("span", null, "out " + (data._timing.outTokens ?? "?") + " tok"),
-            data._timing.model && !String(data._timing.model).toLowerCase().includes("sonnet") && React.createElement("span", { style: { width: "100%", color: C.red, fontWeight: 700, marginTop: 2 } }, "\u26A0\uFE0F proxy ບໍ່ໄດ້ໃຊ້ Sonnet — ກວດ Cloudflare Worker"))),
+            data._timing.model && !String(data._timing.model).toLowerCase().includes("sonnet") && React.createElement("span", { style: { width: "100%", color: C.red, fontWeight: 700, marginTop: 2 } }, "\u26A0\uFE0F proxy ບໍ່ໄດ້ໃຊ້ Sonnet — ກວດ Cloudflare Worker"),
+            data._timing.stopReason === "max_tokens" && React.createElement("span", { style: { width: "100%", color: C.red, fontWeight: 700, marginTop: 2 } }, `⚠️ ຄຳຕອບຖືກຕັດ (hit max_tokens=${data._timing.maxTok||"?"}) — ບາງ field ທ້າຍອາດຫາຍ ຫຼືບໍ່ຄົບ, ຄວນເພີ່ມ max_tokens`))),
         data.news_alert && (React.createElement("div", { style: { borderRadius: 14, border: `1px solid ${C.amber}`, background: "rgba(255,194,75,.1)", padding: "12px 15px", display: "flex", gap: 11, alignItems: "flex-start" } },
             React.createElement("span", { style: { fontSize: 17, lineHeight: 1.2 } }, "\u26A0\uFE0F"),
             React.createElement("div", null,
                 React.createElement("div", { style: { fontSize: 11, fontWeight: 700, letterSpacing: ".04em", color: C.amber, marginBottom: 3 } }, t("rNewsAlert")),
-                React.createElement("div", { style: { color: C.text, fontSize: 13, lineHeight: 1.55 } }, data.news_alert)))), (_a = data.setups) === null || _a === void 0 ? void 0 :
+                React.createElement("div", { style: { color: C.text, fontSize: 13, lineHeight: 1.55 } }, data.news_alert)))),
+        data.dxy_signal && (React.createElement("div", { style: { borderRadius: 14, border: `1px solid ${C.line}`, background: "rgba(38,130,255,.07)", padding: "12px 15px", display: "flex", gap: 11, alignItems: "flex-start" } },
+            React.createElement("span", { style: { fontSize: 17, lineHeight: 1.2 } }, "\uD83D\uDCB5"),
+            React.createElement("div", null,
+                React.createElement("div", { style: { fontSize: 11, fontWeight: 700, letterSpacing: ".04em", color: C.blueLt, marginBottom: 3 } }, "DXY"),
+                React.createElement("div", { style: { color: C.text, fontSize: 13, lineHeight: 1.55 } }, data.dxy_signal)))), (_a = data.setups) === null || _a === void 0 ? void 0 :
         _a.map((s, i) => {
             var _a, _b, _c;
             const ready = isReady(s.status);
