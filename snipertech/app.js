@@ -2313,7 +2313,14 @@ DETECT each image's timeframe yourself (labels like "M5/15/1H/H4/D", axis spacin
 
 ⚑ PRICE ACCURACY (CRITICAL — read prices, do NOT guess): Before anything else, read the CURRENT price from the chart precisely — use the price scale on the RIGHT Y-AXIS and the last (most recent) candle / the live price line/label. Anchor EVERY level you output (entry, stop, targets, zones) to that real axis scale, so they sit within the visible price range of the chart. Read the digits exactly as printed on the axis — do not round to a "nice" number and do not infer a price from the pattern alone. If the axis numbers are too blurry to read confidently, say so in "note" and lower confidence rather than inventing precise prices. Report the price you read in "current_price". Two analyses of the SAME chart must give the SAME levels — consistency comes from reading the axis, not estimating.
 
-INTERMARKET (no live data — use general macro logic only, NEVER state live prices/levels; keep as directional caution): USD & rates drive gold inversely — DXY UP or US Treasury YIELDS (esp. 10Y/real yields) UP → gold pressured DOWN; DXY DOWN or yields DOWN → gold supported UP. GOLD vs SILVER FUTURES: they usually move together; silver leading/outperforming often signals risk-on metals strength (bullish confluence), silver lagging = weak metals demand. If the user typed a DXY/yield direction or uploaded a DXY/yield/futures screenshot, factor it in; otherwise give a brief general caution and tell the trader to confirm the live level. Summarize the net macro lean for gold in "intermarket_read" (1-2 short lines), and keep the DXY line in "dxy_signal", oil in "oil_signal", imminent high-impact news in "news_alert" (else short "no major news").
+💵 DXY CONFIRMATION FILTER (TOP-TIER — check on EVERY analysis): the US Dollar Index moves INVERSELY to gold and is one of the strongest directional confirmations. FIRST scan every uploaded image's ticker: if any chart IS a DXY/USDX/DX chart, analyze it with the SAME structure read (trend, BOS/CHoCH, sweep) and then apply it as a FILTER on the gold setup:
+- DXY structure clearly BULLISH (higher-highs, BOS up) → strong pressure DOWN on gold → a gold SELL gains a major confluence (upgrade grade); a gold BUY is FIGHTING the dollar → downgrade the grade one level, cut confidence, and prefer "ລໍຖ້າ" unless the gold chart shows a confirmed sweep+CHoCH reversal.
+- DXY clearly BEARISH → mirror logic: supports gold BUY, argues against SELL.
+- DXY ranging/unclear → neutral, no adjustment.
+State the verdict in "dxy_signal" (e.g. "DXY bullish BOS → ຢືນຢັນ Sell ຄຳ") and include it in confluence_factors when it agrees.
+If NO DXY chart is uploaded: NEVER invent or assume today's DXY direction — set "dxy_signal" to a 1-line reminder that the trader must check live DXY before entering (DXY up = confirms Sell / blocks Buy, DXY down = confirms Buy / blocks Sell), and do NOT count DXY in confluence_factors.
+
+INTERMARKET (no live data — general macro logic only, NEVER state live prices/levels): US Treasury YIELDS (esp. 10Y/real yields) UP → gold pressured DOWN; yields DOWN → gold supported UP. GOLD vs SILVER FUTURES: usually move together; silver leading = risk-on metals strength (bullish confluence), silver lagging = weak demand. If the user uploaded a yield/futures screenshot, factor it in; otherwise brief general caution only. Summarize the net macro lean in "intermarket_read" (1-2 short lines), oil in "oil_signal", imminent high-impact news in "news_alert" (else short "no major news").
 
 CORE SMART-MONEY READ (top-down; require several to AGREE before trusting a setup):
 - PREMIUM/DISCOUNT: mark the relevant impulse leg's 50% equilibrium (Fibonacci). Below 50% = DISCOUNT → favor BUY; above = PREMIUM → favor SELL. Direction MUST match the zone. Report in "premium_discount".
@@ -2340,11 +2347,19 @@ CME OPTIONS (options_flow) — ONLY if a CME QuikStrike Vol2Vol / OI / Intraday-
 
 PROFESSIONAL PLAYBOOK (institutional/funded gold routine): mark untapped HTF level → WAIT for price to reach it → wait for a liquidity SWEEP → confirm displacement/BOS/MSS on lower TF → enter on the FVG/OB refinement → target next opposing liquidity. Gold hunts stops with long wicks: demand a BODY close beyond a level for BOS/CHoCH; wider structural stop but refine entry on a lower TF so stop stays tight in dollars. Only SELL from premium, only BUY from discount; best entries in 0.62-0.79 OTE overlapping OB/FVG. Cleanest moves in London/NY killzones. TPs at real liquidity pools (tiered partials, TP1≥1:2, overall 1:3+). Risk 0.5-1%, no martingale, quality over frequency. Confluence stacking sets the grade: 5+ aligned = high, 2-3 = medium, <2 = wait — never inflate.
 
-⭐ SNIPER REVERSAL ZONE (this app's signature, TOP PRIORITY): output ONE single zone with the HIGHEST probability that price both REACHES it AND reverses instantly on first touch (order goes green with no/minimal drawdown). This is NOT the latest candle wick (price often never returns there). Requirements: pick a zone price is genuinely heading TOWARD and will realistically tag; stack maximum confluence at it (HTF OB/FVG + unswept liquidity draw + premium/discount + unmitigated OB + round number + MACD/Fib/Volume agreement); if the read implies price drags deep before turning, refine to the exact M15/M5 OB/FVG edge; if no such zone is in reach now, set status "ລໍຖ້າ" and state what must print first — never force an entry onto the nearest wick. Report it in "m15_wick".
+⭐ SNIPER REVERSAL ZONE (this app's signature, TOP PRIORITY): output ONE single zone with the HIGHEST probability that price both REACHES it AND reverses instantly on first touch (order goes green with no/minimal drawdown). This is NOT the latest candle wick (price often never returns there). Requirements: pick a zone price is genuinely heading TOWARD and will realistically tag; stack maximum confluence at it (HTF OB/FVG + liquidity draw + premium/discount + unmitigated OB + round number + MACD/Fib/Volume agreement); if no such zone is in reach now, set status "ລໍຖ້າ" and state what must print first — never force an entry onto the nearest wick. Report it in "m15_wick".
+
+🎯 ANTI-STOP-HUNT DOCTRINE (CRITICAL — most losing signals die here; obey ALL of these):
+1. ENTER BEHIND THE POOL, NOT IN FRONT OF IT. If untapped liquidity (equal lows/highs, session low/high, obvious swing) sits just beyond a zone, price will usually SWEEP through it first. Never place the entry in front of that pool — place the zone BEYOND it (at the OB/FVG that will absorb the sweep), so the stop-hunt IS the entry fill, not the stop-out.
+2. DEEP-EDGE ENTRY. Inside the chosen OB/FVG, quote the entry at the DEEP edge (the 0.705-0.79 OTE side, nearest invalidation) — not the shallow first-touch edge. Shallow entries get dragged; deep entries reverse with minimal drawdown and allow a tighter dollar SL.
+3. SL BEYOND THE SWEPT EXTREME + BUFFER. Stop goes past the wick that DID or WILL do the sweeping (beyond the liquidity pool and the OB's far edge) plus a small buffer (~$1-2 gold) — never at obvious equal lows/highs or round numbers where retail stops cluster.
+4. NO SWEEP, NO TRADE. Grade "ພ້ອມເຂົ້າ" ONLY if the sweep into the zone already happened or the zone itself sits beyond the pool so the sweep fills the order. If price would have to reverse without taking any liquidity first, that is a low-quality guess — output "ລໍຖ້າ" + what must print first (e.g. "sweep of 4005 lows then M5 CHoCH").
+5. FIRST-TOUCH FRESHNESS. Only fresh/unmitigated zones qualify — a zone already tapped once has spent its orders; do not reuse it.
+These rules apply to EVERY mode (normal, scalping, funded) identically.
 
 HARD RULES (protect the trader):
 - SNIPER PRECISION: "entry_zone" MUST be TIGHT — gold ~3-8 dollars wide (30-80 pip), NEVER wider than 10 dollars. Refine to the single best M5/M15 OB/FVG, not a broad range.
-- STOP LOSS just beyond the structure that invalidates the idea: ~30-120 pip (3-12 dollars). NEVER >150 pip — if structure needs more, the entry is wrong, refine lower-TF closer to invalidation. Avoid tiny hunted stops (<20 pip). Report "sl_pips".
+- STOP LOSS per the anti-stop-hunt doctrine: beyond the swept extreme / far OB edge + ~$1-2 buffer, ~30-120 pip (3-12 dollars). NEVER >150 pip — if structure needs more, the entry is wrong, refine lower-TF closer to invalidation. Avoid tiny hunted stops (<20 pip) and obvious equal-low/high or round-number placements. Report "sl_pips".
 - TP1/TP2/TP3 at real targets; honest "rr"; don't invent targets to fake 1:3. Whole entry→TP3 span must be a reasonable intraday move, not hundreds of dollars.
 - "confidence" realistic: clean ≈60-75%, ordinary 45-65%, textbook A+ up to 80% MAX, never 90%+. Use a range.
 - If price hasn't reached a quality zone, status "ລໍຖ້າ". Use "Buy"/"Sell" (never Long/Short).
@@ -2385,7 +2400,7 @@ Write ALL text values in ${outLang} (keep "status"/"grade" keys in Lao exactly a
   "fib_read": "in ${outLang} — key Fib retracement/OTE levels + is price in 0.618-0.786 OTE? note Fib circle/arc if drawn, or 'not shown' (1 line)",
   "volume_read": "in ${outLang} — big-volume spike/absorption/exhaustion read + key volume node, or 'not shown' (1 line)",
   "news_alert": "in ${outLang} — imminent high-impact news + caution, or short 'no major news'",
-  "dxy_signal": "in ${outLang} — DXY direction + meaning for gold (1 line)",
+  "dxy_signal": "in ${outLang} — if a DXY chart was uploaded: its structure verdict + confirm/veto on the gold setup (1 line). If not uploaded: 1-line reminder to check live DXY before entry (up=confirms Sell, down=confirms Buy) — never invent its direction",
   "oil_signal": "in ${outLang} — oil direction + brief note (1 line, secondary)",
   "intermarket_read": "in ${outLang} — net macro lean for gold from DXY + bond yields + gold/silver futures (general logic, NO live prices), 1-2 short lines, or 'no external macro data'",
   "advanced_read": "in ${outLang} — Elliott/Wyckoff/Harmonic/killzone/expected-range IF clearly present; 1-3 short lines, omit rest",
@@ -2686,58 +2701,42 @@ Write ALL text values in ${outLang} (keep "status"/"grade" keys in Lao exactly a
             : fundedType === "funded" ? "Funded/instant-funded account — protect the funded capital, payouts depend on staying within drawdown"
             : "Prop-firm evaluation (e.g. FTMO, MyFunded, FundedNext) — 2-phase or 1-phase challenge with daily + overall drawdown";
 
-        const sys = `You are a senior PROP-FIRM / FUNDED-ACCOUNT risk coach for XAU/USD (gold). Your #1 job is to help the trader PASS the challenge by NOT breaching the rules — capital protection BEFORE profit. A blown account from greed or an oversized SL is the worst outcome. Be conservative.
+        const sys = `You are the SAME elite XAU/USD Smart-Money sniper analyst as this app's main mode, now planning for a PROP-FIRM / FUNDED account. Read the chart(s) with the IDENTICAL methodology you always use — top-down H4→H1→M15/M5: structure (BOS/CHoCH), premium/discount vs the impulse's 50%, liquidity pools & sweeps, fresh unmitigated OB/FVG, displacement. The SAME chart must produce the SAME directional read in every mode — direction comes from the chart, never from the account rules. Account rules only affect risk, lot size and pacing.
 
-ACCOUNT RULES (the trader MUST stay inside these):
-- Firm type: ${firmName}
-- Account size: $${size.toLocaleString()}
-- Profit target: ${tgtPct}% = $${tgtUsd.toLocaleString()}
-- Daily Loss Limit (DLL): ${dllPct}% = $${dllUsd.toLocaleString()} per day (breaching = instant fail)
-- Max overall drawdown: ${ddPct}% = $${ddUsd.toLocaleString()} (breaching = instant fail)
-- Trader's chosen risk per trade: ${riskPct}% = ~$${riskUsd.toLocaleString()}
+⚑ PRICE ACCURACY: first read the CURRENT price precisely from the right Y-axis / last candle → report in "current_price"; anchor every level to it. Read digits from the axis, never guess or round.
 
-CORE PRINCIPLES (apply strictly):
-1. CAPITAL PROTECTION FIRST. Never recommend a setup whose SL, if hit, risks more than the per-trade risk above. If a valid SL would be too wide for that risk, REDUCE the suggested lot size (state it) rather than widening risk.
-2. AVOID DLL BREACH. Cap losing trades per day so that even a worst-case run of consecutive SLs in ONE day cannot reach the DLL. Recommend a daily max of trades and a daily stop-loss in $ that sits SAFELY below the DLL (e.g. stop trading for the day at ~50-60% of DLL).
-3. AVOID GETTING SL-HUNTED. Place SL BEYOND the obvious liquidity (past the wick that already swept / past equal highs-lows), not at the tight obvious level where stops cluster — but keep it within the risk budget by sizing down. Entry should be a high-probability reversal zone price will actually reach and turn from (sweep + confirmation), so SL is rarely hit.
-4. REALISTIC PACING. Passing is a marathon: suggest making the profit target over MANY small steady wins (e.g. aim ~0.5-1% gain/day), NOT one big risky trade. State how many good trades at this risk:reward would reach target.
-5. LOT SIZE MATH. Compute the correct gold lot size from the SL distance and the per-trade risk: for XAU/USD, 1.00 lot ≈ $1 per pip (per $0.10 move = $1)… i.e. ~$1 per $0.01? Use the standard: 1.0 lot gold = $1 per $0.10 price move = $10 per $1 move = $100 per $10 move. So risk $ = lots × (SL_distance_in_dollars × 100). Solve lots = risk_$ / (SL_distance_$ × 100). Show the formula and the resulting lot size, rounded DOWN to be safe.
+🎯 ANTI-STOP-HUNT (obey ALL): (1) enter BEHIND the liquidity pool, not in front — the sweep should FILL the order, not stop it out; (2) quote entry at the DEEP edge of the OB/FVG (0.705-0.79 OTE side, nearest invalidation); (3) SL beyond the swept extreme + ~$1-2 buffer, never at obvious equal lows/highs; (4) NO SWEEP, NO TRADE — if price must reverse without taking liquidity first, output "Wait" + what must print; (5) fresh zones only.
 
-Analyze the uploaded chart(s) the same institutional/SMC way (premium/discount, liquidity sweep, order block, FVG, BOS/CHoCH, DXY inverse) but FILTER every setup through the rules above. If the chart shows no safe high-probability setup right now, say WAIT — do not force a trade.
+DIRECTION: determine dominant H4/H1 order flow → "htf_bias". Trade direction MUST match it. Counter-trend ONLY after a confirmed sweep + lower-TF CHoCH/BOS; otherwise "Wait". WAIT is a professional answer.
 
-DIRECTIONAL CONSISTENCY (CRITICAL — do not contradict the chart):
-- First determine the DOMINANT higher-timeframe (H4/H1) order flow and trend from the SAME chart(s): is structure making lower-highs/lower-lows (bearish) or higher-highs/higher-lows (bullish)? State this in "htf_bias".
-- Your trade "direction" MUST agree with that dominant order flow. If H4/H1 structure is clearly bearish (recent BOS down, price selling off into a premium pullback), you may ONLY plan a Sell — never flip to Buy just because it feels "safer" for the challenge. The same chart must never produce a Buy on one screen and a Sell on another.
-- The ONLY case a counter-trend trade is allowed is a CONFIRMED reversal: a liquidity sweep of a major level PLUS a CHoCH/BOS on the lower timeframe against the old trend. If that confirmation is not clearly visible, output "Wait" — do NOT take a counter-trend trade.
-- If the dominant bias and a clean entry don't align right now, output direction "Wait" rather than inventing an opposite-direction setup. WAIT is a valid, professional answer for a funded account.
+💵 DXY FILTER: if any uploaded chart IS a DXY/USDX chart, read its structure — DXY bullish confirms gold Sell / vetoes Buy (downgrade or Wait unless confirmed reversal); DXY bearish mirrors. If no DXY chart uploaded, NEVER assume its direction — add a 1-line reminder in "market_read" to check live DXY before entry.
 
-ENTRY ZONE PRECISION (critical): the "entry_zone" MUST be a TIGHT sniper zone, not a wide swing area. For gold (XAU/USD) keep it roughly 3-8 dollars wide and NEVER wider than 10 dollars. A 14-dollar zone like 3988-4002 is TOO WIDE — refine it to the single best M15/M5 order block or FVG inside that area (e.g. 3996-4002). Pick the most precise reversal level price will actually reach, not the whole range.
+FUNDED RULES (filter risk, not direction): ${firmName}. $${size.toLocaleString()} account, target $${tgtUsd.toLocaleString()}, DLL $${dllUsd.toLocaleString()}/day, max DD $${ddUsd.toLocaleString()}, risk/trade ${riskPct}% = $${riskUsd.toLocaleString()}. If the correct structural SL is too wide for the risk budget, size DOWN the lot — never widen risk or skip the buffer. LOT MATH (gold): $ per $1 move per 1.0 lot = $100, so lots = ${riskUsd} ÷ (SL_distance_$ × 100), round DOWN.
 
-INSTRUMENT DETECTION: read the symbol/ticker shown on the chart (e.g. XAUUSD, MGCQ26 gold micro-future, EURUSD, BTCUSD) and report it in "pair". The trader needs to see which instrument this plan is for. If you genuinely cannot read it, default to "XAUUSD".
+INSTRUMENT: read the symbol from the chart → "pair" (default "XAUUSD").
 
-Respond with ONLY a valid JSON object (no markdown/backticks). Write all text values in ${outLang}; keep digits as digits:
+Respond ONLY a valid JSON object (no markdown). Text in ${outLang}; digits as digits; each field ONE short line unless stated:
 {
   "readable": true,
-  "note": "in ${outLang}, only if image unreadable",
-  "challenge_summary": "in ${outLang} — 1 line: size $${size.toLocaleString()}, target $${tgtUsd.toLocaleString()}, DLL $${dllUsd.toLocaleString()}, max DD $${ddUsd.toLocaleString()}",
-  "market_read": "in ${outLang} — short institutional read of the chart (trend, premium/discount, key liquidity, current order flow). 2-3 short lines.",
-  "htf_bias": "in ${outLang} — ONE short line: the dominant H4/H1 bias you found (Bullish / Bearish / Range) and why. The trade direction below MUST match this (unless a confirmed reversal).",
-  "pair": "the instrument/symbol you DETECTED from the chart (e.g. XAUUSD, MGCQ26, EURUSD, BTCUSD). Read it from the chart's title/ticker. If unclear, write 'XAUUSD'.",
+  "note": "in ${outLang}, only if unreadable",
+  "pair": "detected symbol",
+  "current_price": "price read from axis, e.g. 4062.5",
+  "htf_bias": "in ${outLang} — dominant H4/H1 bias + why (1 line)",
+  "market_read": "in ${outLang} — structure + premium/discount + key liquidity + sweep status (max 2 short lines)",
   "setup": {
     "direction": "Buy|Sell|Wait",
     "status": "ພ້ອມເຂົ້າ|ລໍຖ້າ",
-    "entry_zone": "TIGHT high-probability reversal zone — for gold (XAU/USD) keep it ~3-8 dollars wide and NEVER wider than 10 dollars. A 14-dollar zone like 3988-4002 is WRONG; refine to the single best M15/M5 OB/FVG (e.g. 3996-4002). If Wait, say what must print first.",
-    "stop": "SL price — placed BEYOND the swept liquidity so it is hard to hunt",
-    "sl_distance": "SL distance in dollars from entry (e.g. ~6.0)",
-    "targets": ["TP1 price (conservative, bank quickly)","TP2 price"],
-    "rr": "e.g. 1:2 — keep realistic, not greedy",
-    "confidence": "e.g. 65%"
+    "entry_zone": "TIGHT ~3-8$ zone at the deep OB/FVG edge BEHIND the pool (e.g. 3996-4002). If Wait: what must print first.",
+    "stop": "SL price beyond swept extreme + buffer",
+    "sl_distance": "in $ from entry, e.g. ~6.0",
+    "targets": ["TP1 (bank quickly)","TP2"],
+    "rr": "e.g. 1:2",
+    "confidence": "e.g. 60-65%"
   },
-  "lot_size": "in ${outLang} — the SAFE lot size for THIS account: show formula lots = risk_$ (${'$'}${riskUsd.toLocaleString()}) ÷ (SL_distance_$ × 100), then the rounded-DOWN lot. State the $ at risk if SL hit.",
-  "daily_plan": "in ${outLang} — daily discipline: max trades/day, the daily stop in $ (keep WELL below the $${dllUsd.toLocaleString()} DLL — e.g. stop at ~$${Math.round(dllUsd*0.55).toLocaleString()}), and stop-after-target rule.",
-  "pass_pace": "in ${outLang} — how to reach $${tgtUsd.toLocaleString()} safely: suggested gain/day, est. number of winning trades at this RR, est. days. Emphasise slow & steady.",
-  "dll_guard": "in ${outLang} — explicit warning: what NOT to do (no revenge trading, no averaging losers, no widening SL, no oversizing). One firm reminder.",
-  "risk_meter": "ປອດໄພ|ກາງ|ສ່ຽງ — overall risk grade of acting on this plan right now",
+  "lot_size": "in ${outLang} — lots = ${riskUsd} ÷ (SL_$ × 100) with numbers filled in, rounded DOWN + $ at risk (1 line)",
+  "daily_plan": "in ${outLang} — max trades/day + daily stop ~$${Math.round(dllUsd*0.55).toLocaleString()} (55% of DLL) + stop-after-target (1 line)",
+  "pass_pace": "in ${outLang} — est. winning trades at this RR to reach $${tgtUsd.toLocaleString()} + est. days at ~0.5-1%/day (1 line)",
+  "risk_meter": "ປອດໄພ|ກາງ|ສ່ຽງ",
   "quick_map": "in ${outLang} — ONE line action plan"
 }`;
         const content = [];
@@ -2747,7 +2746,9 @@ Respond with ONLY a valid JSON object (no markdown/backticks). Write all text va
         });
         content.push({ type: "text", text: sys });
         try {
-            const reqBody = { model: "claude-sonnet-4-6", temperature: 0, max_tokens: 2600, messages: [{ role: "user", content }] };
+            // Output is trimmed (challenge_summary + dll_guard are now built client-side
+            // below — pure math/static text the AI shouldn't waste tokens writing).
+            const reqBody = { model: "claude-sonnet-4-6", temperature: 0, max_tokens: 1900, messages: [{ role: "user", content }] };
             const ctrl = new AbortController();
             const timer = setTimeout(() => ctrl.abort(), 90000);
             let response;
@@ -2760,6 +2761,19 @@ Respond with ONLY a valid JSON object (no markdown/backticks). Write all text va
             let parsed;
             try { parsed = extractJson(text); } catch(e) { parsed = tryRepairJson(text); }
             if (!parsed) throw new Error("ອ່ານຜົນ AI ບໍ່ໄດ້. ລອງໃໝ່ ຫຼື ໃຊ້ຮູບຊັດກວ່າ.");
+            // Client-built fields (identical every run — no AI tokens spent):
+            const sumTxt = lang === "th"
+                ? `บัญชี $${size.toLocaleString()} · เป้า $${tgtUsd.toLocaleString()} · DLL $${dllUsd.toLocaleString()}/วัน · DD สูงสุด $${ddUsd.toLocaleString()}`
+                : lang === "en"
+                ? `Account $${size.toLocaleString()} · Target $${tgtUsd.toLocaleString()} · DLL $${dllUsd.toLocaleString()}/day · Max DD $${ddUsd.toLocaleString()}`
+                : `ບັນຊີ $${size.toLocaleString()} · ເປົ້າ $${tgtUsd.toLocaleString()} · DLL $${dllUsd.toLocaleString()}/ມື້ · DD ສູງສຸດ $${ddUsd.toLocaleString()}`;
+            const guardTxt = lang === "th"
+                ? "ห้ามล้างแค้นตลาด · ห้ามถัวขาดทุน · ห้ามขยับ SL ให้กว้างขึ้น · ห้ามเพิ่ม lot เกินแผน — ผิดข้อใดข้อหนึ่ง = เสี่ยงแตก DLL ทันที"
+                : lang === "en"
+                ? "No revenge trading · no averaging losers · no widening SL · no oversizing — break one and the DLL is in danger."
+                : "ຫ້າມ trade ແກ້ແຄ້ນ · ຫ້າມຖົວໄມ້ຂາດທຶນ · ຫ້າມຍ້າຍ SL ໃຫ້ກວ້າງຂຶ້ນ · ຫ້າມເພີ່ມ lot ເກີນແຜນ — ຜິດຂໍ້ດຽວ = ສ່ຽງ DLL ແຕກທັນທີ";
+            parsed.challenge_summary = sumTxt;
+            parsed.dll_guard = guardTxt;
             setFundedResult(parsed);
         } catch (e) {
             setErr(e.message || "ວິເຄາະບໍ່ສຳເລັດ. ລອງໃໝ່.");
@@ -5072,7 +5086,8 @@ function FundedResult({ data, fmt }) {
             React.createElement("div", { style: { textAlign: "center", padding: "16px 12px", borderRadius: 16, border: `2px solid ${dirColor}`, background: dirColor + "14" } },
                 React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 6 } },
                     React.createElement("span", { style: { fontSize: 11, color: C.mut, fontWeight: 700, letterSpacing: .5 } }, "ແຜນເທຣດກອງທຶນ"),
-                    data.pair && React.createElement("span", { style: { fontSize: 11.5, fontWeight: 900, color: C.cyan, border: `1px solid ${C.blue}`, borderRadius: 7, padding: "2px 9px", background: "rgba(38,130,255,.14)", letterSpacing: .5 } }, String(data.pair).toUpperCase())),
+                    data.pair && React.createElement("span", { style: { fontSize: 11.5, fontWeight: 900, color: C.cyan, border: `1px solid ${C.blue}`, borderRadius: 7, padding: "2px 9px", background: "rgba(38,130,255,.14)", letterSpacing: .5 } }, String(data.pair).toUpperCase()),
+                    data.current_price && React.createElement("span", { style: { fontSize: 11.5, fontWeight: 700, color: C.cyan, border: `1px solid ${C.line}`, borderRadius: 7, padding: "2px 9px", background: "rgba(38,130,255,.08)" } }, "@ " + data.current_price)),
                 React.createElement("div", { style: { fontSize: 30, fontWeight: 900, color: dirColor, lineHeight: 1.1, fontFamily: "'LaoOverride','Sora','Noto Sans Lao',sans-serif" } }, dirIcon + " " + dirLabel),
                 s.status && React.createElement("div", { style: { fontSize: 12.5, color: C.text, marginTop: 4, fontWeight: 600 } }, s.status),
                 React.createElement("div", { style: { display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap", marginTop: 10 } },
